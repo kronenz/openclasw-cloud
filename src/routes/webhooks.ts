@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/index.js';
+import type { Bindings, Variables, ApiResponse, AiTextResponse, AiModelId } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
 import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES } from '../config/constants.js';
@@ -18,7 +18,7 @@ async function runAiInference(
 ): Promise<string> {
   const systemPrompt = soulContent || '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
   try {
-    const aiResult = await ai.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
+    const aiResult = await ai.run(DEFAULT_AI_MODEL as AiModelId, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },

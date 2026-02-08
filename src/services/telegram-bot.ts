@@ -1,6 +1,6 @@
-import type { Bindings, AiTextResponse } from '../types/index.js';
+import type { Bindings, AiTextResponse, AiModelId } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
 interface TelegramUpdate {
@@ -73,7 +73,7 @@ export class TelegramBot {
         : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
 
       // Call AI Gateway
-      const aiResult = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as Parameters<Ai['run']>[0], {
+      const aiResult = await this.env.AI.run(DEFAULT_AI_MODEL as AiModelId, {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
