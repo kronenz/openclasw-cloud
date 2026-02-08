@@ -2,6 +2,9 @@
 export const RATE_LIMIT_MAX_REQUESTS = 100;
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 
+// Time constants
+export const MS_PER_DAY = 86_400_000;
+
 // Subscription
 export const GRACE_PERIOD_DAYS = 7;
 export const MAX_RECOVERY_ATTEMPTS = 3;

@@ -2,6 +2,7 @@ import type { Bindings, ModelRecommendation, Alert } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
+import { MS_PER_DAY } from '../config/constants.js';
 
 // Model cost per 1K tokens (USD)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
@@ -143,7 +144,7 @@ export class CostController {
     if (!usage) return alerts;
 
     // Check for sudden spike (> 3x average of last 7 days)
-    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const weekAgo = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
     const historicalResult = await this.env.DB.prepare(`
       SELECT AVG(total_tokens) as avg_tokens, AVG(total_cost) as avg_cost
       FROM daily_usage

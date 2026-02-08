@@ -5,6 +5,7 @@ import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString } from '../utils/id.js';
 import { structuredLog, structuredError } from '../utils/log.js';
+import { MS_PER_DAY } from '../config/constants.js';
 
 interface EngagementResult {
   tenant_id: string;
@@ -104,7 +105,7 @@ export class CustomerEngagement {
   // Check if tenant has been inactive for 7 days and send re-engagement email
   async checkReEngagement(tenant: Tenant): Promise<boolean> {
     const endDate = toDateString();
-    const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const startDate = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
 
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
     const hasRecentActivity = usage.some(day => day.total_requests > 0);
@@ -165,7 +166,7 @@ export class CustomerEngagement {
 
     // Check last 7 days usage
     const endDate = toDateString();
-    const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    const startDate = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 
     const avgDailyTokens = usage.length > 0
@@ -226,7 +227,7 @@ export class CustomerEngagement {
   // Detect 50% usage drop and send at-risk alert to operator
   async checkUsageDrop(tenant: Tenant): Promise<boolean> {
     const endDate = toDateString();
-    const startDate = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+    const startDate = toDateString(new Date(Date.now() - 14 * MS_PER_DAY));
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 
     if (usage.length < 14) return false;

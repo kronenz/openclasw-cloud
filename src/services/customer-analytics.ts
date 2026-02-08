@@ -3,6 +3,7 @@ import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBil
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
+import { MS_PER_DAY } from '../config/constants.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -43,7 +44,7 @@ export class CustomerAnalytics {
   // Analyze a single tenant's usage patterns
   async analyzeTenant(tenantId: string): Promise<TenantAnalysis> {
     const endDate = toDateString();
-    const startDate = toDateString(new Date(Date.now() - 30 * 86400000));
+    const startDate = toDateString(new Date(Date.now() - 30 * MS_PER_DAY));
 
     const usageData = await getTenantUsageSummary(this.env.DB, tenantId, startDate, endDate);
 
@@ -125,7 +126,7 @@ export class CustomerAnalytics {
 
     // Check creation date (new tenant?)
     const createdAt = new Date(tenant.created_at);
-    const daysSinceCreation = (Date.now() - createdAt.getTime()) / 86400000;
+    const daysSinceCreation = (Date.now() - createdAt.getTime()) / MS_PER_DAY;
     const isNew = daysSinceCreation <= 14;
 
     if (isNew) {
@@ -144,7 +145,7 @@ export class CustomerAnalytics {
       ? new Date(analysis.usage_data[analysis.usage_data.length - 1].date)
       : null;
     const daysSinceLastActive = lastActiveDate
-      ? (Date.now() - lastActiveDate.getTime()) / 86400000
+      ? (Date.now() - lastActiveDate.getTime()) / MS_PER_DAY
       : 999;
 
     // Active in last 7 days? +20

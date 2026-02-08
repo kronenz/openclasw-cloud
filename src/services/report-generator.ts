@@ -3,6 +3,8 @@ import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans }
 import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError } from '../utils/log.js';
+import { toDateString } from '../utils/id.js';
+import { MS_PER_DAY } from '../config/constants.js';
 
 interface WeeklyReport {
   tenant_id: string;
@@ -38,9 +40,9 @@ export class ReportGenerator {
 
   async generateWeeklyReport(tenantId: string): Promise<WeeklyReport> {
     const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 86400000);
-    const startDate = weekAgo.toISOString().split('T')[0];
-    const endDate = now.toISOString().split('T')[0];
+    const weekAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
+    const startDate = toDateString(weekAgo);
+    const endDate = toDateString(now);
 
     const usage = await getTenantUsageSummary(this.env.DB, tenantId, startDate, endDate);
 
@@ -91,9 +93,9 @@ export class ReportGenerator {
 
   async generateMonthlyReport(tenantId: string): Promise<MonthlyReport> {
     const now = new Date();
-    const monthAgo = new Date(now.getTime() - 30 * 86400000);
-    const startDate = monthAgo.toISOString().split('T')[0];
-    const endDate = now.toISOString().split('T')[0];
+    const monthAgo = new Date(now.getTime() - 30 * MS_PER_DAY);
+    const startDate = toDateString(monthAgo);
+    const endDate = toDateString(now);
 
     const usage = await getTenantUsageSummary(this.env.DB, tenantId, startDate, endDate);
 
@@ -193,10 +195,10 @@ export class ReportGenerator {
 
   async generatePlatformReport(): Promise<PlatformReport> {
     const now = new Date();
-    const monthAgo = new Date(now.getTime() - 30 * 86400000);
-    const startDate = monthAgo.toISOString().split('T')[0];
-    const endDate = now.toISOString().split('T')[0];
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
+    const monthAgo = new Date(now.getTime() - 30 * MS_PER_DAY);
+    const startDate = toDateString(monthAgo);
+    const endDate = toDateString(now);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * MS_PER_DAY).toISOString();
 
     const allTenants = await listTenants(this.env.DB, { limit: 1000 });
     const activeTenants = allTenants.filter(t => t.status === 'active');
