@@ -5,7 +5,7 @@ import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_SOUL, soulR2Key } from '../config/const
 import { structuredWarn } from '../utils/log.js';
 
 export class SoulGenerator {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Generate SOUL.md content using AI
   async generate(tenantId: string, survey: OnboardingSurvey): Promise<string> {

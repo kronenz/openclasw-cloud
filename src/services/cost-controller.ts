@@ -16,7 +16,7 @@ const MODEL_COSTS: Record<string, { input: number; output: number }> = {
 const MODEL_DOWNGRADE_CHAIN = ['opus', 'sonnet', 'haiku', 'flash'];
 
 export class CostController {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Calculate cost for a usage record
   calculateCost(model: string, inputTokens: number, outputTokens: number): number {

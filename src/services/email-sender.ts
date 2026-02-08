@@ -12,7 +12,7 @@ interface EmailMessage {
 }
 
 export class EmailSender {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   private async send(message: EmailMessage): Promise<boolean> {
     // Use Resend API if configured, otherwise log

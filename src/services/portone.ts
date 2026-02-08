@@ -39,7 +39,7 @@ interface CheckoutResponse { checkout_url?: string }
 interface BillingKeyResponse { billing_key?: string }
 
 export class PortOneClient {
-  private apiKey: string;
+  private readonly apiKey: string;
 
   constructor(env: Bindings) {
     this.apiKey = env.PORTONE_API_KEY || '';

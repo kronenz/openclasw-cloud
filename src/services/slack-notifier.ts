@@ -4,7 +4,7 @@ import { structuredError } from '../utils/log.js';
 import { nowISO } from '../utils/id.js';
 
 export class SlackNotifier {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   private async send(payload: Record<string, unknown>): Promise<boolean> {
     if (!this.env.SLACK_WEBHOOK_URL) {

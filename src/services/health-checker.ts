@@ -16,7 +16,7 @@ interface HealthReport {
 }
 
 export class HealthChecker {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Check a single tenant's health
   async checkTenant(tenantId: string): Promise<TenantHealth> {

@@ -19,7 +19,7 @@ interface RecoveryResult {
 }
 
 export class AutoRecovery {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Main entry point for auto-recovery
   async attemptRecovery(tenantId: string, health: TenantHealth): Promise<void> {

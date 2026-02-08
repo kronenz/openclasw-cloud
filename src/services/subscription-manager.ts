@@ -19,7 +19,7 @@ export interface OverageInfo {
 }
 
 export class SubscriptionManager {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   /**
    * Get subscription or throw if not found

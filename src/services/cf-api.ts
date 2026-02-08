@@ -15,7 +15,7 @@ interface CfResourceResult {
 }
 
 export class CloudflareApi {
-  private config: CfApiConfig;
+  private readonly config: CfApiConfig;
 
   constructor(env: Bindings) {
     this.config = {

@@ -20,7 +20,7 @@ interface BackupSummary {
 }
 
 export class BackupService {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Backup a single tenant's data to R2
   async backupTenant(tenantId: string): Promise<BackupResult> {

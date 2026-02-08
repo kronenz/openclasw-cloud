@@ -21,7 +21,7 @@ interface TelegramSendResult {
 }
 
 export class TelegramBot {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Get bot token for a tenant from KV
   private async getBotToken(tenantId: string): Promise<string | null> {

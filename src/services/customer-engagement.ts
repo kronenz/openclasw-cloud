@@ -24,10 +24,10 @@ interface EngagementSummary {
 }
 
 export class CustomerEngagement {
-  private emailSender: EmailSender;
-  private healthChecker: HealthChecker;
+  private readonly emailSender: EmailSender;
+  private readonly healthChecker: HealthChecker;
 
-  constructor(private env: Bindings) {
+  constructor(private readonly env: Bindings) {
     this.emailSender = new EmailSender(env);
     this.healthChecker = new HealthChecker(env);
   }

@@ -26,7 +26,7 @@ interface ProvisionResult {
 }
 
 export class TenantProvisioner {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Step 1: Plan - generate tenant ID, subdomain, determine resources
   async plan(input: CreateTenantInput): Promise<ProvisioningPlan> {

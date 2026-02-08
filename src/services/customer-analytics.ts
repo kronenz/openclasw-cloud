@@ -41,7 +41,7 @@ interface TenantInsight {
 }
 
 export class CustomerAnalytics {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   // Analyze a single tenant's usage patterns
   async analyzeTenant(tenantId: string): Promise<TenantAnalysis> {

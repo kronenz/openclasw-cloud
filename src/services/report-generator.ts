@@ -56,7 +56,7 @@ function aggregateTopModels(usage: DailyUsage[], limit = 5): { model: string; to
 }
 
 export class ReportGenerator {
-  constructor(private env: Bindings) {}
+  constructor(private readonly env: Bindings) {}
 
   async generateWeeklyReport(tenantId: string): Promise<WeeklyReport> {
     const now = new Date();
