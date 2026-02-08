@@ -1,0 +1,104 @@
+# Cloudflare Workers 설정 파일
+# OpenClaw Cloud 인프라 구성
+
+name = "openclasw-cloud"
+main = "src/index.ts"
+compatibility_date = "2026-02-08"
+compatibility_flags = ["nodejs_compat"]
+
+# 기본 환경 변수
+[vars]
+ENVIRONMENT = "development"
+LOG_LEVEL = "info"
+AI_GATEWAY_ENDPOINT = "https://gateway.ai.cloudflare.com/v1"
+
+# D1 데이터베이스 바인딩
+[[d1_databases]]
+binding = "DB"
+database_name = "openclasw-db"
+database_id = "TODO"  # wrangler d1 create 후 ID 입력
+preview_database_id = "TODO"  # 프리뷰용 별도 DB
+
+# R2 오브젝트 스토리지 바인딩
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "openclasw-storage"
+preview_bucket_name = "openclasw-storage-preview"
+
+# KV 네임스페이스 바인딩
+[[kv_namespaces]]
+binding = "CACHE"
+id = "TODO"  # wrangler kv:namespace create 후 ID 입력
+preview_id = "TODO"  # 프리뷰용 별도 네임스페이스
+
+# 세션 전용 KV
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "TODO"
+preview_id = "TODO"
+
+# AI Gateway 바인딩
+[ai]
+binding = "AI"
+
+# 환경별 설정: 스테이징
+[env.staging]
+name = "openclasw-cloud-staging"
+vars = { ENVIRONMENT = "staging", LOG_LEVEL = "debug" }
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "openclasw-db-staging"
+database_id = "TODO"
+
+[[env.staging.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "openclasw-storage-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "CACHE"
+id = "TODO"
+
+[[env.staging.kv_namespaces]]
+binding = "SESSIONS"
+id = "TODO"
+
+# 환경별 설정: 프로덕션
+[env.production]
+name = "openclasw-cloud"
+vars = { ENVIRONMENT = "production", LOG_LEVEL = "warn" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "openclasw-db-production"
+database_id = "TODO"
+
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "openclasw-storage-production"
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "TODO"
+
+[[env.production.kv_namespaces]]
+binding = "SESSIONS"
+id = "TODO"
+
+# 빌드 설정
+[build]
+command = "npm run build"
+
+# 업로드 규칙
+[build.upload]
+format = "service-worker"
+
+# 로깅
+[observability]
+enabled = true
+head_sampling_rate = 1.0  # 프로덕션에서는 0.1로 조정
+
+# 로컬 개발 설정
+[dev]
+port = 8787
+local_protocol = "http"
