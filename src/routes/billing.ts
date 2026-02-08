@@ -11,8 +11,8 @@ import { withErrorHandler, validationError } from '../utils/error-handler.js';
 
 const billing = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-function getTenantIdFromContext(c: { req: { query: (k: string) => string | undefined }; get: (k: string) => string | undefined }): string {
-  return c.req.query('tenant_id') || c.get('tenantId') || '';
+function getTenantIdFromContext(c: { get: (k: string) => string | undefined }): string {
+  return c.get('tenantId') || '';
 }
 
 // Portone webhook payload type

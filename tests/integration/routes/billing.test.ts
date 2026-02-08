@@ -36,7 +36,7 @@ describe('Billing Routes', () => {
   describe('POST /api/billing/subscription/upgrade', () => {
     it('rejects upgrade without plan_id', async () => {
       const headers = await getAuthHeader();
-      const res = await app.request('/api/billing/subscription/upgrade?tenant_id=tn_test-tenant-1', {
+      const res = await app.request('/api/billing/subscription/upgrade', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -50,7 +50,7 @@ describe('Billing Routes', () => {
 
     it('rejects upgrade with invalid plan_id', async () => {
       const headers = await getAuthHeader();
-      const res = await app.request('/api/billing/subscription/upgrade?tenant_id=tn_test-tenant-1', {
+      const res = await app.request('/api/billing/subscription/upgrade', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ new_plan_id: 'invalid_plan' }),
@@ -77,7 +77,7 @@ describe('Billing Routes', () => {
       ).bind('sub_test', 'tn_test-tenant-1', 'plan_starter', 'active', new Date().toISOString(), new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()).run();
 
       const headers = await getAuthHeader();
-      const res = await app.request('/api/billing/subscription/cancel?tenant_id=tn_test-tenant-1', {
+      const res = await app.request('/api/billing/subscription/cancel', {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
       }, env);
@@ -242,7 +242,7 @@ describe('Billing Routes', () => {
       ).bind('sub_test', 'tn_test-tenant-1', 'plan_starter', 'active', new Date().toISOString(), new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()).run();
 
       const headers = await getAuthHeader();
-      const res = await app.request('/api/billing/usage?tenant_id=tn_test-tenant-1', {
+      const res = await app.request('/api/billing/usage', {
         headers,
       }, env);
 
