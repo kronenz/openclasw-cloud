@@ -161,6 +161,8 @@ export default {
         ctx.waitUntil(runCronJob('monthly_reports', () => reports.sendMonthlyReports()));
         break;
       }
+      default:
+        structuredWarn('unknown_cron_trigger', { cron });
     }
   },
 };
