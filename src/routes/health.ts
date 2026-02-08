@@ -35,10 +35,10 @@ health.get('/detailed', withErrorHandler('health_detailed_check_failed', async (
 
   const checks = { d1, kv, r2 };
 
-  const overallStatus = Object.values(checks).every(check => check.status === 'healthy') ? 'healthy' : 'degraded';
+  const overallStatus: HealthStatus['status'] = Object.values(checks).every(check => check.status === 'healthy') ? 'healthy' : 'degraded';
 
   return c.json<HealthStatus & { environment: string }>({
-    status: overallStatus as HealthStatus['status'],
+    status: overallStatus,
     timestamp: nowISO(),
     version: APP_VERSION,
     environment: c.env.ENVIRONMENT,
