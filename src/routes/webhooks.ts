@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import type { Bindings, Variables, ApiResponse, AiTextResponse, TelegramUpdate } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES, DEFAULT_AI_SYSTEM_PROMPT, API_TIMEOUT_STANDARD, soulR2Key } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { withErrorHandler } from '../utils/error-handler.js';
@@ -309,7 +309,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
               channel: channelId,
               text: responseText,
             }),
-          }).catch((error) => {
+          }, API_TIMEOUT_STANDARD).catch((error) => {
             structuredError('slack_message_send_failed', error);
           })
         );

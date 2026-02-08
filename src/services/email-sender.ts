@@ -2,7 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { RESEND_API_URL, OPENCLAW_DOMAIN } from '../config/constants.js';
+import { RESEND_API_URL, OPENCLAW_DOMAIN, API_TIMEOUT_STANDARD } from '../config/constants.js';
 
 interface EmailMessage {
   to: string;
@@ -41,7 +41,7 @@ export class EmailSender {
           html: message.html,
           text: message.text,
         }),
-      });
+      }, API_TIMEOUT_STANDARD);
 
       if (!res.ok) {
         const err = await res.text();

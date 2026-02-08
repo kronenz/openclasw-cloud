@@ -2,6 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { structuredError } from '../utils/log.js';
 import { nowISO } from '../utils/id.js';
+import { API_TIMEOUT_STANDARD } from '../config/constants.js';
 
 export class SlackNotifier {
   constructor(private readonly env: Bindings) {}
@@ -16,7 +17,7 @@ export class SlackNotifier {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
+      }, API_TIMEOUT_STANDARD);
       return res.ok;
     } catch (error) {
       structuredError('slack_notification_failed', error);

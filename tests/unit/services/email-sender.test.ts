@@ -53,7 +53,8 @@ describe('EmailSender', () => {
             'Authorization': 'Bearer test-resend-key',
             'Content-Type': 'application/json',
           }),
-        })
+        }),
+        15000,
       );
       expect(structuredLog).toHaveBeenCalledWith('email_sent', {
         to: 'john@example.com',
