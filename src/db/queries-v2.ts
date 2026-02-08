@@ -454,3 +454,16 @@ export async function updateBillingSubscription(
   const stmt = db.prepare(query).bind(...bindings);
   await stmt.run();
 }
+
+// Helper to check for recent notifications (deduplication)
+export async function hasRecentNotification(
+  db: D1Database,
+  tenantId: string,
+  type: string,
+  withinDays: number
+): Promise<boolean> {
+  const result = await db.prepare(
+    `SELECT COUNT(*) as count FROM notifications WHERE tenant_id = ? AND type = ? AND created_at > datetime('now', '-' || ? || ' days')`
+  ).bind(tenantId, type, withinDays).first<{ count: number }>();
+  return (result?.count ?? 0) > 0;
+}

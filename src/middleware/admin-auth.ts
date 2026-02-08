@@ -1,16 +1,15 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
 import { verifyJWT } from '../utils/crypto.js';
+import { extractBearerToken } from '../utils/jwt-helpers.js';
 
 // Admin auth middleware - verifies Bearer token and checks for admin role
 // Returns 401 if token is missing/invalid, 403 if not admin
 export const adminAuth = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = extractBearerToken(c.req.header('Authorization'));
+  if (!token) {
     return c.json({ success: false, error: 'Missing authorization', code: 'AUTH_REQUIRED' }, 401);
   }
-
-  const token = authHeader.slice(7);
   try {
     const payload = await verifyJWT(token, c.env.JWT_SECRET);
 

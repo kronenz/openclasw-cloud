@@ -1,6 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
 import { verifyJWT } from '../utils/crypto.js';
+import { extractBearerToken } from '../utils/jwt-helpers.js';
 
 // Auth middleware - verifies Bearer token
 // Sets c.set('tenantId', ...) on success
@@ -11,12 +12,10 @@ export const authMiddleware = createMiddleware<{ Bindings: Bindings; Variables: 
     return next();
   }
 
-  const authHeader = c.req.header('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = extractBearerToken(c.req.header('Authorization'));
+  if (!token) {
     return c.json({ success: false, error: 'Missing authorization', code: 'AUTH_REQUIRED' }, 401);
   }
-
-  const token = authHeader.slice(7);
   try {
     const payload = await verifyJWT(token, c.env.JWT_SECRET);
     c.set('tenantId', payload.sub as string);

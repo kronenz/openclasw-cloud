@@ -1,11 +1,12 @@
 import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
-import { createNotification, createEmailNotification } from '../db/queries-v2.js';
+import { createNotification, createEmailNotification, hasRecentNotification } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString } from '../utils/id.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
+import { aggregateTokenUsage } from '../utils/analytics.js';
 
 interface EngagementResult {
   tenant_id: string;
@@ -112,12 +113,7 @@ export class CustomerEngagement {
 
     if (!hasRecentActivity && tenant.contact_email) {
       // Check if we already sent a re-engagement email in the last 7 days
-      const recentNotifications = await this.env.DB.prepare(`
-        SELECT COUNT(*) as count FROM notifications
-        WHERE tenant_id = ? AND type = 're_engagement' AND created_at > datetime('now', '-7 days')
-      `).bind(tenant.id).first<{ count: number }>();
-
-      if (recentNotifications && recentNotifications.count > 0) {
+      if (await hasRecentNotification(this.env.DB, tenant.id, 're_engagement', 7)) {
         return false; // Already sent recently
       }
 
@@ -177,12 +173,7 @@ export class CustomerEngagement {
 
     if (usagePercent > USAGE_HIGH_THRESHOLD_PERCENT) {
       // Check if already notified recently
-      const recentNotifications = await this.env.DB.prepare(`
-        SELECT COUNT(*) as count FROM notifications
-        WHERE tenant_id = ? AND type = 'upsell' AND created_at > datetime('now', '-14 days')
-      `).bind(tenant.id).first<{ count: number }>();
-
-      if (recentNotifications && recentNotifications.count > 0) {
+      if (await hasRecentNotification(this.env.DB, tenant.id, 'upsell', 14)) {
         return false; // Already notified
       }
 
@@ -225,8 +216,8 @@ export class CustomerEngagement {
     if (usage.length < 14) return false;
 
     // Compare this week (last 7 days) to previous week (8-14 days ago)
-    const thisWeek = usage.slice(-7).reduce((sum, day) => sum + day.total_tokens, 0);
-    const prevWeek = usage.slice(-14, -7).reduce((sum, day) => sum + day.total_tokens, 0);
+    const thisWeek = aggregateTokenUsage(usage, 0, 7);
+    const prevWeek = aggregateTokenUsage(usage, 7, 7);
 
     if (prevWeek > 0 && thisWeek < prevWeek * USAGE_DROP_THRESHOLD) {
       const dropPercent = ((prevWeek - thisWeek) / prevWeek) * 100;

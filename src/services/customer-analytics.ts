@@ -5,7 +5,7 @@ import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
 import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
 import { structuredLog } from '../utils/log.js';
-import { calculateUsageTrend } from '../utils/analytics.js';
+import { calculateUsageTrend, aggregateTokenUsage } from '../utils/analytics.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -161,8 +161,8 @@ export class CustomerAnalytics {
 
     // Check for usage drop (comparing last 7 days to previous 7 days)
     if (analysis.usage_data.length >= 14) {
-      const lastWeek = analysis.usage_data.slice(-7).reduce((sum, d) => sum + d.total_tokens, 0);
-      const prevWeek = analysis.usage_data.slice(-14, -7).reduce((sum, d) => sum + d.total_tokens, 0);
+      const lastWeek = aggregateTokenUsage(analysis.usage_data, 0, 7);
+      const prevWeek = aggregateTokenUsage(analysis.usage_data, 7, 7);
       if (prevWeek > 0 && lastWeek < prevWeek * USAGE_DROP_THRESHOLD) {
         riskFactors.push('usage_dropped_50pct');
       }
