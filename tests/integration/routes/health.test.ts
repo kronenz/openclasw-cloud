@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 describe('Health Routes', () => {
   beforeAll(async () => {
@@ -17,7 +18,7 @@ describe('Health Routes', () => {
 
     it('returns correct response structure', async () => {
       const res = await app.request('/health', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body).toHaveProperty('status');
       expect(body).toHaveProperty('timestamp');
@@ -28,7 +29,7 @@ describe('Health Routes', () => {
 
     it('returns timestamp in ISO format', async () => {
       const res = await app.request('/health', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
       const timestamp = new Date(body.timestamp);
@@ -45,7 +46,7 @@ describe('Health Routes', () => {
 
     it('returns correct response structure with checks', async () => {
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body).toHaveProperty('status');
       expect(body).toHaveProperty('timestamp');
@@ -59,7 +60,7 @@ describe('Health Routes', () => {
 
     it('returns healthy status when all checks pass', async () => {
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.status).toBe('healthy');
       expect(body.checks.d1.status).toBe('healthy');
@@ -68,7 +69,7 @@ describe('Health Routes', () => {
 
     it('includes latency measurements for all checks', async () => {
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.checks.d1).toHaveProperty('latency_ms');
       expect(body.checks.kv).toHaveProperty('latency_ms');
@@ -84,7 +85,7 @@ describe('Health Routes', () => {
       });
 
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.status).toBe('degraded');
       expect(body.checks.d1.status).toBe('unhealthy');
@@ -99,7 +100,7 @@ describe('Health Routes', () => {
       vi.spyOn(env.CACHE, 'get').mockRejectedValue(new Error('KV unavailable'));
 
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.status).toBe('degraded');
       expect(body.checks.kv.status).toBe('unhealthy');
@@ -113,7 +114,7 @@ describe('Health Routes', () => {
       vi.spyOn(env.STORAGE, 'head').mockRejectedValue(new Error('R2 service unavailable'));
 
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.status).toBe('degraded');
       expect(body.checks.r2.status).toBe('unhealthy');
@@ -125,7 +126,7 @@ describe('Health Routes', () => {
 
     it('includes environment information', async () => {
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.environment).toBeDefined();
       expect(typeof body.environment).toBe('string');
@@ -141,7 +142,7 @@ describe('Health Routes', () => {
       vi.spyOn(env.CACHE, 'get').mockRejectedValue(new Error('KV error'));
 
       const res = await app.request('/health/detailed', {}, env);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       expect(body.status).toBe('degraded');
       expect(body.checks.d1.status).toBe('unhealthy');

@@ -46,12 +46,19 @@ export class CloudflareApi {
     return !!(this.config.apiToken && this.config.accountId);
   }
 
+  private ensureConfigured(): void {
+    if (!this.config.apiToken || !this.config.accountId) {
+      throw new Error('Cloudflare API is not configured. Set CF_API_TOKEN and CF_ACCOUNT_ID environment variables.');
+    }
+  }
+
   async createD1Database(name: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
       const id = generateId('d1');
       structuredLog('cf_api_d1_simulated', { name, id });
       return { id, name };
     }
+    this.ensureConfigured();
     // Real Cloudflare API call: POST /d1/database with { name }
     // This would be replaced with actual fetch call when credentials are configured
     const result = await this.request<CfResourceResult>('/d1/database', {
@@ -68,6 +75,7 @@ export class CloudflareApi {
       structuredLog('cf_api_kv_simulated', { title, id });
       return { id, name: title };
     }
+    this.ensureConfigured();
     // Real Cloudflare API call: POST /storage/kv/namespaces with { title }
     // This would be replaced with actual fetch call when credentials are configured
     const result = await this.request<{ id: string }>('/storage/kv/namespaces', {
@@ -84,6 +92,7 @@ export class CloudflareApi {
       structuredLog('cf_api_r2_simulated', { name, id });
       return { id, name };
     }
+    this.ensureConfigured();
     // Real Cloudflare API call: POST /r2/buckets with { name }
     // This would be replaced with actual fetch call when credentials are configured
     await this.request<void>('/r2/buckets', {
@@ -100,6 +109,7 @@ export class CloudflareApi {
       structuredLog('cf_api_worker_simulated', { name, id });
       return { id, name };
     }
+    this.ensureConfigured();
     // Real Cloudflare API call: PUT /workers/scripts/{name} with multipart form data
     // This would be replaced with actual fetch call when credentials are configured
     const workerScript = script || `export default { fetch() { return new Response('OK'); } }`;

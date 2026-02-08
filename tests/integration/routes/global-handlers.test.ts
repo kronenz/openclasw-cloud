@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
+import { parseApiResponse } from '../../helpers/types.js';
 
 describe('Global Handlers', () => {
   describe('404 Handler', () => {
@@ -10,7 +11,7 @@ describe('Global Handlers', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body).toEqual({
         success: false,
         error: 'Not found',
@@ -26,7 +27,7 @@ describe('Global Handlers', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.code).toBe('NOT_FOUND');
     });
 

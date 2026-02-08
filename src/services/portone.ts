@@ -44,10 +44,17 @@ export class PortOneClient {
     }
   }
 
+  private ensureConfigured(): void {
+    if (!this.apiKey) {
+      throw new Error('PortOne API key is not configured. Set PORTONE_API_KEY environment variable.');
+    }
+  }
+
   /**
    * Create a checkout URL for one-time payment
    */
   async createCheckoutUrl(params: CheckoutParams): Promise<string> {
+    this.ensureConfigured();
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/prepare`, {
         method: 'POST',
@@ -96,6 +103,7 @@ export class PortOneClient {
    * Process a refund
    */
   async processRefund(params: RefundParams): Promise<void> {
+    this.ensureConfigured();
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/${params.paymentId}/cancel`, {
         method: 'POST',
@@ -131,6 +139,7 @@ export class PortOneClient {
    * Create a billing key for recurring payments
    */
   async createBillingKey(params: BillingKeyParams): Promise<string> {
+    this.ensureConfigured();
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys`, {
         method: 'POST',
@@ -171,6 +180,7 @@ export class PortOneClient {
    * Charge using a billing key (recurring payment)
    */
   async chargeWithBillingKey(params: ChargeParams): Promise<void> {
+    this.ensureConfigured();
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys/${params.billingKey}/charge`, {
         method: 'POST',
