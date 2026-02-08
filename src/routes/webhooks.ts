@@ -136,7 +136,7 @@ webhooks.post('/messenger', withErrorHandler('messenger_webhook_failed', async (
 }));
 
 // KakaoTalk webhook handler
-async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: KakaoTalkRequest) {
+async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: KakaoTalkRequest): Promise<Response> {
   try {
     // Validate request structure
     if (!body.userRequest?.utterance) {
@@ -215,7 +215,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
 }
 
 // Telegram webhook handler
-async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: TelegramUpdate) {
+async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: TelegramUpdate): Promise<Response> {
   try {
     // Validate Telegram update structure
     if (!body.message?.text || !body.message?.chat?.id) {
@@ -267,7 +267,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variab
 }
 
 // Slack webhook handler
-async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: SlackEvent) {
+async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: SlackEvent): Promise<Response> {
   try {
     // Handle URL verification challenge
     if (body.type === 'url_verification' && body.challenge) {
@@ -343,7 +343,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
 }
 
 // Discord webhook handler
-async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: DiscordInteraction) {
+async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: DiscordInteraction): Promise<Response> {
   try {
     // Handle PING verification (type 1)
     if (body.type === 1) {
