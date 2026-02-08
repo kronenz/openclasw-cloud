@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, BillingPlan, BillingSubscription } from '../types/index.js';
 import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/queries.js';
 import { updateTenant } from '../db/queries.js';
-import { createNotification } from '../db/queries-v2.js';
+import { createEmailNotification } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';
 import { BILLING_PLAN_IDS, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
@@ -255,18 +255,11 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
       }
 
       // Send welcome notification
-      await createNotification(c.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'welcome',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Payment Received',
-          body: 'Your payment has been processed successfully. Thank you!',
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        c.env.DB, tenantId, 'welcome',
+        'Payment Received',
+        'Your payment has been processed successfully. Thank you!'
+      );
       break;
     }
 
@@ -281,18 +274,11 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
       }
 
       // Send payment failed notification
-      await createNotification(c.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'payment_failed',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Payment Failed',
-          body: 'Your payment could not be processed. Please update your payment method.',
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        c.env.DB, tenantId, 'payment_failed',
+        'Payment Failed',
+        'Your payment could not be processed. Please update your payment method.'
+      );
       break;
     }
 
