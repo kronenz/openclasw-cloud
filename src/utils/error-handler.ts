@@ -10,8 +10,8 @@ import { ERROR_CODES } from '../config/constants.js';
 export function withErrorHandler<B extends Bindings = Bindings, V extends object = Variables>(
   eventName: string,
   handler: (c: Context<{ Bindings: B; Variables: V }>) => Promise<Response>,
-) {
-  return async (c: Context<{ Bindings: B; Variables: V }>) => {
+): (c: Context<{ Bindings: B; Variables: V }>) => Promise<Response> {
+  return async (c: Context<{ Bindings: B; Variables: V }>): Promise<Response> => {
     try {
       return await handler(c);
     } catch (e) {
@@ -27,7 +27,7 @@ export function withErrorHandler<B extends Bindings = Bindings, V extends object
 /**
  * Returns a standardized validation error response.
  */
-export function validationError(c: Context, message: string, details?: unknown) {
+export function validationError(c: Context, message: string, details?: unknown): Response {
   return c.json<ApiResponse>(
     { success: false, error: message, code: ERROR_CODES.VALIDATION_ERROR, details },
     400
