@@ -65,6 +65,75 @@ describe('Tenant Routes', () => {
 
       expect(res.status).toBe(401);
     });
+
+    it('returns 400 when missing name', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_email: 'test@example.com',
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with invalid email', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Test Tenant',
+          contact_email: 'not-an-email',
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with reserved subdomain', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Admin Tenant',
+          contact_email: 'admin@example.com',
+          subdomain: 'admin',
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with invalid subdomain format', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Test Tenant',
+          contact_email: 'test@example.com',
+          subdomain: 'Invalid_Subdomain',
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('GET /api/tenants', () => {
@@ -78,6 +147,30 @@ describe('Tenant Routes', () => {
       const body = await res.json() as any;
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
+    });
+
+    it('returns 400 when limit exceeds max (100)', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants?limit=101', {
+        headers,
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('returns 400 with negative offset', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants?offset=-1', {
+        headers,
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -119,6 +212,21 @@ describe('Tenant Routes', () => {
       const body = await res.json() as any;
       expect(body.data.name).toBe('Updated Corp');
     });
+
+    it('returns 400 with invalid status', async () => {
+      await createTestTenant();
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants/tn_test-tenant-1', {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'invalid_status' }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
   });
 
   describe('DELETE /api/tenants/:id', () => {
@@ -133,6 +241,21 @@ describe('Tenant Routes', () => {
       expect(res.status).toBe(200);
       const body = await res.json() as any;
       expect(body.data.status).toBe('deleted');
+    });
+  });
+
+  describe('GET /api/tenants/:id/usage', () => {
+    it('returns 400 with invalid date format', async () => {
+      await createTestTenant();
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/tenants/tn_test-tenant-1/usage?start_date=invalid-date', {
+        headers,
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
     });
   });
 });
