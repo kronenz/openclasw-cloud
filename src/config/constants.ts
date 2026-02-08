@@ -46,6 +46,12 @@ export const RESERVED_SUBDOMAINS = new Set([
 // AI model settings
 export const AI_MAX_TOKENS_DEFAULT = 1000;
 export const AI_MAX_TOKENS_SOUL = 2000;
+export const DEFAULT_AI_SYSTEM_PROMPT = '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+
+// R2 storage path helpers
+export function soulR2Key(tenantId: string): string {
+  return `tenants/${tenantId}/SOUL.md`;
+}
 
 // Cache TTL (seconds)
 export const CACHE_TTL_SOUL_MD = 3600;  // 1 hour

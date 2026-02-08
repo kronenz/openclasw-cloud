@@ -14,6 +14,7 @@ import {
   MAX_CUSTOM_INSTRUCTIONS_LENGTH,
   CACHE_TTL_SOUL_MD,
   ERROR_CODES,
+  soulR2Key,
 } from '../config/constants.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
@@ -126,7 +127,7 @@ onboarding.get('/:tenantId/soul', tenantScope, withErrorHandler('soul_get_failed
     let soulContent = await c.env.CACHE.get(cacheKey);
 
     if (!soulContent) {
-      const r2Object = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const r2Object = await c.env.STORAGE.get(soulR2Key(tenantId));
       if (!r2Object) {
         return c.json<ApiResponse>({
           success: false,

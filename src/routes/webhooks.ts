@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import type { Bindings, Variables, ApiResponse, AiTextResponse, AiModelId } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { withErrorHandler } from '../utils/error-handler.js';
@@ -16,7 +16,7 @@ async function runAiInference(
   userMessage: string,
   soulContent: string | null,
 ): Promise<string> {
-  const systemPrompt = soulContent || '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+  const systemPrompt = soulContent || DEFAULT_AI_SYSTEM_PROMPT;
   try {
     const aiResult = await ai.run(DEFAULT_AI_MODEL as AiModelId, {
       messages: [
@@ -169,7 +169,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
     }
 
     // Get SOUL.md for this tenant
-    const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+    const soulContent = await c.env.STORAGE.get(soulR2Key(tenantId));
     const soulText = soulContent ? await soulContent.text() : null;
 
     // Call AI Gateway with error handling
@@ -288,7 +288,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
       }
 
       // Get SOUL.md for this tenant
-      const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const soulContent = await c.env.STORAGE.get(soulR2Key(tenantId));
       const soulText = soulContent ? await soulContent.text() : null;
 
       // Call AI Gateway with error handling
@@ -364,7 +364,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
       }
 
       // Get SOUL.md for this tenant
-      const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const soulContent = await c.env.STORAGE.get(soulR2Key(tenantId));
       const soulText = soulContent ? await soulContent.text() : null;
 
       // Call AI Gateway with error handling

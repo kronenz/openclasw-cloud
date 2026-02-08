@@ -2,7 +2,7 @@ import type { Bindings, TenantHealth, Alert } from '../types/index.js';
 import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { SlackNotifier } from './slack-notifier.js';
-import { CACHE_TTL_HEALTH_STATUS } from '../config/constants.js';
+import { CACHE_TTL_HEALTH_STATUS, soulR2Key } from '../config/constants.js';
 import { structuredLog, formatErrorMessage } from '../utils/log.js';
 import { nowISO } from '../utils/id.js';
 
@@ -33,7 +33,7 @@ export class HealthChecker {
       }
 
       // Check 2: SOUL.md exists in R2
-      const soulObj = await this.env.STORAGE.head(`tenants/${tenantId}/SOUL.md`);
+      const soulObj = await this.env.STORAGE.head(soulR2Key(tenantId));
       details.soul_exists = !!soulObj;
       if (!soulObj && status === 'healthy') {
         status = 'degraded';

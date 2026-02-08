@@ -1,6 +1,6 @@
 import type { Bindings, AiTextResponse, AiModelId } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE, API_TIMEOUT_STANDARD } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE, API_TIMEOUT_STANDARD, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
 interface TelegramUpdate {
@@ -67,10 +67,10 @@ export class TelegramBot {
 
     try {
       // Get SOUL.md for this tenant's persona
-      const soulContent = await this.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const soulContent = await this.env.STORAGE.get(soulR2Key(tenantId));
       const systemPrompt = soulContent
         ? await soulContent.text()
-        : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+        : DEFAULT_AI_SYSTEM_PROMPT;
 
       // Call AI Gateway
       const aiResult = await this.env.AI.run(DEFAULT_AI_MODEL as AiModelId, {

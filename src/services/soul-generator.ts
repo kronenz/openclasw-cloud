@@ -1,7 +1,7 @@
-import type { Bindings, OnboardingSurvey, AiTextResponse } from '../types/index.js';
+import type { Bindings, OnboardingSurvey, AiTextResponse, AiModelId } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
-import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_SOUL } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_SOUL, soulR2Key } from '../config/constants.js';
 import { structuredWarn } from '../utils/log.js';
 
 export class SoulGenerator {
@@ -60,7 +60,7 @@ export class SoulGenerator {
 SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
 
     try {
-      const result = await this.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
+      const result = await this.env.AI.run(DEFAULT_AI_MODEL as AiModelId, {
         messages: [
           { role: 'system', content: '당신은 AI 비서 설정 문서(SOUL.md) 전문 작성자입니다. 마크다운 형식으로 작성합니다.' },
           { role: 'user', content: prompt },
@@ -151,6 +151,6 @@ ${survey.custom_instructions ? `## 추가 지시사항\n${survey.custom_instruct
     });
 
     // Store in R2
-    await this.env.STORAGE.put(`tenants/${tenantId}/SOUL.md`, content);
+    await this.env.STORAGE.put(soulR2Key(tenantId), content);
   }
 }

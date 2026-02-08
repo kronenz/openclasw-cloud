@@ -1,7 +1,7 @@
 import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getTenant } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
-import { BACKUP_RETENTION_DAYS } from '../config/constants.js';
+import { BACKUP_RETENTION_DAYS, soulR2Key } from '../config/constants.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { nowISO } from '../utils/id.js';
 
@@ -38,7 +38,7 @@ export class BackupService {
       }
 
       // Backup SOUL.md
-      const soulObj = await this.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const soulObj = await this.env.STORAGE.get(soulR2Key(tenantId));
       let soulBackupSize = 0;
 
       if (soulObj) {
@@ -136,7 +136,7 @@ export class BackupService {
       }
 
       const soulContent = await soulBackup.text();
-      await this.env.STORAGE.put(`tenants/${tenantId}/SOUL.md`, soulContent, {
+      await this.env.STORAGE.put(soulR2Key(tenantId), soulContent, {
         httpMetadata: {
           contentType: 'text/markdown',
         },

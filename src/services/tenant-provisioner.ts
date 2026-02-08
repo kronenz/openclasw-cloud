@@ -9,6 +9,7 @@ import {
   getTenantResources
 } from '../db/queries.js';
 import { generateTenantId, generateResourceId, generateSubdomain, nowISO } from '../utils/id.js';
+import { soulR2Key } from '../config/constants.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
@@ -62,7 +63,7 @@ export class TenantProvisioner {
   async initializeOpenClaw(tenantId: string, plan: ProvisioningPlan): Promise<void> {
     // Store a basic SOUL.md in R2 for this tenant
     const soulContent = `# ${plan.subdomain} AI 비서\n\n업종: ${plan.industry}\n플랜: ${plan.plan}`;
-    await this.env.STORAGE.put(`tenants/${tenantId}/SOUL.md`, soulContent);
+    await this.env.STORAGE.put(soulR2Key(tenantId), soulContent);
   }
 
   // Step 4: Setup auth - generate API key and JWT

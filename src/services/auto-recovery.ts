@@ -8,7 +8,7 @@ import {
 } from '../db/queries.js';
 import { createEmailNotification } from '../db/queries-v2.js';
 import { generateIncidentId, nowISO } from '../utils/id.js';
-import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
+import { MAX_RECOVERY_ATTEMPTS, soulR2Key } from '../config/constants.js';
 import { SlackNotifier } from './slack-notifier.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
@@ -150,7 +150,7 @@ export class AutoRecovery {
       steps.push('Resources verified');
 
       // Step 3: Re-check health after recovery attempts
-      const soulObj = await this.env.STORAGE.head(`tenants/${tenantId}/SOUL.md`);
+      const soulObj = await this.env.STORAGE.head(soulR2Key(tenantId));
       if (!soulObj) {
         return {
           success: false,
@@ -192,7 +192,7 @@ export class AutoRecovery {
       const backupContent = await backupObj.text();
 
       // Restore to active location
-      await this.env.STORAGE.put(`tenants/${tenantId}/SOUL.md`, backupContent, {
+      await this.env.STORAGE.put(soulR2Key(tenantId), backupContent, {
         httpMetadata: {
           contentType: 'text/markdown',
         },
