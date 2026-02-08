@@ -6,11 +6,11 @@ export interface Bindings {
   DB: D1Database;
   STORAGE: R2Bucket;
   CACHE: KVNamespace;
-  SESSIONS: KVNamespace;
+  SESSIONS?: KVNamespace;
   AI: Ai;
   ENVIRONMENT: string;
-  LOG_LEVEL: string;
-  AI_GATEWAY_ENDPOINT: string;
+  LOG_LEVEL?: string;
+  AI_GATEWAY_ENDPOINT?: string;
   JWT_SECRET: string;
   SLACK_WEBHOOK_URL?: string;
   PORTONE_WEBHOOK_SECRET?: string;
