@@ -32,8 +32,11 @@ app.use('*', cors({
   origin: (origin) => {
     // Allow requests with no origin (non-browser, like curl/Postman)
     if (!origin) return origin;
-    // In development, allow localhost
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
+    // In development, allow localhost (strict prefix check to prevent evil-localhost.com)
+    try {
+      const host = new URL(origin).hostname;
+      if (host === 'localhost' || host === '127.0.0.1') return origin;
+    } catch { /* invalid origin URL, deny */ }
     // Allow openclaw.ai subdomains
     if (origin.endsWith(`.${OPENCLAW_DOMAIN}`) || origin === `https://${OPENCLAW_DOMAIN}`) return origin;
     // Deny all other origins
