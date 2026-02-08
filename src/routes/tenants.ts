@@ -12,7 +12,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateSubdomain, generateIncidentId, toDateString, nowISO } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
-import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES, ERROR_CODES } from '../config/constants.js';
+import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES, ERROR_CODES, MS_PER_DAY } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
@@ -243,7 +243,7 @@ tenants.get('/:id/usage', tenantScope, withErrorHandler('tenant_usage_get_failed
     return validationError(c, parsed.error.message);
   }
 
-  const startDate = parsed.data.start_date || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const startDate = parsed.data.start_date || toDateString(new Date(Date.now() - 30 * MS_PER_DAY));
   const endDate = parsed.data.end_date || toDateString();
 
   const usage = await getTenantUsageSummary(c.env.DB, id, startDate, endDate);

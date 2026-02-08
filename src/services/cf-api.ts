@@ -2,7 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { generateId } from '../utils/id.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { structuredLog } from '../utils/log.js';
-import { CLOUDFLARE_API_BASE } from '../config/constants.js';
+import { CLOUDFLARE_API_BASE, API_TIMEOUT_LONG } from '../config/constants.js';
 
 interface CfApiConfig {
   apiToken: string;
@@ -33,7 +33,7 @@ export class CloudflareApi {
         'Content-Type': 'application/json',
         ...options?.headers,
       },
-    }, 30_000);
+    }, API_TIMEOUT_LONG);
 
     const data = await res.json() as { success: boolean; result: T; errors: Array<{ code: number; message: string }> };
     if (!data.success) {
@@ -125,7 +125,7 @@ export class CloudflareApi {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${this.config.apiToken}` },
       body: formData,
-    }, 30_000);
+    }, API_TIMEOUT_LONG);
 
     if (!res.ok) {
       throw new Error(`Worker creation failed: ${await res.text()}`);

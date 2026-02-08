@@ -46,6 +46,7 @@ export const AI_MAX_TOKENS_SOUL = 2000;
 
 // Cache TTL (seconds)
 export const CACHE_TTL_SOUL_MD = 3600;  // 1 hour
+export const CACHE_TTL_HEALTH_STATUS = 300;  // 5 minutes
 
 // JWT defaults (seconds)
 export const JWT_DEFAULT_EXPIRY_SECONDS = 3600;  // 1 hour
@@ -56,6 +57,10 @@ export const HSTS_MAX_AGE_SECONDS = 31536000;  // 1 year
 // Input length limits
 export const MAX_BUSINESS_DESCRIPTION_LENGTH = 2000;
 export const MAX_CUSTOM_INSTRUCTIONS_LENGTH = 5000;
+
+// External API timeouts (milliseconds)
+export const API_TIMEOUT_STANDARD = 15_000;  // Most external APIs
+export const API_TIMEOUT_LONG = 30_000;      // Infrastructure APIs (Cloudflare)
 
 // External API limits
 export const R2_LIST_LIMIT = 1000;

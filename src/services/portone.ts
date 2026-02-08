@@ -2,7 +2,7 @@
 import type { Bindings } from '../types/index.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { PORTONE_API_BASE } from '../config/constants.js';
+import { PORTONE_API_BASE, API_TIMEOUT_STANDARD } from '../config/constants.js';
 
 export interface CheckoutParams {
   tenantId: string;
@@ -75,7 +75,7 @@ export class PortOneClient {
             plan_id: params.planId,
           },
         }),
-      }, 15_000);
+      }, API_TIMEOUT_STANDARD);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -115,7 +115,7 @@ export class PortOneClient {
           amount: params.amount,
           reason: params.reason,
         }),
-      }, 15_000);
+      }, API_TIMEOUT_STANDARD);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -154,7 +154,7 @@ export class PortOneClient {
           birth: params.cardInfo.birthOrBusinessRegistrationNumber,
           pwd_2digit: params.cardInfo.passwordTwoDigits,
         }),
-      }, 15_000);
+      }, API_TIMEOUT_STANDARD);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -193,7 +193,7 @@ export class PortOneClient {
           amount: params.amount,
           name: params.orderName,
         }),
-      }, 15_000);
+      }, API_TIMEOUT_STANDARD);
 
       if (!response.ok) {
         const errorText = await response.text();

@@ -1,6 +1,6 @@
 import type { Bindings, AiTextResponse, AiModelId } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE, API_TIMEOUT_STANDARD } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
 interface TelegramUpdate {
@@ -43,7 +43,7 @@ export class TelegramBot {
         text,
         parse_mode: 'Markdown',
       }),
-    }, 15_000);
+    }, API_TIMEOUT_STANDARD);
 
     const result = await res.json() as TelegramSendResult;
     if (!result.ok) {
@@ -95,7 +95,7 @@ export class TelegramBot {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: webhookUrl }),
-    }, 15_000);
+    }, API_TIMEOUT_STANDARD);
 
     const result = await res.json() as TelegramSendResult;
     return result.ok;

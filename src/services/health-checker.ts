@@ -2,6 +2,7 @@ import type { Bindings, TenantHealth, Alert } from '../types/index.js';
 import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { SlackNotifier } from './slack-notifier.js';
+import { CACHE_TTL_HEALTH_STATUS } from '../config/constants.js';
 import { structuredLog, formatErrorMessage } from '../utils/log.js';
 import { nowISO } from '../utils/id.js';
 
@@ -73,7 +74,7 @@ export class HealthChecker {
     await this.env.CACHE.put(
       `health:${tenantId}`,
       JSON.stringify(health),
-      { expirationTtl: 300 }  // 5 minutes
+      { expirationTtl: CACHE_TTL_HEALTH_STATUS }
     );
 
     return health;
