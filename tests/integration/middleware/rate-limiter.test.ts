@@ -301,4 +301,28 @@ describe('Rate Limiter Middleware', () => {
     // Restore mock cache
     (env as any).CACHE = mockCache;
   });
+
+  it('treats NaN cache values as zero', async () => {
+    const validToken = await createJWT(
+      { sub: 'tn_ratelimit-9', role: 'tenant' },
+      JWT_SECRET,
+      3600
+    );
+
+    // Simulate corrupted KV data
+    const windowKey = 'ratelimit:tn_ratelimit-9:' + Math.floor(Date.now() / 60000);
+    await mockCache.put(windowKey, 'not-a-number', { expirationTtl: 60 });
+
+    const res = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+
+    // Should still work (treat NaN as 0, not bypass)
+    expect(res.status).not.toBe(429);
+    // After first request, counter should be 1
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('99');
+  });
 });

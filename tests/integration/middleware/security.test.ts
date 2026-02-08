@@ -68,7 +68,7 @@ describe('Security Middleware', () => {
     (env as any).ENVIRONMENT = originalEnv;
   });
 
-  it('does not set CSP and HSTS headers in non-production environment', async () => {
+  it('sets CSP in all environments but HSTS only in production', async () => {
     // Ensure we're in test/development
     (env as any).ENVIRONMENT = 'test';
 
@@ -76,7 +76,9 @@ describe('Security Middleware', () => {
       method: 'GET',
     }, env);
 
-    expect(res.headers.get('Content-Security-Policy')).toBeNull();
+    // CSP applies in all environments to catch issues early
+    expect(res.headers.get('Content-Security-Policy')).not.toBeNull();
+    // HSTS only in production (breaks dev with HTTP)
     expect(res.headers.get('Strict-Transport-Security')).toBeNull();
   });
 

@@ -56,7 +56,6 @@ export const MAX_CUSTOM_INSTRUCTIONS_LENGTH = 5000;
 
 // External API limits
 export const R2_LIST_LIMIT = 1000;
-export const DB_QUERY_LIMIT = 1000;
 
 // Customer analytics thresholds
 export const LOW_USAGE_THRESHOLD = 1000;

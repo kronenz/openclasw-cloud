@@ -15,8 +15,10 @@ export const securityMiddleware = createMiddleware<{ Bindings: Bindings; Variabl
   c.header('Cross-Origin-Embedder-Policy', 'require-corp');
   c.header('Cross-Origin-Resource-Policy', 'same-origin');
 
+  // CSP applies in all environments to catch issues early
+  c.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'");
+
   if (c.env.ENVIRONMENT === 'production') {
     c.header('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`);
-    c.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'");
   }
 });

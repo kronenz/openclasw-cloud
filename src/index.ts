@@ -12,6 +12,7 @@ import { adminAuth } from './middleware/admin-auth.js';
 import { loggerMiddleware } from './middleware/logger.js';
 import { securityMiddleware } from './middleware/security.js';
 import { rateLimiterMiddleware } from './middleware/rate-limiter.js';
+import { envValidatorMiddleware } from './middleware/env-validator.js';
 import { HealthChecker } from './services/health-checker.js';
 import { CostController } from './services/cost-controller.js';
 import { BackupService } from './services/backup.js';
@@ -25,6 +26,7 @@ import { CRON_JOB_TIMEOUT_MS } from './config/constants.js';
 const app = new Hono<{ Bindings: Bindings }>();
 
 // Global middleware
+app.use('*', envValidatorMiddleware);
 app.use('*', cors({
   origin: (origin) => {
     // Allow requests with no origin (non-browser, like curl/Postman)

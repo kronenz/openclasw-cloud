@@ -338,5 +338,13 @@ describe('Cron Handler Integration', () => {
         { jobName: 'health_check' }
       );
     });
+
+    it('has timeout configured for cron jobs', async () => {
+      // This test verifies the timeout mechanism is wired up
+      // The actual CRON_JOB_TIMEOUT_MS is 300000ms (5 min)
+      // We test that the constant is properly exported and has the expected value
+      const { CRON_JOB_TIMEOUT_MS } = await import('../../src/config/constants.js');
+      expect(CRON_JOB_TIMEOUT_MS).toBe(300_000);
+    });
   });
 });
