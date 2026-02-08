@@ -130,24 +130,31 @@ export class TenantProvisioner {
               metadata: input.metadata ? JSON.stringify(input.metadata) : null,
             });
             break;
-          case 'create_resources':
-            await this.createResources(plan!);
-            break;
-          case 'init_openclaw':
-            await this.initializeOpenClaw(plan!.tenantId, plan!);
-            break;
-          case 'setup_auth':
-            auth = await this.setupAuth(plan!.tenantId);
-            break;
-          case 'verify':
-            const ok = await this.verify(plan!.tenantId);
-            if (!ok) throw new Error('Verification failed');
-            break;
-          case 'notify':
-            await this.notifyCustomer(plan!.tenantId, auth!);
-            // Mark tenant as active
-            await updateTenant(this.env.DB, plan!.tenantId, { status: 'active' });
-            break;
+          default:
+            // All subsequent steps require plan (set in 'plan' step)
+            if (!plan) throw new Error('Plan step must complete before other steps');
+            switch (step) {
+              case 'create_resources':
+                await this.createResources(plan);
+                break;
+              case 'init_openclaw':
+                await this.initializeOpenClaw(plan.tenantId, plan);
+                break;
+              case 'setup_auth':
+                auth = await this.setupAuth(plan.tenantId);
+                break;
+              case 'verify': {
+                const ok = await this.verify(plan.tenantId);
+                if (!ok) throw new Error('Verification failed');
+                break;
+              }
+              case 'notify':
+                if (!auth) throw new Error('Auth step must complete before notify');
+                await this.notifyCustomer(plan.tenantId, auth);
+                // Mark tenant as active
+                await updateTenant(this.env.DB, plan.tenantId, { status: 'active' });
+                break;
+            }
         }
 
         await updateProvisioningLog(this.env.DB, logId, {
@@ -179,12 +186,19 @@ export class TenantProvisioner {
       }
     }
 
-    const tenant = await getTenant(this.env.DB, plan!.tenantId);
+    if (!plan || !auth) {
+      throw new Error('Provisioning incomplete: missing plan or auth');
+    }
+
+    const tenant = await getTenant(this.env.DB, plan.tenantId);
+    if (!tenant) {
+      throw new Error(`Tenant ${plan.tenantId} not found after provisioning`);
+    }
 
     return {
-      tenant: tenant!,
-      auth: auth!,
-      subdomain: plan!.subdomain,
+      tenant,
+      auth,
+      subdomain: plan.subdomain,
     };
   }
 }
