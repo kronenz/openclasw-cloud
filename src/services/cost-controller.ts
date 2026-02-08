@@ -92,6 +92,14 @@ export class CostController {
     const today = toDateString();
 
     // Aggregate from usage_logs for today
+    interface UsageAggRow {
+      tenant_id: string;
+      total_requests: number;
+      total_tokens: number;
+      total_cost: number;
+      model_breakdown: string;
+    }
+
     const result = await this.env.DB.prepare(`
       SELECT
         tenant_id,
@@ -106,13 +114,12 @@ export class CostController {
       FROM usage_logs
       WHERE date(created_at) = ?
       GROUP BY tenant_id
-    `).bind(today).all();
+    `).bind(today).all<UsageAggRow>();
 
     if (!result.results) return 0;
 
     let count = 0;
     for (const row of result.results) {
-      const r = row as Record<string, unknown>;
       await this.env.DB.prepare(`
         INSERT INTO daily_usage (tenant_id, date, total_requests, total_tokens, total_cost, model_breakdown)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -122,12 +129,12 @@ export class CostController {
           total_cost = excluded.total_cost,
           model_breakdown = excluded.model_breakdown
       `).bind(
-        r.tenant_id as string,
+        row.tenant_id,
         today,
-        r.total_requests as number,
-        r.total_tokens as number,
-        r.total_cost as number,
-        r.model_breakdown as string
+        row.total_requests,
+        row.total_tokens,
+        row.total_cost,
+        row.model_breakdown
       ).run();
       count++;
     }
