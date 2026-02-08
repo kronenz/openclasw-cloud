@@ -21,7 +21,7 @@ import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
 import { structuredError, structuredWarn, formatErrorMessage } from './utils/log.js';
-import { CRON_JOB_TIMEOUT_MS, OPENCLAW_DOMAIN } from './config/constants.js';
+import { CRON_JOB_TIMEOUT_MS, OPENCLAW_DOMAIN, ERROR_CODES } from './config/constants.js';
 import { nowISO } from './utils/id.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -68,7 +68,7 @@ app.onError((err, c) => {
   return c.json({
     success: false,
     error: 'Internal server error',
-    code: 'INTERNAL_ERROR',
+    code: ERROR_CODES.INTERNAL_ERROR,
   }, 500);
 });
 
@@ -77,7 +77,7 @@ app.notFound((c) => {
   return c.json({
     success: false,
     error: 'Not found',
-    code: 'NOT_FOUND',
+    code: ERROR_CODES.NOT_FOUND,
   }, 404);
 });
 

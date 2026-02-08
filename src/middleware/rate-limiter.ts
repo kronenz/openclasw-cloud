@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
-import { RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS } from '../config/constants.js';
+import { RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS, ERROR_CODES } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
 interface RateLimitConfig {
@@ -32,7 +32,7 @@ export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Vari
       return c.json({
         success: false,
         error: 'Rate limit exceeded',
-        code: 'RATE_LIMIT_EXCEEDED',
+        code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
       }, 429);
     }
 

@@ -273,7 +273,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
         return c.json<ApiResponse>({
           success: false,
           error: 'Missing X-Tenant-ID header',
-          code: 'MISSING_TENANT_ID',
+          code: ERROR_CODES.MISSING_TENANT_ID,
         }, 400);
       }
 
@@ -283,7 +283,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
         return c.json<ApiResponse>({
           success: false,
           error: 'Tenant not found or inactive',
-          code: 'TENANT_INACTIVE',
+          code: ERROR_CODES.TENANT_INACTIVE,
         }, 403);
       }
 
@@ -348,7 +348,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
         return c.json<ApiResponse>({
           success: false,
           error: 'Missing X-Tenant-ID header',
-          code: 'MISSING_TENANT_ID',
+          code: ERROR_CODES.MISSING_TENANT_ID,
         }, 400);
       }
 

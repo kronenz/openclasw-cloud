@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
+import { ERROR_CODES } from '../config/constants.js';
 
 /**
  * Middleware that checks if the authenticated user has access to the requested tenant.
@@ -17,7 +18,7 @@ export const tenantScope = createMiddleware<{ Bindings: Bindings; Variables: Var
 
   // Check if the JWT subject matches the requested tenant
   if (requestedTenantId && jwtPayload.sub !== requestedTenantId) {
-    return c.json({ success: false, error: 'Forbidden', code: 'FORBIDDEN' }, 403);
+    return c.json({ success: false, error: 'Forbidden', code: ERROR_CODES.FORBIDDEN }, 403);
   }
 
   return next();

@@ -97,7 +97,7 @@ onboarding.post('/:tenantId/soul/generate', tenantScope, withErrorHandler('soul_
     return c.json<ApiResponse>({
       success: false,
       error: 'Survey not found. Please complete the onboarding survey first.',
-      code: 'SURVEY_NOT_FOUND',
+      code: ERROR_CODES.SURVEY_NOT_FOUND,
     }, 404);
   }
 
