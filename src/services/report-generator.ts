@@ -58,10 +58,9 @@ export class ReportGenerator {
       if (day.model_breakdown) {
         const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
         for (const [model, data] of Object.entries(breakdown)) {
-          const d = data as { tokens?: number; cost?: number };
           if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-          modelTotals[model].tokens += d.tokens || 0;
-          modelTotals[model].cost += d.cost || 0;
+          modelTotals[model].tokens += data.tokens || 0;
+          modelTotals[model].cost += data.cost || 0;
         }
       }
     }
@@ -106,10 +105,9 @@ export class ReportGenerator {
       if (day.model_breakdown) {
         const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
         for (const [model, data] of Object.entries(breakdown)) {
-          const d = data as { tokens?: number; cost?: number };
           if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-          modelTotals[model].tokens += d.tokens || 0;
-          modelTotals[model].cost += d.cost || 0;
+          modelTotals[model].tokens += data.tokens || 0;
+          modelTotals[model].cost += data.cost || 0;
         }
       }
     }
