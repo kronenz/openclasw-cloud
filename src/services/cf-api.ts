@@ -17,7 +17,7 @@ interface CfResourceResult {
 export class CloudflareApi {
   private config: CfApiConfig;
 
-  constructor(private env: Bindings) {
+  constructor(env: Bindings) {
     this.config = {
       apiToken: env.CF_API_TOKEN || '',
       accountId: env.CF_ACCOUNT_ID || '',

@@ -13,7 +13,7 @@ import {
 import { generateTenantId, generateSubdomain, generateIncidentId, toDateString, nowISO } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES, ERROR_CODES, MS_PER_DAY } from '../config/constants.js';
-import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
+import { structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
 

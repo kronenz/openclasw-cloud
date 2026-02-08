@@ -37,7 +37,7 @@ export interface ChargeParams {
 export class PortOneClient {
   private apiKey: string;
 
-  constructor(private env: Bindings) {
+  constructor(env: Bindings) {
     this.apiKey = env.PORTONE_API_KEY || '';
     if (!this.apiKey) {
       structuredWarn('portone_api_key_not_configured', {});
