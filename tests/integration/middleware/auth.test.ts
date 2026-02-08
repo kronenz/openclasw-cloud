@@ -165,6 +165,30 @@ describe('Auth Middleware', () => {
     });
   });
 
+  it('returns 401 for JWT without sub claim', async () => {
+    // Create a valid JWT but without a 'sub' field
+    const noSubToken = await createJWT(
+      { role: 'tenant' }, // no sub
+      JWT_SECRET,
+      3600
+    );
+
+    const res = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${noSubToken}`,
+      },
+    }, env);
+
+    expect(res.status).toBe(401);
+    const json = await parseApiResponse(res);
+    expect(json).toEqual({
+      success: false,
+      error: 'Invalid token: missing subject',
+      code: 'AUTH_INVALID',
+    });
+  });
+
   it('returns 401 for token with invalid signature', async () => {
     // Create a valid token structure but with wrong signature
     const validToken = await createJWT(
