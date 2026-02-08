@@ -6,7 +6,7 @@ import {
 } from '../db/queries-v2.js';
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
 import { createEmailNotification } from '../db/queries-v2.js';
-import { SUBSCRIPTION_PERIOD_DAYS, GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
+import { SUBSCRIPTION_PERIOD_DAYS, GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT, TENANT_PLANS } from '../config/constants.js';
 import { toDateString, generateSubscriptionId } from '../utils/id.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
@@ -37,11 +37,17 @@ export class SubscriptionManager {
    */
   private async updateTenantPlan(tenantId: string, planId: string): Promise<void> {
     const tenant = await getTenant(this.env.DB, tenantId);
-    if (!tenant) return;
+    if (!tenant) {
+      structuredWarn('update_tenant_plan_skipped', { tenant_id: tenantId, reason: 'tenant not found' });
+      return;
+    }
 
     const plans = await listBillingPlans(this.env.DB);
     const targetPlan = plans.find(p => p.id === planId);
-    const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
+    const planName = targetPlan?.name || '';
+    const planTier = (TENANT_PLANS as readonly string[]).includes(planName)
+      ? (planName as typeof TENANT_PLANS[number])
+      : 'starter';
     await updateTenant(this.env.DB, tenantId, { plan: planTier });
   }
 
