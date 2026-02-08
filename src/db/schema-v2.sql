@@ -73,3 +73,4 @@ CREATE INDEX IF NOT EXISTS idx_cron_logs_job_name ON cron_logs(job_name);
 CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);
 CREATE INDEX IF NOT EXISTS idx_soul_versions_tenant_active ON soul_versions(tenant_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_tenant_segments_segment ON tenant_segments(segment);

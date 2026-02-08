@@ -149,6 +149,10 @@ export async function setupTestDb() {
       error_message TEXT
     );
 
+    CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_status ON billing_subscriptions(status);
+    CREATE INDEX IF NOT EXISTS idx_incidents_tenant_id ON incidents(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_tenant_segments_segment ON tenant_segments(segment);
+
     INSERT OR IGNORE INTO billing_plans (id, name, display_name, monthly_price, daily_token_limit, monthly_token_limit, models_allowed, features) VALUES
       ('plan_starter', 'starter', 'Starter', 49000, 100000, 2000000, '["haiku","flash"]', '{"support":"email","sla":"best-effort"}'),
       ('plan_growth', 'growth', 'Growth', 149000, 500000, 10000000, '["haiku","sonnet","flash"]', '{"support":"priority-email","sla":"8h-response","custom_skills":true}'),

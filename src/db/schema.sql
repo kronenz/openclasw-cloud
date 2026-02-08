@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS billing_subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_tenant_id ON billing_subscriptions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_billing_subscriptions_status ON billing_subscriptions(status);
 
 -- incidents (인시던트)
 CREATE TABLE IF NOT EXISTS incidents (
@@ -103,6 +104,7 @@ CREATE TABLE IF NOT EXISTS incidents (
 
 CREATE INDEX IF NOT EXISTS idx_incidents_status ON incidents(status);
 CREATE INDEX IF NOT EXISTS idx_incidents_severity ON incidents(severity);
+CREATE INDEX IF NOT EXISTS idx_incidents_tenant_id ON incidents(tenant_id);
 
 -- provisioning_logs (프로비저닝 로그)
 CREATE TABLE IF NOT EXISTS provisioning_logs (
