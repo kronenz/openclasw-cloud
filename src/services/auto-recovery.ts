@@ -6,7 +6,7 @@ import {
   getTenant,
   getTenantResources,
 } from '../db/queries.js';
-import { createNotification } from '../db/queries-v2.js';
+import { createEmailNotification } from '../db/queries-v2.js';
 import { generateIncidentId, nowISO } from '../utils/id.js';
 import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
 import { SlackNotifier } from './slack-notifier.js';
@@ -98,18 +98,11 @@ export class AutoRecovery {
         });
 
         // Notify tenant of recovery
-        await createNotification(this.env.DB, {
-          id: crypto.randomUUID(),
-          tenant_id: tenantId,
-          channel: 'email',
-          type: 'welcome',
-          status: 'pending',
-          content: JSON.stringify({
-            subject: '서비스 복구 완료',
-            body: `일시적인 장애가 자동으로 복구되었습니다.\n\n복구 내용: ${recoveryResult.message}`,
-          }),
-          sent_at: null,
-        });
+        await createEmailNotification(
+          this.env.DB, tenantId, 'welcome',
+          '서비스 복구 완료',
+          `일시적인 장애가 자동으로 복구되었습니다.\n\n복구 내용: ${recoveryResult.message}`
+        );
       } else {
         structuredLog('auto_recovery_failed', {
           tenant_id: tenantId,
@@ -249,18 +242,11 @@ export class AutoRecovery {
   // Notify tenant of temporary issue
   async notifyTenantOfIssue(tenantId: string): Promise<void> {
     try {
-      await createNotification(this.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'welcome',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: '일시적인 서비스 지연 안내',
-          body: '현재 일시적인 기술적 문제로 서비스가 지연되고 있습니다. 자동 복구를 시도 중이며, 곧 정상화될 예정입니다.',
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        this.env.DB, tenantId, 'welcome',
+        '일시적인 서비스 지연 안내',
+        '현재 일시적인 기술적 문제로 서비스가 지연되고 있습니다. 자동 복구를 시도 중이며, 곧 정상화될 예정입니다.'
+      );
     } catch (error) {
       structuredError('notification_creation_failed', error, {});
     }

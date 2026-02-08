@@ -5,7 +5,7 @@ import {
   updateBillingSubscription,
 } from '../db/queries-v2.js';
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
-import { createNotification } from '../db/queries-v2.js';
+import { createEmailNotification } from '../db/queries-v2.js';
 import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
 import { toDateString } from '../utils/id.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
@@ -112,18 +112,11 @@ export class SubscriptionManager {
       });
 
       // Create notification for cancellation
-      await createNotification(this.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'cancellation',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Subscription Canceled',
-          body: `Your subscription has been canceled. Service will continue until ${gracePeriodEnd.toISOString()}.`,
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        this.env.DB, tenantId, 'cancellation',
+        'Subscription Canceled',
+        `Your subscription has been canceled. Service will continue until ${gracePeriodEnd.toISOString()}.`
+      );
     } catch (error) {
       structuredError('subscription_cancellation_failed', error, {
         tenant_id: tenantId,
@@ -155,18 +148,11 @@ export class SubscriptionManager {
       });
 
       // Create notification for upgrade
-      await createNotification(this.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'upsell',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Subscription Upgraded',
-          body: `Your subscription has been upgraded to plan ${newPlanId}.`,
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        this.env.DB, tenantId, 'upsell',
+        'Subscription Upgraded',
+        `Your subscription has been upgraded to plan ${newPlanId}.`
+      );
     } catch (error) {
       structuredError('subscription_upgrade_failed', error, {
         tenant_id: tenantId,
@@ -203,18 +189,11 @@ export class SubscriptionManager {
       });
 
       // Create notification
-      await createNotification(this.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'downgrade',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Subscription Downgraded',
-          body: `Your subscription will be downgraded to plan ${newPlanId} at the end of your billing period.`,
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        this.env.DB, tenantId, 'downgrade',
+        'Subscription Downgraded',
+        `Your subscription will be downgraded to plan ${newPlanId} at the end of your billing period.`
+      );
     } catch (error) {
       structuredError('subscription_downgrade_failed', error, {
         tenant_id: tenantId,
@@ -309,18 +288,11 @@ export class SubscriptionManager {
       });
 
       // Send notification
-      await createNotification(this.env.DB, {
-        id: crypto.randomUUID(),
-        tenant_id: tenantId,
-        channel: 'email',
-        type: 'payment_failed',
-        status: 'pending',
-        content: JSON.stringify({
-          subject: 'Service Suspended - Payment Required',
-          body: 'Your service has been suspended due to non-payment. Please update your payment method.',
-        }),
-        sent_at: null,
-      });
+      await createEmailNotification(
+        this.env.DB, tenantId, 'payment_failed',
+        'Service Suspended - Payment Required',
+        'Your service has been suspended due to non-payment. Please update your payment method.'
+      );
     } catch (error) {
       structuredError('tenant_suspension_failed', error, {
         tenant_id: tenantId,

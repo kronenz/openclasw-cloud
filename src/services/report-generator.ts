@@ -1,6 +1,6 @@
 import type { Bindings, DailyUsage } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
-import { createNotification, createEmailNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
+import { createEmailNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { toDateString, nowISO } from '../utils/id.js';
