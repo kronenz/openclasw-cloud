@@ -4,7 +4,7 @@ import { createNotification, createEmailNotification, createCronLog, updateCronL
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_LOW_THRESHOLD_PERCENT } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_LOW_THRESHOLD_PERCENT, LIST_TENANTS_LIMIT } from '../config/constants.js';
 import { calculateUsageTrend } from '../utils/analytics.js';
 
 interface WeeklyReport {
@@ -191,7 +191,7 @@ export class ReportGenerator {
     const endDate = toDateString(now);
     const twoWeeksAgo = new Date(now.getTime() - 14 * MS_PER_DAY).toISOString();
 
-    const allTenants = await listTenants(this.env.DB, { limit: 1000 });
+    const allTenants = await listTenants(this.env.DB, { limit: LIST_TENANTS_LIMIT });
     const activeTenants = allTenants.filter(t => t.status === 'active');
     const suspendedTenants = allTenants.filter(t => t.status === 'suspended');
     const newTenants = allTenants.filter(t => t.created_at >= twoWeeksAgo);

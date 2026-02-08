@@ -3,7 +3,7 @@ import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBil
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD, MIN_ACTIVE_TOKENS } from '../config/constants.js';
 import { structuredLog } from '../utils/log.js';
 import { calculateUsageTrend, aggregateTokenUsage } from '../utils/analytics.js';
 
@@ -246,7 +246,7 @@ export class CustomerAnalytics {
       segment = 'potential_upsell';
     } else if (score < 40 && analysis.days_active > 0) {
       segment = 'need_attention';
-    } else if (subscription?.status === 'active' && analysis.avg_daily_tokens < 1000) {
+    } else if (subscription?.status === 'active' && analysis.avg_daily_tokens < MIN_ACTIVE_TOKENS) {
       segment = 'happy_inactive';
     }
 

@@ -91,3 +91,9 @@ export const USAGE_LOW_THRESHOLD_PERCENT = 30;        // Underutilization warnin
 export const USAGE_DROP_THRESHOLD = 0.5;              // 50% drop = at-risk
 export const TREND_INCREASE_MULTIPLIER = 1.2;         // 20% increase = trending up
 export const TREND_DECREASE_MULTIPLIER = 0.8;         // 20% decrease = trending down
+
+// List/Pagination Limits
+export const LIST_TENANTS_LIMIT = 1000;
+
+// Token Thresholds
+export const MIN_ACTIVE_TOKENS = 1000;                // Minimum tokens to consider tenant "active"

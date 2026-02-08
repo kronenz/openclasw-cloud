@@ -215,8 +215,8 @@ admin.get('/tenants/:id', withErrorHandler('admin_tenant_details_failed', async 
 // POST /tenants/:id/suspend - Suspend a tenant
 admin.post('/tenants/:id/suspend', withErrorHandler('admin_tenant_suspend_failed', async (c) => {
   const id = c.req.param('id');
-  const body = await c.req.json().catch(() => ({}));
-  const parsed = suspendTenantBodySchema.safeParse(body);
+  const body = await c.req.json().catch(() => null);
+  const parsed = suspendTenantBodySchema.safeParse(body || {});
 
   if (!parsed.success) {
     return validationError(c, parsed.error.message);
