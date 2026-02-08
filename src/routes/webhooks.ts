@@ -300,6 +300,8 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
               channel: channelId,
               text: responseText,
             }),
+          }).catch((error) => {
+            console.error('Failed to send Slack message:', error);
           })
         );
       }

@@ -22,7 +22,10 @@ const createTenantSchema = z.object({
   contact_email: z.string().email(),
   contact_name: z.string().max(100).optional(),
   subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional().refine(
+    (val) => !val || JSON.stringify(val).length <= 10240,
+    { message: 'Metadata must be 10KB or less' }
+  ),
 });
 
 const updateTenantSchema = z.object({
@@ -31,7 +34,10 @@ const updateTenantSchema = z.object({
   status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
   contact_email: z.string().email().optional(),
   subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional().refine(
+    (val) => !val || JSON.stringify(val).length <= 10240,
+    { message: 'Metadata must be 10KB or less' }
+  ),
 });
 
 // POST / - create tenant
