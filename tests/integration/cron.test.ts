@@ -11,7 +11,7 @@ vi.mock('../../src/utils/log.js', () => ({
   formatErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
 }));
 
-import { structuredError } from '../../src/utils/log.js';
+import { structuredError, structuredWarn } from '../../src/utils/log.js';
 
 describe('Cron Handler Integration', () => {
   let env: Bindings;
@@ -127,6 +127,8 @@ describe('Cron Handler Integration', () => {
 
       // Should not call waitUntil for unrecognized patterns
       expect(ctx.waitUntil).not.toHaveBeenCalled();
+      // Should log a warning about the unknown trigger
+      expect(structuredWarn).toHaveBeenCalledWith('unknown_cron_trigger', { cron: '0 0 * * 7' });
     });
   });
 
