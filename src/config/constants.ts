@@ -1,3 +1,6 @@
+// App version
+export const APP_VERSION = '0.1.0';
+
 // AI model
 export const DEFAULT_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';
 

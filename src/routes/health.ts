@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types/index.js';
+import { APP_VERSION } from '../config/constants.js';
 import { withErrorHandler } from '../utils/error-handler.js';
 import { nowISO } from '../utils/id.js';
 
@@ -10,7 +11,7 @@ health.get('/', (c) => {
   return c.json({
     status: 'healthy',
     timestamp: nowISO(),
-    version: '0.1.0',
+    version: APP_VERSION,
   });
 });
 
@@ -39,7 +40,7 @@ health.get('/detailed', withErrorHandler('health_detailed_check_failed', async (
   return c.json({
     status: overallStatus,
     timestamp: nowISO(),
-    version: '0.1.0',
+    version: APP_VERSION,
     environment: c.env.ENVIRONMENT,
     checks,
   });
