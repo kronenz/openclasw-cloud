@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchWithTimeout, DEFAULT_FETCH_TIMEOUT_MS } from '../../../src/utils/fetch.js';
+import { fetchWithTimeout } from '../../../src/utils/fetch.js';
 
 describe('fetchWithTimeout', () => {
   beforeEach(() => {
@@ -83,7 +83,7 @@ describe('fetchWithTimeout', () => {
     await vi.runAllTimersAsync();
     await promise;
 
-    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), DEFAULT_FETCH_TIMEOUT_MS);
+    expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
   });
 
   it('should forward request options correctly', async () => {
@@ -123,7 +123,4 @@ describe('fetchWithTimeout', () => {
     expect(clearTimeoutSpy).toHaveBeenCalled();
   });
 
-  it('should export DEFAULT_FETCH_TIMEOUT_MS constant', () => {
-    expect(DEFAULT_FETCH_TIMEOUT_MS).toBe(10_000);
-  });
 });

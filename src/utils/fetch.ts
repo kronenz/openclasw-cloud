@@ -19,4 +19,3 @@ export async function fetchWithTimeout(
   }
 }
 
-export { DEFAULT_FETCH_TIMEOUT_MS };

@@ -6,7 +6,6 @@ import { createMockEnv } from '../../helpers/mocks.js';
 // Mock the fetchWithTimeout utility
 vi.mock('../../../src/utils/fetch.js', () => ({
   fetchWithTimeout: vi.fn(),
-  DEFAULT_FETCH_TIMEOUT_MS: 10_000,
 }));
 
 import { fetchWithTimeout } from '../../../src/utils/fetch.js';
