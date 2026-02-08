@@ -351,6 +351,10 @@ export async function updateIncident(
   const setClauses: string[] = [];
   const bindings: (string | number | null)[] = [];
 
+  if (updates.severity !== undefined) {
+    setClauses.push('severity = ?');
+    bindings.push(updates.severity);
+  }
   if (updates.status !== undefined) {
     setClauses.push('status = ?');
     bindings.push(updates.status);

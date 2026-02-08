@@ -14,16 +14,16 @@ const onboarding = new Hono<{ Bindings: Bindings }>();
 
 // Validation schemas
 const surveySchema = z.object({
-  industry: z.string().min(1),
-  business_description: z.string().optional(),
+  industry: z.string().min(1).max(50),
+  business_description: z.string().max(2000).optional().nullable(),
   preferred_tone: z.string().default('polite'),
-  preferred_language: z.string().default('ko'),
-  target_services: z.array(z.string()).optional(),
-  custom_instructions: z.string().optional(),
+  preferred_language: z.string().max(10).default('ko'),
+  target_services: z.array(z.string()).max(20).optional(),
+  custom_instructions: z.string().max(5000).optional().nullable(),
 });
 
 const soulUpdateSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(50000),
 });
 
 // POST /:tenantId/survey - Submit onboarding survey

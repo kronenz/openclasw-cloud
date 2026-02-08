@@ -18,6 +18,7 @@ import { BackupService } from './services/backup.js';
 import { CustomerEngagement } from './services/customer-engagement.js';
 import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
+import { createCronLog, updateCronLog } from './db/queries-v2.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -72,39 +73,73 @@ export default {
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {
     const cron = event.cron;
 
+    async function runCronJob(jobName: string, fn: () => Promise<unknown>): Promise<void> {
+      const logId = crypto.randomUUID();
+      try {
+        await createCronLog(env.DB, {
+          id: logId,
+          job_name: jobName,
+          status: 'running',
+          tenants_processed: 0,
+          details: null,
+          started_at: new Date().toISOString(),
+        });
+      } catch {
+        // If logging fails, still run the job
+      }
+
+      try {
+        await fn();
+        try {
+          await updateCronLog(env.DB, logId, {
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          });
+        } catch {
+          // Logging failure is not critical
+        }
+      } catch (error) {
+        console.error(`Cron job ${jobName} failed:`, error);
+        try {
+          await updateCronLog(env.DB, logId, {
+            status: 'failed',
+            completed_at: new Date().toISOString(),
+            error_message: error instanceof Error ? error.message : String(error),
+          });
+        } catch {
+          // Logging failure is not critical
+        }
+      }
+    }
+
     switch (cron) {
       case '*/5 * * * *': {
-        // Health check every 5 minutes
         const checker = new HealthChecker(env);
-        ctx.waitUntil(checker.checkAllTenants());
+        ctx.waitUntil(runCronJob('health_check', () => checker.checkAllTenants()));
         break;
       }
       case '0 * * * *': {
-        // Hourly: usage aggregation
         const controller = new CostController(env);
-        ctx.waitUntil(controller.aggregateDailyUsage());
+        ctx.waitUntil(runCronJob('usage_aggregation', () => controller.aggregateDailyUsage()));
         break;
       }
       case '0 0 * * *': {
-        // Daily: backup + engagement check
         const backup = new BackupService(env);
-        ctx.waitUntil(backup.backupAllTenants());
         const engagement = new CustomerEngagement(env);
-        ctx.waitUntil(engagement.checkAndEngageAll());
+        ctx.waitUntil(runCronJob('daily_backup', () => backup.backupAllTenants()));
+        ctx.waitUntil(runCronJob('engagement_check', () => engagement.checkAndEngageAll()));
         break;
       }
       case '0 0 * * 1': {
-        // Weekly Monday: analytics + weekly reports
         const analytics = new CustomerAnalytics(env);
-        ctx.waitUntil(analytics.segmentTenants());
         const reports = new ReportGenerator(env);
-        ctx.waitUntil(reports.sendWeeklyReports());
+        ctx.waitUntil(runCronJob('weekly_segmentation', () => analytics.segmentTenants()));
+        ctx.waitUntil(runCronJob('weekly_reports', () => reports.sendWeeklyReports()));
         break;
       }
       case '0 0 1 * *': {
-        // Monthly 1st: monthly reports
         const reports = new ReportGenerator(env);
-        ctx.waitUntil(reports.sendMonthlyReports());
+        ctx.waitUntil(runCronJob('monthly_reports', () => reports.sendMonthlyReports()));
         break;
       }
     }

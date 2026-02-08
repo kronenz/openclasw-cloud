@@ -20,8 +20,8 @@ const createTenantSchema = z.object({
   name: z.string().min(1).max(100),
   plan: z.enum(['starter', 'growth', 'enterprise']).optional().default('starter'),
   contact_email: z.string().email(),
-  contact_name: z.string().optional(),
-  subdomain: z.string().optional(),
+  contact_name: z.string().max(100).optional(),
+  subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -30,7 +30,7 @@ const updateTenantSchema = z.object({
   plan: z.enum(['starter', 'growth', 'enterprise']).optional(),
   status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
   contact_email: z.string().email().optional(),
-  subdomain: z.string().optional(),
+  subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 

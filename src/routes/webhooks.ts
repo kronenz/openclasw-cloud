@@ -126,7 +126,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
       });
     }
 
-    const userMessage = body.userRequest.utterance;
+    const userMessage = body.userRequest.utterance.slice(0, 4000);
     const userId = body.userRequest.user.id;
 
     // Extract tenant ID from bot ID or use default
@@ -248,7 +248,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
 
     // Handle message events
     if (body.event?.type === 'message' && body.event.text) {
-      const userMessage = body.event.text;
+      const userMessage = body.event.text.slice(0, 4000);
       const userId = body.event.user;
       const channelId = body.event.channel;
 
@@ -329,7 +329,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
 
     // Handle application commands or message components
     if (body.type === 2 || body.type === 3) {
-      const userMessage = body.data?.content || body.data?.name || '';
+      const userMessage = (body.data?.content || body.data?.name || '').slice(0, 4000);
       const userId = body.member?.user?.id;
       const channelId = body.channel_id;
 

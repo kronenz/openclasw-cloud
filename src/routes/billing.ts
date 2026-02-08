@@ -20,7 +20,7 @@ interface PortoneWebhookPayload {
 
 // Validation schemas
 const upgradePlanSchema = z.object({
-  new_plan_id: z.string().min(1),
+  new_plan_id: z.enum(['plan_starter', 'plan_growth', 'plan_enterprise']),
 });
 
 // GET /plans - list all billing plans
