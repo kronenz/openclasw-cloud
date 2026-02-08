@@ -14,6 +14,7 @@ import {
   MAX_CUSTOM_INSTRUCTIONS_LENGTH,
   CACHE_TTL_SOUL_MD,
   ERROR_CODES,
+  PREFERRED_TONES,
   soulR2Key,
 } from '../config/constants.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
@@ -26,7 +27,7 @@ const onboarding = new Hono<{ Bindings: Bindings }>();
 const surveySchema = z.object({
   industry: z.string().min(1).max(50),
   business_description: z.string().max(MAX_BUSINESS_DESCRIPTION_LENGTH).optional().nullable(),
-  preferred_tone: z.string().default('polite'),
+  preferred_tone: z.enum([...PREFERRED_TONES]).default('polite'),
   preferred_language: z.string().max(10).default('ko'),
   target_services: z.array(z.string()).max(20).optional(),
   custom_instructions: z.string().max(MAX_CUSTOM_INSTRUCTIONS_LENGTH).optional().nullable(),
