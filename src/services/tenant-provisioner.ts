@@ -89,7 +89,7 @@ export class TenantProvisioner {
   }
 
   // Step 6: Notify - placeholder for email notification
-  async notifyCustomer(tenantId: string, auth: AuthConfig): Promise<void> {
+  async notifyCustomer(tenantId: string, _auth: AuthConfig): Promise<void> {
     // Phase 1: Log notification (email integration in Phase 2)
     structuredLog('tenant_provisioned', { tenant_id: tenantId });
   }

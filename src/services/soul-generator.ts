@@ -8,7 +8,7 @@ export class SoulGenerator {
   constructor(private readonly env: Bindings) {}
 
   // Generate SOUL.md content using AI
-  async generate(tenantId: string, survey: OnboardingSurvey): Promise<string> {
+  async generate(_tenantId: string, survey: OnboardingSurvey): Promise<string> {
     // Industry-specific context
     const industryTemplates: Record<string, string> = {
       cafe: '카페/음식점 업종 특화: 메뉴 안내, 영업시간, 예약 관리, 주문 처리',
