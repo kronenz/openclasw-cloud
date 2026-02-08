@@ -24,7 +24,7 @@ describe('TenantProvisioner', () => {
       const plan = await provisioner.plan(input);
 
       expect(plan.tenantId).toMatch(/^tn_[a-z0-9-]+$/); // UUID format with hyphens
-      expect(plan.subdomain).toBeTruthy();
+      expect(plan.subdomain).toBeTypeOf('string');
       expect(plan.plan).toBe('starter');
       expect(plan.industry).toBe('general');
       expect(plan.resources).toEqual({
@@ -144,7 +144,7 @@ describe('TenantProvisioner', () => {
       const auth = await provisioner.setupAuth('tn_test123');
 
       expect(auth.apiKey).toMatch(/^[a-f0-9]{64}$/); // 32 bytes = 64 hex chars
-      expect(auth.jwt).toBeTruthy();
+      expect(auth.jwt.split('.')).toHaveLength(3); // valid JWT format
       expect(auth.webhookSecret).toMatch(/^[a-f0-9]{64}$/); // 32 bytes = 64 hex chars
     });
 
@@ -387,10 +387,10 @@ describe('TenantProvisioner', () => {
 
       expect(result.tenant.id).toMatch(/^tn_/);
       expect(result.tenant.status).toBe('active');
-      expect(result.auth.apiKey).toBeTruthy();
-      expect(result.auth.jwt).toBeTruthy();
-      expect(result.auth.webhookSecret).toBeTruthy();
-      expect(result.subdomain).toBeTruthy();
+      expect(result.auth.apiKey).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.auth.jwt.split('.')).toHaveLength(3);
+      expect(result.auth.webhookSecret).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.subdomain).toBeTypeOf('string');
     });
 
     it('marks tenant as suspended on provisioning failure', async () => {

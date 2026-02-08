@@ -35,7 +35,7 @@ describe('SoulGenerator', () => {
 
       const content = await generator.generate('tn_test123', survey);
 
-      expect(content).toBeTruthy();
+      expect(content).toBeTypeOf('string');
       expect(content).toContain('AI 비서');
       expect(content).toContain('cafe');
     });
@@ -93,7 +93,7 @@ describe('SoulGenerator', () => {
 
       const content = await generator.generate('tn_test123', minimalSurvey);
 
-      expect(content).toBeTruthy();
+      expect(content).toBeTypeOf('string');
       expect(content).toContain('AI 비서');
     });
 
@@ -148,7 +148,7 @@ describe('SoulGenerator', () => {
 
       const content = await generator.generate('tn_test123', survey);
 
-      expect(content).toBeTruthy();
+      expect(content).toBeTypeOf('string');
       expect(content).toContain('AI 비서');
       expect(content).toContain('shopping');
       expect(content).toContain('친근하고 따뜻한'); // friendly tone
@@ -172,7 +172,7 @@ describe('SoulGenerator', () => {
 
       const content = await generator.generate('tn_test123', survey);
 
-      expect(content).toBeTruthy();
+      expect(content).toBeTypeOf('string');
       expect(content).toContain('## 기본 정보');
       expect(content).toContain('정중하고 공손한'); // polite tone
     });
