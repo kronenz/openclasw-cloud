@@ -1,5 +1,3 @@
-import type { Context } from 'hono';
-
 // Cloudflare bindings
 export interface Bindings {
   DB: D1Database;
@@ -30,9 +28,6 @@ export interface Variables {
   jwtPayload?: Record<string, unknown>;
   requestId?: string;
 }
-
-// Hono app type
-export type AppContext = Context<{ Bindings: Bindings; Variables: Variables }>;
 
 // Tenant
 export interface Tenant {
