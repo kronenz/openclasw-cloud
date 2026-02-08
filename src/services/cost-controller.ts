@@ -1,6 +1,7 @@
 import type { Bindings, ModelRecommendation, Alert } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
+import { toDateString } from '../utils/id.js';
 
 // Model cost per 1K tokens (USD)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
@@ -38,7 +39,7 @@ export class CostController {
 
   // Check if tenant has exceeded daily limits, recommend model downgrade
   async checkLimits(tenantId: string): Promise<ModelRecommendation | null> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateString();
     const usage = await getDailyUsage(this.env.DB, tenantId, today);
 
     if (!usage) return null;  // No usage today
@@ -87,7 +88,7 @@ export class CostController {
 
   // Aggregate daily usage from usage_logs (for Cron Trigger)
   async aggregateDailyUsage(): Promise<number> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateString();
 
     // Aggregate from usage_logs for today
     const result = await this.env.DB.prepare(`
@@ -136,7 +137,7 @@ export class CostController {
   // Detect anomalous usage patterns
   async detectAnomalies(tenantId: string): Promise<Alert[]> {
     const alerts: Alert[] = [];
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateString();
     const usage = await getDailyUsage(this.env.DB, tenantId, today);
 
     if (!usage) return alerts;

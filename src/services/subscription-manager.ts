@@ -7,6 +7,7 @@ import {
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
+import { toDateString } from '../utils/id.js';
 
 export interface OverageInfo {
   exceeded: boolean;
@@ -100,7 +101,7 @@ export class SubscriptionManager {
         id: crypto.randomUUID(),
         tenant_id: tenantId,
         channel: 'email',
-        type: 'welcome', // Using welcome as placeholder for cancellation
+        type: 'cancellation',
         status: 'pending',
         content: JSON.stringify({
           subject: 'Subscription Canceled',
@@ -223,7 +224,7 @@ export class SubscriptionManager {
         id: crypto.randomUUID(),
         tenant_id: tenantId,
         channel: 'email',
-        type: 'welcome', // Placeholder
+        type: 'downgrade',
         status: 'pending',
         content: JSON.stringify({
           subject: 'Subscription Downgraded',
@@ -248,7 +249,7 @@ export class SubscriptionManager {
    */
   async checkOverage(tenantId: string): Promise<OverageInfo> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toDateString();
       const usage = await getDailyUsage(this.env.DB, tenantId, today);
 
       // Get subscription and plan limits from billing_plans table

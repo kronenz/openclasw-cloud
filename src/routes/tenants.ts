@@ -10,7 +10,7 @@ import {
   getTenantResources,
   createIncident,
 } from '../db/queries.js';
-import { generateTenantId, generateSubdomain } from '../utils/id.js';
+import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
 
@@ -284,8 +284,8 @@ tenants.get('/:id/usage', async (c) => {
       }, 400);
     }
 
-    const startDate = startDateParam || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const endDate = endDateParam || new Date().toISOString().split('T')[0];
+    const startDate = startDateParam || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const endDate = endDateParam || toDateString();
 
     const usage = await getTenantUsageSummary(c.env.DB, id, startDate, endDate);
 

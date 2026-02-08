@@ -184,4 +184,49 @@ describe('Admin Auth Middleware', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  describe('Edge Cases', () => {
+    it('returns 403 for non-admin role token (role: user)', async () => {
+      const token = await createJWT({ sub: 'user_123', role: 'user' }, JWT_SECRET, 3600);
+      const res = await app.request('/api/admin/tenants', {
+        headers: { Authorization: `Bearer ${token}` },
+      }, env);
+
+      expect(res.status).toBe(403);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('FORBIDDEN');
+      expect(body.error).toBe('Admin access required');
+    });
+
+    it('returns 403 for missing role claim in token', async () => {
+      const token = await createJWT({ sub: 'user_no_role' }, JWT_SECRET, 3600);
+      const res = await app.request('/api/admin/tenants', {
+        headers: { Authorization: `Bearer ${token}` },
+      }, env);
+
+      expect(res.status).toBe(403);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('FORBIDDEN');
+      expect(body.error).toBe('Admin access required');
+    });
+
+    it('returns 401 for expired admin token', async () => {
+      const token = await createJWT(
+        { sub: 'admin_expired', role: 'admin' },
+        JWT_SECRET,
+        -3600 // expired 1 hour ago
+      );
+      const res = await app.request('/api/admin/tenants', {
+        headers: { Authorization: `Bearer ${token}` },
+      }, env);
+
+      expect(res.status).toBe(401);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('AUTH_INVALID');
+      expect(body.error).toBe('Invalid token');
+    });
+  });
 });

@@ -225,7 +225,7 @@ export interface Notification {
   id: string;
   tenant_id: string;
   channel: 'email' | 'slack' | 'telegram' | 'sms';
-  type: 'welcome' | 'payment_failed' | 're_engagement' | 'upsell' | 'report';
+  type: 'welcome' | 'payment_failed' | 're_engagement' | 'upsell' | 'report' | 'cancellation' | 'downgrade';
   status: 'pending' | 'sent' | 'failed' | 'opened';
   content: string | null; // JSON: { subject, body }
   sent_at: string | null;

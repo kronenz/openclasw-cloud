@@ -6,6 +6,7 @@ import {
   generateIncidentId,
   generateSubscriptionId,
   generateSubdomain,
+  toDateString,
 } from '../../../src/utils/id.js';
 
 describe('ID Generation', () => {
@@ -70,5 +71,16 @@ describe('Subdomain Generation', () => {
 
   it('strips leading and trailing hyphens', () => {
     expect(generateSubdomain('--test--')).toBe('test');
+  });
+});
+
+describe('toDateString', () => {
+  it('returns YYYY-MM-DD format', () => {
+    const result = toDateString(new Date('2026-03-15T10:30:00Z'));
+    expect(result).toBe('2026-03-15');
+  });
+  it('defaults to current date', () => {
+    const result = toDateString();
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });

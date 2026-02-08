@@ -2,6 +2,7 @@ import type { Bindings, DailyUsage, Tenant } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
+import { toDateString } from '../utils/id.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -41,8 +42,8 @@ export class CustomerAnalytics {
 
   // Analyze a single tenant's usage patterns
   async analyzeTenant(tenantId: string): Promise<TenantAnalysis> {
-    const endDate = new Date().toISOString().split('T')[0];
-    const startDate = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const endDate = toDateString();
+    const startDate = toDateString(new Date(Date.now() - 30 * 86400000));
 
     const usageData = await getTenantUsageSummary(this.env.DB, tenantId, startDate, endDate);
 

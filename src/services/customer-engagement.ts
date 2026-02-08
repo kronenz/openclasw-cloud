@@ -3,6 +3,7 @@ import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans }
 import { createNotification } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
+import { toDateString } from '../utils/id.js';
 
 interface EngagementResult {
   tenant_id: string;
@@ -103,7 +104,7 @@ export class CustomerEngagement {
 
   // Check if tenant has been inactive for 7 days and send re-engagement email
   async checkReEngagement(tenant: Tenant): Promise<boolean> {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = toDateString();
     const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
 
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
@@ -166,7 +167,7 @@ export class CustomerEngagement {
     if (!currentPlan) return false;
 
     // Check last 7 days usage
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = toDateString();
     const startDate = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 
@@ -229,7 +230,7 @@ export class CustomerEngagement {
 
   // Detect 50% usage drop and send at-risk alert to operator
   async checkUsageDrop(tenant: Tenant): Promise<boolean> {
-    const endDate = new Date().toISOString().split('T')[0];
+    const endDate = toDateString();
     const startDate = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 

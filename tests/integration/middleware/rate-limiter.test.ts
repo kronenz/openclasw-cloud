@@ -161,4 +161,144 @@ describe('Rate Limiter Middleware', () => {
     // Restore mock cache
     (env as any).CACHE = mockCache;
   });
+
+  it('handles KV unavailable on both get and put (fail open)', async () => {
+    const failingCache = {
+      get: async () => { throw new Error('KV service unavailable'); },
+      put: async () => { throw new Error('KV service unavailable'); },
+    };
+
+    (env as any).CACHE = failingCache;
+
+    const validToken = await createJWT(
+      { sub: 'tn_ratelimit-5', role: 'tenant' },
+      JWT_SECRET,
+      3600
+    );
+
+    const res = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+
+    // Should allow request when KV is unavailable (fail open)
+    expect(res.status).not.toBe(429);
+    expect(res.status).not.toBe(500);
+
+    // Restore mock cache
+    (env as any).CACHE = mockCache;
+  });
+
+  it('handles window rollover with independent counters', async () => {
+    const validToken = await createJWT(
+      { sub: 'tn_ratelimit-6', role: 'tenant' },
+      JWT_SECRET,
+      3600
+    );
+
+    // Make 50 requests in first window
+    for (let i = 0; i < 50; i++) {
+      await app.request('/api/tenants', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${validToken}`,
+        },
+      }, env);
+    }
+
+    // Clear the cache to simulate window rollover
+    mockCache.clear();
+
+    // Should allow requests in new window
+    const res = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+
+    expect(res.status).not.toBe(429);
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('99');
+  });
+
+  it('allows exactly 100 requests, blocks 101st', async () => {
+    const validToken = await createJWT(
+      { sub: 'tn_ratelimit-7', role: 'tenant' },
+      JWT_SECRET,
+      3600
+    );
+
+    // Make exactly 100 requests
+    for (let i = 0; i < 100; i++) {
+      const res = await app.request('/api/tenants', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${validToken}`,
+        },
+      }, env);
+
+      // All 100 should succeed
+      expect(res.status).not.toBe(429);
+    }
+
+    // 101st request should be rate limited
+    const res = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+
+    expect(res.status).toBe(429);
+    // Note: X-RateLimit-Remaining header is not set on 429 responses
+    // Only set when request passes through
+  });
+
+  it('resets counter after window expires', async () => {
+    const shortTtlCache = new MockKV();
+    (env as any).CACHE = shortTtlCache;
+
+    const validToken = await createJWT(
+      { sub: 'tn_ratelimit-8', role: 'tenant' },
+      JWT_SECRET,
+      3600
+    );
+
+    // Make 100 requests to hit the limit
+    for (let i = 0; i < 100; i++) {
+      await app.request('/api/tenants', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${validToken}`,
+        },
+      }, env);
+    }
+
+    // Next request should be rate limited
+    const res1 = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+    expect(res1.status).toBe(429);
+
+    // Clear cache to simulate expiration
+    shortTtlCache.clear();
+
+    // After window expires, requests should work again
+    const res2 = await app.request('/api/tenants', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${validToken}`,
+      },
+    }, env);
+    expect(res2.status).not.toBe(429);
+    expect(res2.headers.get('X-RateLimit-Remaining')).toBe('99');
+
+    // Restore mock cache
+    (env as any).CACHE = mockCache;
+  });
 });

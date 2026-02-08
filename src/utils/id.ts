@@ -28,3 +28,8 @@ export function generateSubdomain(name: string): string {
     .replace(/^-|-$/g, '')
     .substring(0, 32) || 'tenant';
 }
+
+/** Get current date as YYYY-MM-DD string */
+export function toDateString(date: Date = new Date()): string {
+  return date.toISOString().split('T')[0];
+}
