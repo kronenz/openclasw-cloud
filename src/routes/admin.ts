@@ -1,10 +1,33 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog } from '../utils/log.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Validation schemas
+const listTenantsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['active', 'provisioning', 'suspended', 'deactivated']).optional(),
+  search: z.string().max(200).optional(),
+});
+
+const suspendTenantBodySchema = z.object({
+  reason: z.string().min(1).max(500).optional(),
+});
+
+const listIncidentsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['open', 'investigating', 'resolved', 'closed']).optional(),
+});
+
+const listSegmentsQuerySchema = z.object({
+  segment: z.enum(['champion', 'at_risk', 'potential_upsell', 'need_attention', 'happy_inactive', 'new']).optional(),
+});
 
 // GET / - Platform dashboard summary
 admin.get('/', async (c) => {
@@ -77,11 +100,25 @@ admin.get('/', async (c) => {
 // GET /tenants - All tenants with full details
 admin.get('/tenants', async (c) => {
   try {
-    const status = c.req.query('status');
-    const rawLimit = parseInt(c.req.query('limit') || '100', 10);
-    const limit = Number.isNaN(rawLimit) ? 100 : Math.min(Math.max(1, rawLimit), 500);
-    const rawOffset = parseInt(c.req.query('offset') || '0', 10);
-    const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
+    const queryParams = {
+      page: c.req.query('page'),
+      limit: c.req.query('limit'),
+      status: c.req.query('status'),
+      search: c.req.query('search'),
+    };
+
+    const parsed = listTenantsQuerySchema.safeParse(queryParams);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
+    const { page, limit, status, search } = parsed.data;
+    const offset = (page - 1) * limit;
 
     // Get tenants with subscription and segment info
     let query = `
@@ -104,6 +141,12 @@ admin.get('/tenants', async (c) => {
       bindings.push(status);
     }
 
+    if (search) {
+      query += status ? ` AND` : ` WHERE`;
+      query += ` (t.name LIKE ? OR t.id LIKE ?)`;
+      bindings.push(`%${search}%`, `%${search}%`);
+    }
+
     query += ` ORDER BY t.created_at DESC LIMIT ? OFFSET ?`;
     bindings.push(limit, offset);
 
@@ -114,6 +157,7 @@ admin.get('/tenants', async (c) => {
       success: true,
       data: result.results || [],
       meta: {
+        page,
         limit,
         offset,
         count: result.results?.length || 0,
@@ -201,6 +245,17 @@ admin.get('/tenants/:id', async (c) => {
 admin.post('/tenants/:id/suspend', async (c) => {
   try {
     const id = c.req.param('id');
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = suspendTenantBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
     const tenant = await updateTenant(c.env.DB, id, { status: 'suspended' });
 
     if (!tenant) {
@@ -215,6 +270,7 @@ admin.post('/tenants/:id/suspend', async (c) => {
     structuredLog('tenant_suspended', {
       tenant_id: id,
       admin: c.get('jwtPayload'),
+      reason: parsed.data.reason,
     });
 
     return c.json<ApiResponse<Tenant>>({
@@ -316,7 +372,23 @@ admin.get('/metrics', async (c) => {
 // GET /incidents - All incidents with filtering
 admin.get('/incidents', async (c) => {
   try {
-    const status = c.req.query('status');
+    const queryParams = {
+      page: c.req.query('page'),
+      limit: c.req.query('limit'),
+      status: c.req.query('status'),
+    };
+
+    const parsed = listIncidentsQuerySchema.safeParse(queryParams);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
+    const { status } = parsed.data;
     const severity = c.req.query('severity');
     const tenantId = c.req.query('tenant_id');
 
@@ -343,16 +415,40 @@ admin.get('/incidents', async (c) => {
 // GET /segments - Tenant segment distribution
 admin.get('/segments', async (c) => {
   try {
-    const segmentStmt = c.env.DB.prepare(`
+    const queryParams = {
+      segment: c.req.query('segment'),
+    };
+
+    const parsed = listSegmentsQuerySchema.safeParse(queryParams);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
+    const { segment } = parsed.data;
+
+    let query = `
       SELECT
         segment,
         COUNT(*) as count,
         AVG(score) as avg_score
       FROM tenant_segments
-      GROUP BY segment
-      ORDER BY count DESC
-    `);
-    const segments = await segmentStmt.all();
+    `;
+    const bindings: string[] = [];
+
+    if (segment) {
+      query += ` WHERE segment = ?`;
+      bindings.push(segment);
+    }
+
+    query += ` GROUP BY segment ORDER BY count DESC`;
+
+    const stmt = c.env.DB.prepare(query).bind(...bindings);
+    const segments = await stmt.all();
 
     return c.json<ApiResponse>({
       success: true,
@@ -420,10 +516,23 @@ admin.get('/billing/summary', async (c) => {
 // GET /billing/transactions - Recent billing transactions
 admin.get('/billing/transactions', async (c) => {
   try {
-    const rawLimit = parseInt(c.req.query('limit') || '50', 10);
-    const limit = Number.isNaN(rawLimit) ? 50 : Math.min(Math.max(1, rawLimit), 500);
-    const rawOffset = parseInt(c.req.query('offset') || '0', 10);
-    const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
+    const queryParams = {
+      page: c.req.query('page'),
+      limit: c.req.query('limit') || '50',
+    };
+
+    const parsed = listTenantsQuerySchema.pick({ page: true, limit: true }).safeParse(queryParams);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
+    const { page, limit } = parsed.data;
+    const offset = (page - 1) * limit;
 
     const transactionsStmt = c.env.DB.prepare(`
       SELECT
@@ -450,6 +559,7 @@ admin.get('/billing/transactions', async (c) => {
       success: true,
       data: transactions.results || [],
       meta: {
+        page,
         limit,
         offset,
         count: transactions.results?.length || 0,

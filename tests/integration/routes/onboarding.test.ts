@@ -3,6 +3,11 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb, createTestTenant } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import {
+  MAX_BUSINESS_DESCRIPTION_LENGTH,
+  MAX_CUSTOM_INSTRUCTIONS_LENGTH,
+  MAX_SOUL_CONTENT_LENGTH,
+} from '../../../src/config/constants.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -152,6 +157,63 @@ describe('Onboarding Routes', () => {
       expect(body.code).toBe('VALIDATION_ERROR');
     });
 
+    it('rejects business_description exceeding MAX_BUSINESS_DESCRIPTION_LENGTH', async () => {
+      const tenantId = 'tn_survey_long_desc';
+      await createTestTenant({ id: tenantId });
+      const headers = await getAuthHeader(tenantId);
+
+      const longDescription = 'x'.repeat(MAX_BUSINESS_DESCRIPTION_LENGTH + 1);
+
+      const res = await app.request(`/api/tenants/${tenantId}/survey`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industry: 'cafe',
+          business_description: longDescription,
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects custom_instructions exceeding MAX_CUSTOM_INSTRUCTIONS_LENGTH', async () => {
+      const tenantId = 'tn_survey_long_instr';
+      await createTestTenant({ id: tenantId });
+      const headers = await getAuthHeader(tenantId);
+
+      const longInstructions = 'x'.repeat(MAX_CUSTOM_INSTRUCTIONS_LENGTH + 1);
+
+      const res = await app.request(`/api/tenants/${tenantId}/survey`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industry: 'shopping',
+          custom_instructions: longInstructions,
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_survey_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/survey`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ industry: 'cafe' }),
+      }, env);
+
+      expect(res.status).toBe(401);
+    });
+
     it('handles target_services array', async () => {
       const tenantId = 'tn_survey_services';
       await createTestTenant({ id: tenantId });
@@ -227,6 +289,17 @@ describe('Onboarding Routes', () => {
       expect(body.success).toBe(true);
       expect(body.data.industry).toBe('office');
     });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_get_survey_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/survey`, {
+        method: 'GET',
+      }, env);
+
+      expect(res.status).toBe(401);
+    });
   });
 
   describe('POST /api/tenants/:tenantId/soul/generate', () => {
@@ -268,6 +341,17 @@ describe('Onboarding Routes', () => {
       expect(body.success).toBe(false);
       expect(body.code).toBe('SURVEY_NOT_FOUND');
       expect(body.error).toContain('complete the onboarding survey first');
+    });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_soul_gen_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/soul/generate`, {
+        method: 'POST',
+      }, env);
+
+      expect(res.status).toBe(401);
     });
   });
 
@@ -330,6 +414,17 @@ describe('Onboarding Routes', () => {
       expect(body.success).toBe(false);
       expect(body.code).toBe('SOUL_NOT_FOUND');
     });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_get_soul_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/soul`, {
+        method: 'GET',
+      }, env);
+
+      expect(res.status).toBe(401);
+    });
   });
 
   describe('GET /api/tenants/:tenantId/soul/versions', () => {
@@ -374,6 +469,17 @@ describe('Onboarding Routes', () => {
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBe(0);
+    });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_versions_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/soul/versions`, {
+        method: 'GET',
+      }, env);
+
+      expect(res.status).toBe(401);
     });
   });
 
@@ -428,6 +534,38 @@ describe('Onboarding Routes', () => {
       const body = await res.json() as any;
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('rejects content exceeding MAX_SOUL_CONTENT_LENGTH', async () => {
+      const tenantId = 'tn_soul_toolong';
+      await createTestTenant({ id: tenantId });
+      const headers = await getAuthHeader(tenantId);
+
+      const tooLongContent = 'x'.repeat(MAX_SOUL_CONTENT_LENGTH + 1);
+
+      const res = await app.request(`/api/tenants/${tenantId}/soul`, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: tooLongContent }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await res.json() as any;
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('requires authentication (401 without JWT)', async () => {
+      const tenantId = 'tn_soul_update_noauth';
+      await createTestTenant({ id: tenantId });
+
+      const res = await app.request(`/api/tenants/${tenantId}/soul`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: '# SOUL\nTest content' }),
+      }, env);
+
+      expect(res.status).toBe(401);
     });
   });
 });

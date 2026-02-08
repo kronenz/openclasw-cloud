@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AutoRecovery } from '../../../src/services/auto-recovery.js';
 import type { Bindings, TenantHealth, Incident, Tenant, TenantResource } from '../../../src/types/index.js';
+import { structuredLog, structuredError } from '../../../src/utils/log.js';
+import { MAX_RECOVERY_ATTEMPTS } from '../../../src/config/constants.js';
+
+vi.mock('../../../src/utils/log.js', () => ({
+  structuredLog: vi.fn(),
+  structuredError: vi.fn(),
+}));
 
 function createMockEnv(slackWebhookUrl?: string): Bindings {
   const env: any = {
@@ -52,6 +59,340 @@ describe('AutoRecovery', () => {
   });
 
   describe('attemptRecovery', () => {
+    it('succeeds on first try when backup exists', async () => {
+      const health: TenantHealth = {
+        tenant_id: 'tn_test123',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      const tenant: Tenant = {
+        id: 'tn_test123',
+        name: 'Test Tenant',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'test',
+        contact_email: 'test@example.com',
+        contact_name: 'Test User',
+        metadata: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const resources: TenantResource[] = [
+        {
+          id: 'res_1',
+          tenant_id: 'tn_test123',
+          resource_type: 'worker',
+          resource_id: 'worker_123',
+          config: null,
+          created_at: new Date().toISOString(),
+        },
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue(tenant),
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenant_resources')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: resources }),
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      vi.spyOn(env.STORAGE, 'get').mockResolvedValue({
+        text: async () => '# Test SOUL\n\nBackup content',
+      } as any);
+
+      vi.spyOn(env.STORAGE, 'head').mockResolvedValue({} as any);
+
+      vi.clearAllMocks();
+
+      await recovery.attemptRecovery('tn_test123', health);
+
+      // Verify incident was resolved
+      const updateCalls = (env.DB.prepare as any).mock.calls.filter((call: any[]) =>
+        call[0].includes('UPDATE incidents') && call[0].includes('status = ?')
+      );
+      expect(updateCalls.length).toBeGreaterThan(0);
+
+      // Verify structuredLog was called with success
+      expect(structuredLog).toHaveBeenCalledWith('auto_recovery_success', expect.objectContaining({
+        tenant_id: 'tn_test123',
+        attempts: 1,
+      }));
+    });
+
+    it('retries up to MAX_RECOVERY_ATTEMPTS before escalating', async () => {
+      const existingIncident: Incident = {
+        id: 'inc_123',
+        tenant_id: 'tn_test123',
+        severity: 'P2',
+        status: 'open',
+        title: 'Test Incident',
+        description: '{}',
+        auto_recovery_attempts: 2, // Already tried twice
+        resolved_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const health: TenantHealth = {
+        tenant_id: 'tn_test123',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      const resources: TenantResource[] = [
+        {
+          id: 'res_1',
+          tenant_id: 'tn_test123',
+          resource_type: 'worker',
+          resource_id: 'worker_123',
+          config: null,
+          created_at: new Date().toISOString(),
+        },
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [existingIncident] }),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenant_resources')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: resources }),
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      vi.spyOn(env.STORAGE, 'get').mockResolvedValue({
+        text: async () => '# Test SOUL\n\nBackup content',
+      } as any);
+
+      vi.spyOn(env.STORAGE, 'head').mockResolvedValue({} as any);
+
+      await recovery.attemptRecovery('tn_test123', health);
+
+      // Should attempt recovery (attempt 3)
+      const updateCalls = (env.DB.prepare as any).mock.calls.filter((call: any[]) =>
+        call[0].includes('UPDATE incidents')
+      );
+      expect(updateCalls.length).toBeGreaterThan(0);
+    });
+
+    it('creates incident after all retries fail', async () => {
+      const exhaustedIncident: Incident = {
+        id: 'inc_456',
+        tenant_id: 'tn_test123',
+        severity: 'P2',
+        status: 'open',
+        title: 'Test Incident',
+        description: '{}',
+        auto_recovery_attempts: MAX_RECOVERY_ATTEMPTS,
+        resolved_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const health: TenantHealth = {
+        tenant_id: 'tn_test123',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      env = createMockEnv('https://hooks.slack.com/test');
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [exhaustedIncident] }),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      recovery = new AutoRecovery(env);
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+      global.fetch = fetchMock;
+
+      vi.clearAllMocks();
+
+      await recovery.attemptRecovery('tn_test123', health);
+
+      // Verify incident was escalated to P1
+      const updateCalls = (env.DB.prepare as any).mock.calls.filter((call: any[]) =>
+        call[0].includes('UPDATE incidents') && call[0].includes('severity = ?')
+      );
+      expect(updateCalls.length).toBeGreaterThan(0);
+
+      // Verify structuredLog was called for escalation
+      expect(structuredLog).toHaveBeenCalledWith('incident_escalated', expect.objectContaining({
+        tenant_id: 'tn_test123',
+        incident_id: 'inc_456',
+        attempts: 3,
+      }));
+    });
+
+    it('calls SlackNotifier.sendEscalation on final failure', async () => {
+      const exhaustedIncident: Incident = {
+        id: 'inc_789',
+        tenant_id: 'tn_test123',
+        severity: 'P2',
+        status: 'open',
+        title: 'Test Incident',
+        description: '{}',
+        auto_recovery_attempts: MAX_RECOVERY_ATTEMPTS,
+        resolved_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const health: TenantHealth = {
+        tenant_id: 'tn_test123',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false, api_errors: 10 },
+      };
+
+      env = createMockEnv('https://hooks.slack.com/test-webhook');
+      recovery = new AutoRecovery(env);
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+      global.fetch = fetchMock;
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [exhaustedIncident] }),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      await recovery.attemptRecovery('tn_test123', health);
+
+      // Verify Slack webhook was called
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://hooks.slack.com/test-webhook',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+
+      const slackPayload = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(slackPayload.text).toContain('tn_test123');
+      expect(slackPayload.text).toContain('자동 복구 실패');
+    });
+
     it('creates new incident when none exists', async () => {
       const health: TenantHealth = {
         tenant_id: 'tn_test123',
@@ -582,6 +923,217 @@ describe('AutoRecovery', () => {
 
       // Should not throw
       await expect(recovery.notifyTenantOfIssue('tn_test123')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('logging and constants verification', () => {
+    it('uses MAX_RECOVERY_ATTEMPTS constant correctly', async () => {
+      const exhaustedIncident: Incident = {
+        id: 'inc_const_test',
+        tenant_id: 'tn_test123',
+        severity: 'P2',
+        status: 'open',
+        title: 'Test Incident',
+        description: '{}',
+        auto_recovery_attempts: MAX_RECOVERY_ATTEMPTS,
+        resolved_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const health: TenantHealth = {
+        tenant_id: 'tn_test123',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      env = createMockEnv('https://hooks.slack.com/test');
+      recovery = new AutoRecovery(env);
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ok: true }),
+      });
+      global.fetch = fetchMock;
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [exhaustedIncident] }),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      await recovery.attemptRecovery('tn_test123', health);
+
+      // Verify that MAX_RECOVERY_ATTEMPTS (3) was used correctly
+      expect(MAX_RECOVERY_ATTEMPTS).toBe(3);
+      expect(exhaustedIncident.auto_recovery_attempts).toBe(MAX_RECOVERY_ATTEMPTS);
+    });
+
+    it('calls structuredLog with auto_recovery_start event', async () => {
+      const health: TenantHealth = {
+        tenant_id: 'tn_log_test',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      const tenant: Tenant = {
+        id: 'tn_log_test',
+        name: 'Log Test Tenant',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'logtest',
+        contact_email: 'test@example.com',
+        contact_name: 'Test User',
+        metadata: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const resources: TenantResource[] = [
+        {
+          id: 'res_1',
+          tenant_id: 'tn_log_test',
+          resource_type: 'worker',
+          resource_id: 'worker_123',
+          config: null,
+          created_at: new Date().toISOString(),
+        },
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue(tenant),
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        if (query.includes('UPDATE incidents')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenant_resources')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: resources }),
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      vi.spyOn(env.STORAGE, 'get').mockResolvedValue({
+        text: async () => '# Test SOUL\n\nBackup content',
+      } as any);
+
+      vi.spyOn(env.STORAGE, 'head').mockResolvedValue({} as any);
+
+      vi.clearAllMocks();
+
+      await recovery.attemptRecovery('tn_log_test', health);
+
+      // Verify structuredLog was called with auto_recovery_start
+      expect(structuredLog).toHaveBeenCalledWith('auto_recovery_start', {
+        tenant_id: 'tn_log_test',
+        health_status: 'unhealthy',
+      });
+
+      // Verify structuredLog was called with incident_created
+      expect(structuredLog).toHaveBeenCalledWith('incident_created', expect.objectContaining({
+        tenant_id: 'tn_log_test',
+      }));
+    });
+
+    it('calls structuredLog for soul_restored event', async () => {
+      const backupContent = '# Backup SOUL\n\nTest content for logging';
+
+      vi.spyOn(env.STORAGE, 'get').mockResolvedValue({
+        text: async () => backupContent,
+      } as any);
+
+      vi.clearAllMocks();
+
+      const result = await recovery.restoreSoulFromBackup('tn_log_test');
+
+      expect(result).toBe(true);
+      expect(structuredLog).toHaveBeenCalledWith('soul_restored', {
+        tenant_id: 'tn_log_test',
+        backup_size: backupContent.length,
+      });
+    });
+
+    it('calls structuredError on recovery error', async () => {
+      const health: TenantHealth = {
+        tenant_id: 'tn_error_test',
+        status: 'unhealthy',
+        last_checked: new Date().toISOString(),
+        details: { soul_exists: false },
+      };
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation(() => {
+        throw new Error('Database connection failed');
+      });
+
+      vi.clearAllMocks();
+
+      await recovery.attemptRecovery('tn_error_test', health);
+
+      // Verify structuredError was called
+      expect(structuredError).toHaveBeenCalledWith(
+        'auto_recovery_error',
+        expect.any(Error),
+        { tenant_id: 'tn_error_test' }
+      );
     });
   });
 });

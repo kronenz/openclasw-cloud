@@ -119,7 +119,7 @@ describe('Admin Routes', () => {
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThanOrEqual(3);
       expect(body.meta).toBeDefined();
-      expect(body.meta.limit).toBe(100);
+      expect(body.meta.limit).toBe(20);
       expect(body.meta.offset).toBe(0);
     });
 
@@ -150,23 +150,24 @@ describe('Admin Routes', () => {
       expect(body.data.length).toBeLessThanOrEqual(2);
     });
 
-    it('supports pagination with offset', async () => {
+    it('supports pagination with page param', async () => {
       const headers = await getAdminHeader();
-      const res = await app.request('/api/admin/tenants?limit=1&offset=1', { headers }, env);
+      const res = await app.request('/api/admin/tenants?limit=1&page=2', { headers }, env);
 
       expect(res.status).toBe(200);
       const body = await res.json() as any;
       expect(body.success).toBe(true);
+      expect(body.meta.page).toBe(2);
       expect(body.meta.offset).toBe(1);
     });
 
-    it('caps limit at 500', async () => {
+    it('rejects limit exceeding max (100)', async () => {
       const headers = await getAdminHeader();
       const res = await app.request('/api/admin/tenants?limit=1000', { headers }, env);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
       const body = await res.json() as any;
-      expect(body.meta.limit).toBe(500);
+      expect(body.success).toBe(false);
     });
 
     it('includes subscription and segment info', async () => {
@@ -478,22 +479,23 @@ describe('Admin Routes', () => {
       expect(body.meta.limit).toBe(10);
     });
 
-    it('caps limit at 200', async () => {
+    it('rejects limit exceeding max (100)', async () => {
       const headers = await getAdminHeader();
       const res = await app.request('/api/admin/billing/transactions?limit=1000', { headers }, env);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
       const body = await res.json() as any;
-      expect(body.meta.limit).toBe(500);
+      expect(body.success).toBe(false);
     });
 
-    it('supports pagination with offset', async () => {
+    it('supports pagination with page param', async () => {
       const headers = await getAdminHeader();
-      const res = await app.request('/api/admin/billing/transactions?limit=5&offset=2', { headers }, env);
+      const res = await app.request('/api/admin/billing/transactions?limit=5&page=2', { headers }, env);
 
       expect(res.status).toBe(200);
       const body = await res.json() as any;
-      expect(body.meta.offset).toBe(2);
+      expect(body.meta.page).toBe(2);
+      expect(body.meta.offset).toBe(5);
     });
   });
 });
