@@ -107,6 +107,14 @@ describe('CORS Middleware', () => {
     expect(allowHeaders).toContain('X-Platform-Type');
   });
 
+  it('denies origins with localhost as substring (e.g. evil-localhost.com)', async () => {
+    const res = await app.request('/health', {
+      method: 'GET',
+      headers: { 'Origin': 'https://evil-localhost.com' },
+    }, env);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
   it('denies subdomain-like strings that do not end with .openclaw.ai', async () => {
     const res = await app.request('/health', {
       method: 'GET',
