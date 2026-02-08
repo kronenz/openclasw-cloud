@@ -1,6 +1,6 @@
 import type { Bindings, AiTextResponse } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
+import { AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
 interface TelegramUpdate {
@@ -35,7 +35,7 @@ export class TelegramBot {
 
   // Send a message via Telegram Bot API
   private async sendMessage(botToken: string, chatId: number, text: string): Promise<boolean> {
-    const res = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetchWithTimeout(`${TELEGRAM_API_BASE}${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -91,7 +91,7 @@ export class TelegramBot {
 
   // Register webhook URL with Telegram
   async registerWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
-    const res = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+    const res = await fetchWithTimeout(`${TELEGRAM_API_BASE}${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: webhookUrl }),

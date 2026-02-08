@@ -2,6 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { generateId } from '../utils/id.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { structuredLog } from '../utils/log.js';
+import { CLOUDFLARE_API_BASE } from '../config/constants.js';
 
 interface CfApiConfig {
   apiToken: string;
@@ -24,7 +25,7 @@ export class CloudflareApi {
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${this.config.accountId}${path}`;
+    const url = `${CLOUDFLARE_API_BASE}/${this.config.accountId}${path}`;
     const res = await fetchWithTimeout(url, {
       ...options,
       headers: {
@@ -109,7 +110,7 @@ export class CloudflareApi {
     }));
     formData.append('index.js', new Blob([workerScript], { type: 'application/javascript+module' }), 'index.js');
 
-    const url = `https://api.cloudflare.com/client/v4/accounts/${this.config.accountId}/workers/scripts/${name}`;
+    const url = `${CLOUDFLARE_API_BASE}/${this.config.accountId}/workers/scripts/${name}`;
     const res = await fetchWithTimeout(url, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${this.config.apiToken}` },

@@ -2,6 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { RESEND_API_URL } from '../config/constants.js';
 
 interface EmailMessage {
   to: string;
@@ -27,7 +28,7 @@ export class EmailSender {
     }
 
     try {
-      const res = await fetchWithTimeout('https://api.resend.com/emails', {
+      const res = await fetchWithTimeout(RESEND_API_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey}`,

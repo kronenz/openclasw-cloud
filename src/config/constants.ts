@@ -63,3 +63,9 @@ export const INDUSTRY_BENCHMARKS: Record<string, number> = {
   shopping: 60_000,
   default: 45_000,
 };
+
+// External API base URLs
+export const RESEND_API_URL = 'https://api.resend.com/emails';
+export const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
+export const CLOUDFLARE_API_BASE = 'https://api.cloudflare.com/client/v4/accounts';
+export const PORTONE_API_BASE = 'https://api.portone.io/v2';

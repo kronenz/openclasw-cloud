@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types/index.js';
+import { withErrorHandler } from '../utils/error-handler.js';
 
 const health = new Hono<{ Bindings: Bindings }>();
 
@@ -13,7 +14,7 @@ health.get('/', (c) => {
 });
 
 // GET /health/detailed - check D1, KV, R2 connectivity
-health.get('/detailed', async (c) => {
+health.get('/detailed', withErrorHandler('health_detailed_check_failed', async (c) => {
   const checks: Record<string, { status: string; latency_ms?: number; error?: string }> = {};
 
   // Check D1
@@ -52,6 +53,6 @@ health.get('/detailed', async (c) => {
     environment: c.env.ENVIRONMENT,
     checks,
   });
-});
+}));
 
 export { health };

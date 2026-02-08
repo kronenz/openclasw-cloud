@@ -2,8 +2,7 @@
 import type { Bindings } from '../types/index.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-
-const PORTONE_API_BASE = 'https://api.portone.io/v2';
+import { PORTONE_API_BASE } from '../config/constants.js';
 
 export interface CheckoutParams {
   tenantId: string;
