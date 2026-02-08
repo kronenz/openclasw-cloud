@@ -14,38 +14,27 @@ health.get('/', (c) => {
   });
 });
 
+async function measureCheck(fn: () => Promise<unknown>): Promise<{ status: string; latency_ms: number; error?: string }> {
+  const start = Date.now();
+  try {
+    await fn();
+    return { status: 'healthy', latency_ms: Date.now() - start };
+  } catch (e) {
+    return { status: 'unhealthy', latency_ms: Date.now() - start, error: String(e) };
+  }
+}
+
 // GET /health/detailed - check D1, KV, R2 connectivity
 health.get('/detailed', withErrorHandler('health_detailed_check_failed', async (c) => {
-  const checks: Record<string, { status: string; latency_ms?: number; error?: string }> = {};
+  const [d1, kv, r2] = await Promise.all([
+    measureCheck(() => c.env.DB.prepare('SELECT 1').first()),
+    measureCheck(() => c.env.CACHE.get('__health_check__')),
+    measureCheck(() => c.env.STORAGE.head('__health_check__')),
+  ]);
 
-  // Check D1
-  const d1Start = Date.now();
-  try {
-    await c.env.DB.prepare('SELECT 1').first();
-    checks.d1 = { status: 'healthy', latency_ms: Date.now() - d1Start };
-  } catch (e) {
-    checks.d1 = { status: 'unhealthy', latency_ms: Date.now() - d1Start, error: String(e) };
-  }
+  const checks = { d1, kv, r2 };
 
-  // Check KV
-  const kvStart = Date.now();
-  try {
-    await c.env.CACHE.get('__health_check__');
-    checks.kv = { status: 'healthy', latency_ms: Date.now() - kvStart };
-  } catch (e) {
-    checks.kv = { status: 'unhealthy', latency_ms: Date.now() - kvStart, error: String(e) };
-  }
-
-  // Check R2
-  const r2Start = Date.now();
-  try {
-    await c.env.STORAGE.head('__health_check__');
-    checks.r2 = { status: 'healthy', latency_ms: Date.now() - r2Start };
-  } catch (e) {
-    checks.r2 = { status: 'unhealthy', latency_ms: Date.now() - r2Start, error: String(e) };
-  }
-
-  const overallStatus = Object.values(checks).every(c => c.status === 'healthy') ? 'healthy' : 'degraded';
+  const overallStatus = Object.values(checks).every(check => check.status === 'healthy') ? 'healthy' : 'degraded';
 
   return c.json({
     status: overallStatus,
