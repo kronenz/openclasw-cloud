@@ -10,6 +10,7 @@ import { createNotification } from '../db/queries-v2.js';
 import { generateIncidentId } from '../utils/id.js';
 import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
 import { SlackNotifier } from './slack-notifier.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 interface RecoveryResult {
   success: boolean;
@@ -22,12 +23,10 @@ export class AutoRecovery {
 
   // Main entry point for auto-recovery
   async attemptRecovery(tenantId: string, health: TenantHealth): Promise<void> {
-    console.log(JSON.stringify({
-      event: 'auto_recovery_start',
+    structuredLog('auto_recovery_start', {
       tenant_id: tenantId,
       health_status: health.status,
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     try {
       // Get or create incident
@@ -51,11 +50,10 @@ export class AutoRecovery {
           auto_recovery_attempts: 0,
           resolved_at: null,
         });
-        console.log(JSON.stringify({
-          event: 'incident_created',
+        structuredLog('incident_created', {
           incident_id: incident.id,
           tenant_id: tenantId,
-        }));
+        });
       }
 
       // Check if we've exhausted recovery attempts
@@ -92,13 +90,12 @@ export class AutoRecovery {
           }),
         });
 
-        console.log(JSON.stringify({
-          event: 'auto_recovery_success',
+        structuredLog('auto_recovery_success', {
           tenant_id: tenantId,
           incident_id: incident.id,
           attempts: incident.auto_recovery_attempts + 1,
           message: recoveryResult.message,
-        }));
+        });
 
         // Notify tenant of recovery
         await createNotification(this.env.DB, {
@@ -114,21 +111,15 @@ export class AutoRecovery {
           sent_at: null,
         });
       } else {
-        console.log(JSON.stringify({
-          event: 'auto_recovery_failed',
+        structuredLog('auto_recovery_failed', {
           tenant_id: tenantId,
           incident_id: incident.id,
           attempts: incident.auto_recovery_attempts + 1,
           message: recoveryResult.message,
-        }));
+        });
       }
     } catch (error) {
-      console.error(JSON.stringify({
-        event: 'auto_recovery_error',
-        tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString(),
-      }));
+      structuredError('auto_recovery_error', error, { tenant_id: tenantId });
     }
   }
 
@@ -139,11 +130,10 @@ export class AutoRecovery {
     try {
       // Step 1: Check if SOUL.md is missing
       if (!health.details.soul_exists) {
-        console.log(JSON.stringify({
-          event: 'recovery_step',
+        structuredLog('recovery_step', {
           tenant_id: tenantId,
           step: 'restore_soul',
-        }));
+        });
 
         const restored = await this.restoreSoulFromBackup(tenantId);
         if (restored) {
@@ -198,11 +188,10 @@ export class AutoRecovery {
       // Check if backup exists
       const backupObj = await this.env.STORAGE.get(`backups/${tenantId}/SOUL.md`);
       if (!backupObj) {
-        console.log(JSON.stringify({
-          event: 'backup_not_found',
+        structuredLog('backup_not_found', {
           tenant_id: tenantId,
           path: `backups/${tenantId}/SOUL.md`,
-        }));
+        });
         return false;
       }
 
@@ -216,20 +205,14 @@ export class AutoRecovery {
         },
       });
 
-      console.log(JSON.stringify({
-        event: 'soul_restored',
+      structuredLog('soul_restored', {
         tenant_id: tenantId,
         backup_size: backupContent.length,
-        timestamp: new Date().toISOString(),
-      }));
+      });
 
       return true;
     } catch (error) {
-      console.error(JSON.stringify({
-        event: 'restore_failed',
-        tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      structuredError('restore_failed', error, { tenant_id: tenantId });
       return false;
     }
   }
@@ -255,14 +238,12 @@ export class AutoRecovery {
       attempts: MAX_RECOVERY_ATTEMPTS,
     });
 
-    console.log(JSON.stringify({
-      event: 'incident_escalated',
+    structuredLog('incident_escalated', {
       tenant_id: tenantId,
       incident_id: incidentId,
       attempts: 3,
       new_severity: 'P1',
-      timestamp: new Date().toISOString(),
-    }));
+    });
   }
 
   // Notify tenant of temporary issue
@@ -281,7 +262,7 @@ export class AutoRecovery {
         sent_at: null,
       });
     } catch (error) {
-      console.error('Failed to create notification:', error);
+      structuredError('notification_creation_failed', error, {});
     }
   }
 }

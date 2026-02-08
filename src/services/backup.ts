@@ -2,6 +2,7 @@ import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getTenant } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { BACKUP_RETENTION_DAYS } from '../config/constants.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 interface BackupResult {
   success: boolean;
@@ -23,11 +24,7 @@ export class BackupService {
   // Backup a single tenant's data to R2
   async backupTenant(tenantId: string): Promise<BackupResult> {
     try {
-      console.log(JSON.stringify({
-        event: 'backup_start',
-        tenant_id: tenantId,
-        timestamp: new Date().toISOString(),
-      }));
+      structuredLog('backup_start', { tenant_id: tenantId });
 
       // Get tenant info
       const tenant = await getTenant(this.env.DB, tenantId);
@@ -74,12 +71,7 @@ export class BackupService {
         }
       );
 
-      console.log(JSON.stringify({
-        event: 'backup_complete',
-        tenant_id: tenantId,
-        soul_size: soulBackupSize,
-        timestamp: new Date().toISOString(),
-      }));
+      structuredLog('backup_complete', { tenant_id: tenantId, soul_size: soulBackupSize });
 
       return {
         success: true,
@@ -88,11 +80,7 @@ export class BackupService {
         backup_size: soulBackupSize,
       };
     } catch (error) {
-      console.error(JSON.stringify({
-        event: 'backup_failed',
-        tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      structuredError('backup_failed', error, { tenant_id: tenantId });
 
       return {
         success: false,
@@ -104,10 +92,7 @@ export class BackupService {
 
   // Backup all active tenants (for daily cron)
   async backupAllTenants(): Promise<BackupSummary> {
-    console.log(JSON.stringify({
-      event: 'backup_all_start',
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('backup_all_start', {});
 
     const tenants = await listTenants(this.env.DB, { status: 'active' });
     const results: BackupResult[] = [];
@@ -124,15 +109,13 @@ export class BackupService {
       results,
     };
 
-    console.log(JSON.stringify({
-      event: 'backup_all_complete',
+    structuredLog('backup_all_complete', {
       summary: {
         total: summary.total,
         succeeded: summary.succeeded,
         failed: summary.failed,
       },
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     return summary;
   }
@@ -140,11 +123,7 @@ export class BackupService {
   // Restore tenant from latest backup
   async restoreTenant(tenantId: string): Promise<{ success: boolean; message: string; config?: Tenant }> {
     try {
-      console.log(JSON.stringify({
-        event: 'restore_start',
-        tenant_id: tenantId,
-        timestamp: new Date().toISOString(),
-      }));
+      structuredLog('restore_start', { tenant_id: tenantId });
 
       // Restore SOUL.md
       const soulBackup = await this.env.STORAGE.get(`backups/${tenantId}/SOUL.md`);
@@ -172,11 +151,7 @@ export class BackupService {
         configData = parsedConfig.tenant;
       }
 
-      console.log(JSON.stringify({
-        event: 'restore_complete',
-        tenant_id: tenantId,
-        timestamp: new Date().toISOString(),
-      }));
+      structuredLog('restore_complete', { tenant_id: tenantId });
 
       return {
         success: true,
@@ -184,11 +159,7 @@ export class BackupService {
         config: configData,
       };
     } catch (error) {
-      console.error(JSON.stringify({
-        event: 'restore_failed',
-        tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      structuredError('restore_failed', error, { tenant_id: tenantId });
 
       return {
         success: false,
@@ -199,11 +170,7 @@ export class BackupService {
 
   // Remove backups older than retention period
   async cleanupOldBackups(retentionDays: number = BACKUP_RETENTION_DAYS): Promise<{ deleted: number; errors: number }> {
-    console.log(JSON.stringify({
-      event: 'cleanup_start',
-      retention_days: retentionDays,
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('cleanup_start', { retention_days: retentionDays });
 
     let deleted = 0;
     let errors = 0;
@@ -221,43 +188,26 @@ export class BackupService {
             await this.env.STORAGE.delete(obj.key);
             deleted++;
 
-            console.log(JSON.stringify({
-              event: 'backup_deleted',
-              key: obj.key,
-              uploaded: obj.uploaded,
-            }));
+            structuredLog('backup_deleted', { key: obj.key, uploaded: obj.uploaded });
           }
         } catch (error) {
           errors++;
-          console.error(JSON.stringify({
-            event: 'cleanup_error',
-            key: obj.key,
-            error: error instanceof Error ? error.message : String(error),
-          }));
+          structuredError('cleanup_error', error, { key: obj.key });
         }
       }
 
       // Handle truncated results (if more than 1000 objects)
       if (listed.truncated) {
-        console.log(JSON.stringify({
-          event: 'cleanup_truncated',
+        structuredLog('cleanup_truncated', {
           message: 'More than 1000 objects found, some may not be cleaned up',
-        }));
+        });
       }
     } catch (error) {
-      console.error(JSON.stringify({
-        event: 'cleanup_list_failed',
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      structuredError('cleanup_list_failed', error, {});
       errors++;
     }
 
-    console.log(JSON.stringify({
-      event: 'cleanup_complete',
-      deleted,
-      errors,
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('cleanup_complete', { deleted, errors });
 
     return { deleted, errors };
   }
