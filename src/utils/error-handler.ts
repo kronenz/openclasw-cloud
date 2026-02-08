@@ -15,6 +15,13 @@ export function withErrorHandler<B extends Bindings = Bindings, V extends object
     try {
       return await handler(c);
     } catch (e) {
+      // JSON parse errors from c.req.json() are client errors, not server errors
+      if (e instanceof SyntaxError) {
+        return c.json<ApiResponse>(
+          { success: false, error: 'Invalid JSON payload', code: ERROR_CODES.INVALID_PAYLOAD },
+          400
+        );
+      }
       structuredError(eventName, e);
       return c.json<ApiResponse>(
         { success: false, error: 'Internal server error', code: ERROR_CODES.INTERNAL_ERROR },

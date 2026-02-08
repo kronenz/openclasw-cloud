@@ -59,6 +59,27 @@ describe('Error Handler Utilities', () => {
       expect(structuredError).toHaveBeenCalledWith('custom_event', testError);
     });
 
+    it('returns 400 for SyntaxError (malformed JSON)', async () => {
+      const app = new Hono();
+      app.post('/test', withErrorHandler('json_event', async (c) => {
+        await c.req.json();
+        return c.json({ success: true });
+      }));
+
+      const res = await app.request('/test', {
+        method: 'POST',
+        body: '{bad json',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      expect(res.status).toBe(400);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('Invalid JSON payload');
+      expect(body.code).toBe('INVALID_PAYLOAD');
+      // Should NOT log as structuredError since it's a client error
+      expect(structuredError).not.toHaveBeenCalled();
+    });
+
     it('handles different types of thrown values', async () => {
       const app = new Hono();
 
