@@ -8,6 +8,7 @@ import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPla
 import { createNotification } from '../db/queries-v2.js';
 import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
 import { toDateString } from '../utils/id.js';
+import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
 export interface OverageInfo {
   exceeded: boolean;
@@ -48,23 +49,18 @@ export class SubscriptionManager {
       // Update tenant status to active
       await updateTenant(this.env.DB, tenantId, { status: 'active' });
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Subscription created',
+      structuredLog('subscription_created', {
         tenant_id: tenantId,
         subscription_id: created.id,
         plan_id: planId,
-      }));
+      });
 
       return created;
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to create subscription',
+      structuredError('subscription_creation_failed', error, {
         tenant_id: tenantId,
         plan_id: planId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -88,13 +84,11 @@ export class SubscriptionManager {
         current_period_end: gracePeriodEnd.toISOString(),
       });
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Subscription canceled',
+      structuredLog('subscription_canceled', {
         tenant_id: tenantId,
         subscription_id: subscription.id,
         grace_period_end: gracePeriodEnd.toISOString(),
-      }));
+      });
 
       // Create notification for cancellation
       await createNotification(this.env.DB, {
@@ -110,12 +104,9 @@ export class SubscriptionManager {
         sent_at: null,
       });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to cancel subscription',
+      structuredError('subscription_cancellation_failed', error, {
         tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -147,14 +138,12 @@ export class SubscriptionManager {
         await updateTenant(this.env.DB, tenantId, { plan: planTier });
       }
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Subscription upgraded',
+      structuredLog('subscription_upgraded', {
         tenant_id: tenantId,
         subscription_id: subscription.id,
         old_plan_id: subscription.plan_id,
         new_plan_id: newPlanId,
-      }));
+      });
 
       // Create notification for upgrade
       await createNotification(this.env.DB, {
@@ -170,13 +159,10 @@ export class SubscriptionManager {
         sent_at: null,
       });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to upgrade subscription',
+      structuredError('subscription_upgrade_failed', error, {
         tenant_id: tenantId,
         new_plan_id: newPlanId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -209,15 +195,14 @@ export class SubscriptionManager {
         await updateTenant(this.env.DB, tenantId, { plan: planTier });
       }
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Subscription downgraded (scheduled for period end)',
+      structuredLog('subscription_downgraded', {
         tenant_id: tenantId,
         subscription_id: subscription.id,
         old_plan_id: subscription.plan_id,
         new_plan_id: newPlanId,
         effective_at: subscription.current_period_end,
-      }));
+        note: 'scheduled for period end',
+      });
 
       // Create notification
       await createNotification(this.env.DB, {
@@ -233,13 +218,10 @@ export class SubscriptionManager {
         sent_at: null,
       });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to downgrade subscription',
+      structuredError('subscription_downgrade_failed', error, {
         tenant_id: tenantId,
         new_plan_id: newPlanId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -266,12 +248,11 @@ export class SubscriptionManager {
             monthlyLimit = plan.monthly_token_limit;
           }
         } catch (planError) {
-          console.warn(JSON.stringify({
-            level: 'warning',
-            message: 'Failed to fetch plan limits, using defaults',
+          structuredWarn('plan_limits_fetch_failed', {
             tenant_id: tenantId,
-            error: planError instanceof Error ? planError.message : String(planError),
-          }));
+            note: 'using defaults',
+            error_message: planError instanceof Error ? planError.message : String(planError),
+          });
         }
       }
 
@@ -281,15 +262,13 @@ export class SubscriptionManager {
       const exceeded = dailyUsage > dailyLimit || monthlyUsage > monthlyLimit;
 
       if (exceeded) {
-        console.log(JSON.stringify({
-          level: 'warning',
-          message: 'Token limit exceeded',
+        structuredWarn('token_limit_exceeded', {
           tenant_id: tenantId,
           daily_usage: dailyUsage,
           daily_limit: dailyLimit,
           monthly_usage: monthlyUsage,
           monthly_limit: monthlyLimit,
-        }));
+        });
       }
 
       return {
@@ -300,12 +279,9 @@ export class SubscriptionManager {
         monthlyLimit,
       };
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to check overage',
+      structuredError('overage_check_failed', error, {
         tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -328,12 +304,10 @@ export class SubscriptionManager {
         status: 'past_due',
       });
 
-      console.log(JSON.stringify({
-        level: 'warning',
-        message: 'Tenant suspended for non-payment',
+      structuredWarn('tenant_suspended_non_payment', {
         tenant_id: tenantId,
         subscription_id: subscription.id,
-      }));
+      });
 
       // Send notification
       await createNotification(this.env.DB, {
@@ -349,12 +323,9 @@ export class SubscriptionManager {
         sent_at: null,
       });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to suspend tenant',
+      structuredError('tenant_suspension_failed', error, {
         tenant_id: tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }

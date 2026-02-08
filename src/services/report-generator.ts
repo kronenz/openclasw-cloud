@@ -2,6 +2,7 @@ import type { Bindings, DailyUsage } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 interface WeeklyReport {
   tenant_id: string;
@@ -287,11 +288,9 @@ export class ReportGenerator {
 
           sent++;
         } catch (error) {
-          console.error(JSON.stringify({
-            event: 'weekly_report_failed',
+          structuredError('weekly_report_failed', error, {
             tenant_id: tenant.id,
-            error: error instanceof Error ? error.message : String(error),
-          }));
+          });
           failed++;
         }
       }
@@ -349,11 +348,9 @@ export class ReportGenerator {
 
           sent++;
         } catch (error) {
-          console.error(JSON.stringify({
-            event: 'monthly_report_failed',
+          structuredError('monthly_report_failed', error, {
             tenant_id: tenant.id,
-            error: error instanceof Error ? error.message : String(error),
-          }));
+          });
           failed++;
         }
       }
@@ -361,10 +358,9 @@ export class ReportGenerator {
       // Also generate platform report
       try {
         const platformReport = await this.generatePlatformReport();
-        console.log(JSON.stringify({
-          event: 'platform_monthly_report',
+        structuredLog('platform_monthly_report', {
           ...platformReport,
-        }));
+        });
       } catch (error) {
         console.error('Failed to generate platform report:', error);
       }

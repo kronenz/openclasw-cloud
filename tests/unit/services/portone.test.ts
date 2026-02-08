@@ -391,7 +391,7 @@ describe('PortOneClient', () => {
       new PortOneClient(env);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('PORTONE_API_KEY not configured')
+        expect.stringContaining('portone_api_key_not_configured')
       );
 
       consoleWarnSpy.mockRestore();

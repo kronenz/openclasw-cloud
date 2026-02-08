@@ -4,6 +4,7 @@ import { createNotification } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString } from '../utils/id.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 interface EngagementResult {
   tenant_id: string;
@@ -84,14 +85,12 @@ export class CustomerEngagement {
       }
     }
 
-    console.log(JSON.stringify({
-      event: 'customer_engagement_completed',
+    structuredLog('customer_engagement_completed', {
       total: tenants.length,
       re_engagement: reEngagementCount,
       upsell: upsellCount,
       at_risk: atRiskCount,
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     return {
       total_tenants: tenants.length,
@@ -143,12 +142,10 @@ export class CustomerEngagement {
           sent_at: new Date().toISOString(),
         });
 
-        console.log(JSON.stringify({
-          event: 're_engagement_email_sent',
+        structuredLog('re_engagement_email_sent', {
           tenant_id: tenant.id,
           tenant_name: tenant.name,
-          timestamp: new Date().toISOString(),
-        }));
+        });
 
         return true;
       }
@@ -211,15 +208,13 @@ export class CustomerEngagement {
           sent_at: null,
         });
 
-        console.log(JSON.stringify({
-          event: 'upsell_opportunity_detected',
+        structuredLog('upsell_opportunity_detected', {
           tenant_id: tenant.id,
           tenant_name: tenant.name,
           usage_percent: usagePercent,
           current_plan: currentPlan.name,
           next_plan: nextPlan.name,
-          timestamp: new Date().toISOString(),
-        }));
+        });
 
         return true;
       }
@@ -274,13 +269,11 @@ export class CustomerEngagement {
         sent_at: new Date().toISOString(),
       });
 
-      console.log(JSON.stringify({
-        event: 'usage_drop_detected',
+      structuredLog('usage_drop_detected', {
         tenant_id: tenant.id,
         tenant_name: tenant.name,
         drop_percent: dropPercent,
-        timestamp: new Date().toISOString(),
-      }));
+      });
 
       return true;
     }

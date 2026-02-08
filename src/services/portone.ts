@@ -1,5 +1,6 @@
 // OpenClasw Cloud PortOne Payment Integration Service
 import type { Bindings } from '../types/index.js';
+import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
 const PORTONE_API_BASE = 'https://api.portone.io/v2';
 
@@ -39,10 +40,7 @@ export class PortOneClient {
   constructor(private env: Bindings) {
     this.apiKey = env.PORTONE_API_KEY || '';
     if (!this.apiKey) {
-      console.warn(JSON.stringify({
-        level: 'warning',
-        message: 'PORTONE_API_KEY not configured',
-      }));
+      structuredWarn('portone_api_key_not_configured', {});
     }
   }
 
@@ -79,22 +77,17 @@ export class PortOneClient {
 
       const data = await response.json() as { checkout_url?: string };
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Checkout URL created',
+      structuredLog('checkout_url_created', {
         tenant_id: params.tenantId,
         plan_id: params.planId,
         amount: params.amount,
-      }));
+      });
 
       return data.checkout_url || '';
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to create checkout URL',
+      structuredError('checkout_url_creation_failed', error, {
         tenant_id: params.tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -121,20 +114,15 @@ export class PortOneClient {
         throw new Error(`PortOne API error: ${response.status} ${errorText}`);
       }
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Refund processed',
+      structuredLog('refund_processed', {
         payment_id: params.paymentId,
         amount: params.amount,
         reason: params.reason,
-      }));
+      });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to process refund',
+      structuredError('refund_processing_failed', error, {
         payment_id: params.paymentId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -166,20 +154,15 @@ export class PortOneClient {
 
       const data = await response.json() as { billing_key?: string };
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Billing key created',
+      structuredLog('billing_key_created', {
         tenant_id: params.tenantId,
-      }));
+      });
 
       return data.billing_key || '';
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to create billing key',
+      structuredError('billing_key_creation_failed', error, {
         tenant_id: params.tenantId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
@@ -207,19 +190,14 @@ export class PortOneClient {
         throw new Error(`PortOne API error: ${response.status} ${errorText}`);
       }
 
-      console.log(JSON.stringify({
-        level: 'info',
-        message: 'Recurring payment charged',
+      structuredLog('recurring_payment_charged', {
         billing_key: params.billingKey,
         amount: params.amount,
-      }));
+      });
     } catch (error) {
-      console.error(JSON.stringify({
-        level: 'error',
-        message: 'Failed to charge billing key',
+      structuredError('billing_key_charge_failed', error, {
         billing_key: params.billingKey,
-        error: error instanceof Error ? error.message : String(error),
-      }));
+      });
       throw error;
     }
   }
