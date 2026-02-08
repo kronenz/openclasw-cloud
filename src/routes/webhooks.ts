@@ -215,6 +215,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: Telegram
       return c.json<ApiResponse>({
         success: false,
         error: 'Tenant not found or inactive',
+        code: 'TENANT_INACTIVE',
       }, 403);
     }
 
@@ -260,6 +261,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
         return c.json<ApiResponse>({
           success: false,
           error: 'Tenant not found or inactive',
+          code: 'TENANT_INACTIVE',
         }, 403);
       }
 

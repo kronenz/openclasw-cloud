@@ -73,6 +73,18 @@ id = "TODO"
 binding = "SESSIONS"
 id = "TODO"
 
+[env.staging.ai]
+binding = "AI"
+
+[env.staging.triggers]
+crons = [
+  "*/5 * * * *",
+  "0 * * * *",
+  "0 0 * * *",
+  "0 0 * * 1",
+  "0 0 1 * *"
+]
+
 # 환경별 설정: 프로덕션
 [env.production]
 name = "openclasw-cloud"
@@ -94,6 +106,18 @@ id = "TODO"
 [[env.production.kv_namespaces]]
 binding = "SESSIONS"
 id = "TODO"
+
+[env.production.ai]
+binding = "AI"
+
+[env.production.triggers]
+crons = [
+  "*/5 * * * *",
+  "0 * * * *",
+  "0 0 * * *",
+  "0 0 * * 1",
+  "0 0 1 * *"
+]
 
 # 로깅
 [observability]
