@@ -1,4 +1,4 @@
-import type { Bindings, DailyUsage, Tenant, BillingPlan } from '../types/index.js';
+import type { Bindings, DailyUsage, Tenant } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, BillingPlan, BillingSubscription } from '../types/index.js';
-import { listBillingPlans, getSubscription, getTenantUsageSummary, getTenant } from '../db/queries.js';
+import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/queries.js';
 import { updateTenant } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import type { Bindings, Variables, ApiResponse, Tenant, TenantSegment, Incident } from '../types/index.js';
-import { getTenant, listTenants, updateTenant, listIncidents } from '../db/queries.js';
+import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
+import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();

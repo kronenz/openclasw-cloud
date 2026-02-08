@@ -4,7 +4,6 @@ import type { Bindings, ApiResponse, OnboardingSurvey, SoulVersion } from '../ty
 import {
   createSurvey,
   getSurvey,
-  updateSurvey,
   getActiveSoul,
   listSoulVersions,
 } from '../db/queries-v2.js';

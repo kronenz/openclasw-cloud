@@ -1,4 +1,4 @@
-import type { Bindings, UsageLog, DailyUsage, ModelRecommendation, Alert } from '../types/index.js';
+import type { Bindings, ModelRecommendation, Alert } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 

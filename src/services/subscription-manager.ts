@@ -1,5 +1,5 @@
 // OpenClasw Cloud Subscription Manager Service
-import type { Bindings, BillingSubscription, Tenant } from '../types/index.js';
+import type { Bindings, BillingSubscription } from '../types/index.js';
 import {
   createBillingSubscription,
   updateBillingSubscription,

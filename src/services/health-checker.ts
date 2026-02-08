@@ -1,6 +1,5 @@
-import type { Bindings, TenantHealth, Alert, Tenant } from '../types/index.js';
-import { listTenants, getTenantResources, createIncident, listIncidents } from '../db/queries.js';
-import { generateIncidentId } from '../utils/id.js';
+import type { Bindings, TenantHealth, Alert } from '../types/index.js';
+import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
 
 interface HealthReport {
@@ -119,26 +118,6 @@ export class HealthChecker {
     return report;
   }
 
-  // Auto-create incident for unhealthy tenant
-  private async autoCreateIncident(tenant: Tenant, health: TenantHealth): Promise<void> {
-    // Check if there's already an open incident
-    const existing = await listIncidents(this.env.DB, {
-      tenantId: tenant.id,
-      status: 'open',
-    });
-    if (existing.length > 0) return; // Already has open incident
-
-    await createIncident(this.env.DB, {
-      id: generateIncidentId(),
-      tenant_id: tenant.id,
-      severity: 'P2',
-      status: 'open',
-      title: `[자동 감지] ${tenant.name} 헬스체크 실패`,
-      description: JSON.stringify(health.details),
-      auto_recovery_attempts: 0,
-      resolved_at: null,
-    });
-  }
 
   // Send alert via Slack webhook
   async sendAlert(alert: Alert): Promise<void> {

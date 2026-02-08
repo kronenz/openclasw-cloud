@@ -1,7 +1,6 @@
-import type { Bindings, Tenant, DailyUsage } from '../types/index.js';
-import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
+import type { Bindings, DailyUsage } from '../types/index.js';
+import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
-import { EmailSender } from './email-sender.js';
 import { safeJsonParse } from '../utils/json.js';
 
 interface WeeklyReport {
