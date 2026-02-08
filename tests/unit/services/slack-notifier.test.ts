@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SlackNotifier } from '../../../src/services/slack-notifier.js';
 import type { Bindings } from '../../../src/types/index.js';
+import { createMockEnv } from '../../helpers/mocks.js';
 
 // Mock the structuredError utility
 vi.mock('../../../src/utils/log.js', () => ({
@@ -19,15 +20,9 @@ describe('SlackNotifier', () => {
     fetchMock = vi.fn();
     global.fetch = fetchMock;
 
-    mockEnv = {
+    mockEnv = createMockEnv({
       SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test/webhook',
-      DB: {} as any,
-      STORAGE: {} as any,
-      CACHE: {} as any,
-      AI_GATEWAY_URL: '',
-      AI_GATEWAY_ID: '',
-      AI_GATEWAY_TOKEN: '',
-    };
+    });
 
     notifier = new SlackNotifier(mockEnv);
   });

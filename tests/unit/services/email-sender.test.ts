@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EmailSender } from '../../../src/services/email-sender.js';
 import type { Bindings } from '../../../src/types/index.js';
+import { createMockEnv } from '../../helpers/mocks.js';
 
 // Mock the fetchWithTimeout utility
 vi.mock('../../../src/utils/fetch.js', () => ({
@@ -19,26 +20,6 @@ vi.mock('../../../src/utils/log.js', () => ({
 import { fetchWithTimeout } from '../../../src/utils/fetch.js';
 import { structuredLog, structuredError } from '../../../src/utils/log.js';
 
-function createMockEnv(resendApiKey?: string): Bindings {
-  const env: any = {
-    DB: {} as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-
-  if (resendApiKey) {
-    env.RESEND_API_KEY = resendApiKey;
-  }
-
-  return env;
-}
-
 describe('EmailSender', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +27,7 @@ describe('EmailSender', () => {
 
   describe('sendWelcomeEmail', () => {
     it('sends welcome email via Resend API when configured', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -88,7 +69,7 @@ describe('EmailSender', () => {
     });
 
     it('includes API key and dashboard URL in email body', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -135,7 +116,7 @@ describe('EmailSender', () => {
     });
 
     it('returns false when Resend API returns error', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -157,7 +138,7 @@ describe('EmailSender', () => {
     });
 
     it('handles network errors gracefully', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       const error = new Error('Network error');
@@ -179,7 +160,7 @@ describe('EmailSender', () => {
 
   describe('sendPaymentFailedEmail', () => {
     it('sends payment failed email with correct content', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -205,7 +186,7 @@ describe('EmailSender', () => {
     });
 
     it('includes 7-day warning in payment failed email', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -246,7 +227,7 @@ describe('EmailSender', () => {
 
   describe('sendReEngagementEmail', () => {
     it('sends re-engagement email with inactive days count', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -274,7 +255,7 @@ describe('EmailSender', () => {
     });
 
     it('includes feature list in re-engagement email', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -296,7 +277,7 @@ describe('EmailSender', () => {
     });
 
     it('returns false on Resend API error', async () => {
-      const env = createMockEnv('test-resend-key');
+      const env = createMockEnv({ RESEND_API_KEY: 'test-resend-key' });
       const sender = new EmailSender(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({

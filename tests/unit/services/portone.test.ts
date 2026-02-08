@@ -1,26 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PortOneClient } from '../../../src/services/portone.js';
 import type { Bindings } from '../../../src/types/index.js';
-
-function createMockEnv(portoneApiKey?: string): Bindings {
-  const env: any = {
-    DB: {} as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-
-  if (portoneApiKey) {
-    env.PORTONE_API_KEY = portoneApiKey;
-  }
-
-  return env;
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('PortOneClient', () => {
   let originalFetch: typeof global.fetch;
@@ -36,7 +17,7 @@ describe('PortOneClient', () => {
 
   describe('createCheckoutUrl', () => {
     it('creates checkout URL successfully', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -72,7 +53,7 @@ describe('PortOneClient', () => {
     });
 
     it('generates unique merchant_uid with timestamp', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -93,7 +74,7 @@ describe('PortOneClient', () => {
     });
 
     it('returns empty string when checkout_url is missing', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -113,7 +94,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when API returns non-ok response', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -134,7 +115,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when network fails', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
@@ -153,7 +134,7 @@ describe('PortOneClient', () => {
 
   describe('processRefund', () => {
     it('processes refund successfully', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -185,7 +166,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when refund fails', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -205,7 +186,7 @@ describe('PortOneClient', () => {
     });
 
     it('handles network errors during refund', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockRejectedValue(new Error('Connection timeout'));
@@ -223,7 +204,7 @@ describe('PortOneClient', () => {
 
   describe('createBillingKey', () => {
     it('creates billing key successfully', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -264,7 +245,7 @@ describe('PortOneClient', () => {
     });
 
     it('returns empty string when billing_key is missing', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -286,7 +267,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when card validation fails', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -311,7 +292,7 @@ describe('PortOneClient', () => {
 
   describe('chargeWithBillingKey', () => {
     it('charges with billing key successfully', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -344,7 +325,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when billing key is invalid', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -364,7 +345,7 @@ describe('PortOneClient', () => {
     });
 
     it('throws error when charge fails', async () => {
-      const env = createMockEnv('test-portone-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-portone-key' });
       const client = new PortOneClient(env);
 
       const fetchMock = vi.fn().mockResolvedValue({
@@ -399,7 +380,7 @@ describe('PortOneClient', () => {
 
     it('does not warn when PORTONE_API_KEY is configured', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const env = createMockEnv('test-key');
+      const env = createMockEnv({ PORTONE_API_KEY: 'test-key' });
       new PortOneClient(env);
 
       expect(consoleWarnSpy).not.toHaveBeenCalled();

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TelegramBot } from '../../../src/services/telegram-bot.js';
 import type { Bindings } from '../../../src/types/index.js';
+import { createMockEnv } from '../../helpers/mocks.js';
 
 // Mock the structuredError utility
 vi.mock('../../../src/utils/log.js', () => ({
@@ -9,29 +10,6 @@ vi.mock('../../../src/utils/log.js', () => ({
 }));
 
 import { structuredError } from '../../../src/utils/log.js';
-
-function createMockEnv(): Bindings {
-  const env: any = {
-    DB: {} as any,
-    STORAGE: {
-      get: vi.fn().mockResolvedValue(null),
-    } as any,
-    CACHE: {
-      get: vi.fn().mockResolvedValue(null),
-      put: vi.fn().mockResolvedValue(undefined),
-    } as any,
-    SESSIONS: {} as any,
-    AI: {
-      run: vi.fn().mockResolvedValue({ response: 'AI generated response' }),
-    } as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-
-  return env;
-}
 
 describe('TelegramBot', () => {
   let originalFetch: typeof global.fetch;

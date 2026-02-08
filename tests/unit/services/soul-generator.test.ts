@@ -2,36 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SoulGenerator } from '../../../src/services/soul-generator.js';
 import type { Bindings, OnboardingSurvey, SoulVersion } from '../../../src/types/index.js';
 import { AI_MAX_TOKENS_SOUL } from '../../../src/config/constants.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {
-      put: vi.fn().mockResolvedValue(undefined),
-      get: vi.fn().mockResolvedValue(null),
-    } as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {
-      run: vi.fn().mockResolvedValue({
-        response: '# AI 비서\n\n## 기본 정보\n- 업종: cafe\n- 언어: 한국어',
-      }),
-    } as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('SoulGenerator', () => {
   let env: Bindings;
@@ -45,6 +16,10 @@ describe('SoulGenerator', () => {
 
   describe('generate', () => {
     it('generates SOUL.md content from survey data', async () => {
+      vi.spyOn(env.AI, 'run').mockResolvedValue({
+        response: '# Cafe AI 비서\n\ncafe 관련 메뉴 안내, 예약 관리',
+      } as any);
+
       const survey: OnboardingSurvey = {
         id: 'survey_1',
         tenant_id: 'tn_test123',
@@ -99,6 +74,10 @@ describe('SoulGenerator', () => {
     });
 
     it('handles missing optional fields gracefully', async () => {
+      vi.spyOn(env.AI, 'run').mockResolvedValue({
+        response: '# AI 비서\n\n일반 고객 응대 전문 비서입니다.',
+      } as any);
+
       const minimalSurvey: OnboardingSurvey = {
         id: 'survey_1',
         tenant_id: 'tn_test123',
