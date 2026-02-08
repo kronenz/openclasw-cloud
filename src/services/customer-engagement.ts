@@ -5,7 +5,7 @@ import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString } from '../utils/id.js';
 import { structuredLog, structuredError } from '../utils/log.js';
-import { MS_PER_DAY } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
 
 interface EngagementResult {
   tenant_id: string;
@@ -175,7 +175,7 @@ export class CustomerEngagement {
 
     const usagePercent = (avgDailyTokens / currentPlan.daily_token_limit) * 100;
 
-    if (usagePercent > 80) {
+    if (usagePercent > USAGE_HIGH_THRESHOLD_PERCENT) {
       // Check if already notified recently
       const recentNotifications = await this.env.DB.prepare(`
         SELECT COUNT(*) as count FROM notifications
@@ -236,7 +236,7 @@ export class CustomerEngagement {
     const thisWeek = usage.slice(-7).reduce((sum, day) => sum + day.total_tokens, 0);
     const prevWeek = usage.slice(-14, -7).reduce((sum, day) => sum + day.total_tokens, 0);
 
-    if (prevWeek > 0 && thisWeek < prevWeek * 0.5) {
+    if (prevWeek > 0 && thisWeek < prevWeek * USAGE_DROP_THRESHOLD) {
       const dropPercent = ((prevWeek - thisWeek) / prevWeek) * 100;
 
       // Send alert to operator

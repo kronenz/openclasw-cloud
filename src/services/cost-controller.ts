@@ -2,7 +2,7 @@ import type { Bindings, ModelRecommendation, Alert } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT } from '../config/constants.js';
 
 // Model cost per 1K tokens (USD)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
@@ -55,7 +55,7 @@ export class CostController {
     const usagePercent = (usage.total_tokens / plan.daily_token_limit) * 100;
 
     // At 80% usage, recommend downgrade
-    if (usagePercent >= 80) {
+    if (usagePercent >= USAGE_HIGH_THRESHOLD_PERCENT) {
       const breakdown = safeJsonParse<Record<string, unknown>>(usage.model_breakdown, {});
       // Find the most expensive model being used
       const currentModel = Object.keys(breakdown).sort((a, b) => {

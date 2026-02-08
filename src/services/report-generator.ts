@@ -4,7 +4,8 @@ import { createNotification, createCronLog, updateCronLog, listTenantsBySegment 
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_LOW_THRESHOLD_PERCENT } from '../config/constants.js';
+import { calculateUsageTrend } from '../utils/analytics.js';
 
 interface WeeklyReport {
   tenant_id: string;
@@ -69,14 +70,9 @@ export class ReportGenerator {
       .sort((a, b) => b.tokens - a.tokens)
       .slice(0, 5);
 
-    // Determine trend
-    const firstHalf = usage.slice(0, Math.floor(usage.length / 2));
-    const secondHalf = usage.slice(Math.floor(usage.length / 2));
-    const firstAvg = firstHalf.length > 0 ? firstHalf.reduce((s, d) => s + d.total_tokens, 0) / firstHalf.length : 0;
-    const secondAvg = secondHalf.length > 0 ? secondHalf.reduce((s, d) => s + d.total_tokens, 0) / secondHalf.length : 0;
-    let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
-    if (secondAvg > firstAvg * 1.2) trend = 'increasing';
-    else if (secondAvg < firstAvg * 0.8) trend = 'decreasing';
+    // Determine trend using shared utility
+    const tokenValues = usage.map(d => d.total_tokens);
+    const trend = calculateUsageTrend(tokenValues);
 
     return {
       tenant_id: tenantId,
@@ -134,14 +130,9 @@ export class ReportGenerator {
       });
     }
 
-    // Trend
-    const firstHalf = usage.slice(0, 15);
-    const secondHalf = usage.slice(15);
-    const firstAvg = firstHalf.length > 0 ? firstHalf.reduce((s, d) => s + d.total_tokens, 0) / firstHalf.length : 0;
-    const secondAvg = secondHalf.length > 0 ? secondHalf.reduce((s, d) => s + d.total_tokens, 0) / secondHalf.length : 0;
-    let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
-    if (secondAvg > firstAvg * 1.2) trend = 'increasing';
-    else if (secondAvg < firstAvg * 0.8) trend = 'decreasing';
+    // Trend using shared utility
+    const tokenValues = usage.map(d => d.total_tokens);
+    const trend = calculateUsageTrend(tokenValues);
 
     // Cost projection (next 30 days based on current trend)
     const costProjection = trend === 'increasing' ? totalCost * 1.3
@@ -156,13 +147,13 @@ export class ReportGenerator {
       const currentPlan = plans.find(p => p.id === subscription.plan_id);
       if (currentPlan) {
         const monthlyUsagePercent = (totalTokens / currentPlan.monthly_token_limit) * 100;
-        if (monthlyUsagePercent > 80) {
+        if (monthlyUsagePercent > USAGE_HIGH_THRESHOLD_PERCENT) {
           const nextPlan = plans.find(p => p.monthly_price > currentPlan.monthly_price);
           if (nextPlan) {
             recommendations.push(`월간 사용량이 ${monthlyUsagePercent.toFixed(0)}%에 도달했습니다. ${nextPlan.display_name} 플랜 업그레이드를 고려해 주세요.`);
           }
         }
-        if (monthlyUsagePercent < 30 && currentPlan.monthly_price > 0) {
+        if (monthlyUsagePercent < USAGE_LOW_THRESHOLD_PERCENT && currentPlan.monthly_price > 0) {
           const lowerPlan = plans.find(p => p.monthly_price < currentPlan.monthly_price && p.monthly_price > 0);
           if (lowerPlan) {
             recommendations.push(`현재 플랜의 ${monthlyUsagePercent.toFixed(0)}%만 사용 중입니다. ${lowerPlan.display_name} 플랜으로 비용을 절약할 수 있습니다.`);

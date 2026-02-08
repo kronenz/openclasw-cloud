@@ -3,8 +3,9 @@ import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBil
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
 import { structuredLog } from '../utils/log.js';
+import { calculateUsageTrend } from '../utils/analytics.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -65,16 +66,9 @@ export class CustomerAnalytics {
     const daysActive = usageData.filter(day => day.total_requests > 0).length;
     const avgDailyTokens = daysActive > 0 ? totalTokens / daysActive : 0;
 
-    // Calculate trend: compare first week to last week
-    const firstWeek = usageData.slice(0, 7).reduce((sum, day) => sum + day.total_tokens, 0);
-    const lastWeek = usageData.slice(-7).reduce((sum, day) => sum + day.total_tokens, 0);
-    let trend: 'increasing' | 'decreasing' | 'stable' = 'stable';
-
-    if (lastWeek > firstWeek * 1.2) {
-      trend = 'increasing';
-    } else if (lastWeek < firstWeek * 0.8) {
-      trend = 'decreasing';
-    }
+    // Calculate trend using shared utility
+    const tokenValues = usageData.map(day => day.total_tokens);
+    const trend = calculateUsageTrend(tokenValues);
 
     return {
       tenant_id: tenantId,
@@ -177,7 +171,7 @@ export class CustomerAnalytics {
       ? (analysis.avg_daily_tokens / plan.daily_token_limit) * 100
       : 0;
 
-    if (usageVsPlanLimit > 80) {
+    if (usageVsPlanLimit > USAGE_HIGH_THRESHOLD_PERCENT) {
       riskFactors.push('approaching_limit');
     }
 
@@ -188,7 +182,7 @@ export class CustomerAnalytics {
       segment = 'champion';
     } else if (analysis.days_active > 14 && daysSinceLastActive > 7) {
       segment = 'at_risk';
-    } else if (usageVsPlanLimit > 80 && daysSinceLastActive <= 7) {
+    } else if (usageVsPlanLimit > USAGE_HIGH_THRESHOLD_PERCENT && daysSinceLastActive <= 7) {
       segment = 'potential_upsell';
     } else if (score < 40 && analysis.days_active > 0) {
       segment = 'need_attention';
@@ -200,7 +194,7 @@ export class CustomerAnalytics {
     if (analysis.usage_data.length >= 14) {
       const lastWeek = analysis.usage_data.slice(-7).reduce((sum, d) => sum + d.total_tokens, 0);
       const prevWeek = analysis.usage_data.slice(-14, -7).reduce((sum, d) => sum + d.total_tokens, 0);
-      if (prevWeek > 0 && lastWeek < prevWeek * 0.5) {
+      if (prevWeek > 0 && lastWeek < prevWeek * USAGE_DROP_THRESHOLD) {
         riskFactors.push('usage_dropped_50pct');
         segment = 'at_risk';
       }
@@ -247,7 +241,7 @@ export class CustomerAnalytics {
     // Generate insights
     if (analysis.avg_daily_tokens > benchmark.avg_tokens) {
       insights.push(`동종 업계 평균(${benchmark.avg_tokens.toLocaleString()} 토큰)보다 ${((analysis.avg_daily_tokens / benchmark.avg_tokens - 1) * 100).toFixed(0)}% 더 활발히 사용 중`);
-    } else if (analysis.avg_daily_tokens < benchmark.avg_tokens * 0.5) {
+    } else if (analysis.avg_daily_tokens < benchmark.avg_tokens * USAGE_DROP_THRESHOLD) {
       insights.push(`동종 업계 평균(${benchmark.avg_tokens.toLocaleString()} 토큰)의 절반 이하로 사용 중`);
       recommendations.push('AI 비서 활용도를 높이기 위해 추가 기능을 설정해 보세요');
     }
@@ -264,7 +258,7 @@ export class CustomerAnalytics {
       recommendations.push('정기적인 활용을 위해 자동화 파이프라인 설정을 권장합니다');
     }
 
-    if (plan && analysis.avg_daily_tokens > plan.daily_token_limit * 0.8) {
+    if (plan && analysis.avg_daily_tokens > plan.daily_token_limit * (USAGE_HIGH_THRESHOLD_PERCENT / 100)) {
       insights.push('일일 한도의 80% 이상 사용 중');
       const nextPlan = plans.find(p => p.monthly_price > plan.monthly_price && p.daily_token_limit > plan.daily_token_limit);
       if (nextPlan) {

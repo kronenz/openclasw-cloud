@@ -79,3 +79,10 @@ export const BILLING_PLAN_IDS = ['plan_starter', 'plan_growth', 'plan_enterprise
 export const INCIDENT_STATUSES = ['open', 'investigating', 'resolved', 'closed'] as const;
 export const TENANT_SEGMENTS = ['champion', 'at_risk', 'potential_upsell', 'need_attention', 'happy_inactive', 'new'] as const;
 export const ADMIN_TENANT_STATUSES = ['active', 'provisioning', 'suspended', 'deactivated'] as const;
+
+// Analytics & Engagement Thresholds
+export const USAGE_HIGH_THRESHOLD_PERCENT = 80;       // Trigger upsell/downgrade recommendation
+export const USAGE_LOW_THRESHOLD_PERCENT = 30;        // Underutilization warning
+export const USAGE_DROP_THRESHOLD = 0.5;              // 50% drop = at-risk
+export const TREND_INCREASE_MULTIPLIER = 1.2;         // 20% increase = trending up
+export const TREND_DECREASE_MULTIPLIER = 0.8;         // 20% decrease = trending down

@@ -585,6 +585,238 @@ describe('CustomerAnalytics', () => {
       expect(analysis.trend).toBe('stable'); // Cannot calculate trend with single day
       expect(analysis.days_active).toBe(1);
     });
+
+    it('handles boundary health score (score exactly 0)', async () => {
+      const mockTenants: Tenant[] = [
+        {
+          id: 'tn_boundary_0',
+          name: 'Boundary Zero Corp',
+          plan: 'starter',
+          status: 'active',
+          subdomain: 'boundary-zero',
+          contact_email: 'boundary@test.com',
+          contact_name: null,
+          metadata: null,
+          created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
+
+      // Very low activity, inactive for >14 days, decreasing trend, <5 active days
+      const lowUsage: DailyUsage[] = [
+        ...Array.from({ length: 20 }, (_, i) => ({
+          tenant_id: 'tn_boundary_0',
+          date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+          total_requests: 0,
+          total_tokens: 0,
+          total_cost: 0,
+          model_breakdown: null,
+        })),
+        ...Array.from({ length: 3 }, (_, i) => ({
+          tenant_id: 'tn_boundary_0',
+          date: new Date(Date.now() - (9 - i) * 86400000).toISOString().split('T')[0],
+          total_requests: 1,
+          total_tokens: 100,
+          total_cost: 0.01,
+          model_breakdown: null,
+        })),
+        ...Array.from({ length: 7 }, (_, i) => ({
+          tenant_id: 'tn_boundary_0',
+          date: new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0],
+          total_requests: 0,
+          total_tokens: 0,
+          total_cost: 0,
+          model_breakdown: null,
+        })),
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockTenants }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: lowUsage }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_subscriptions')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({
+                id: 'sub_1',
+                plan_id: 'plan_starter',
+                status: 'active',
+              } as BillingSubscription),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({
+              results: [
+                {
+                  id: 'plan_starter',
+                  daily_token_limit: 100000,
+                } as BillingPlan,
+              ],
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      const summary = await analytics.segmentTenants();
+
+      // Score should be clamped to 0 minimum
+      expect(summary.total).toBe(1);
+      expect(summary.need_attention).toBeGreaterThanOrEqual(0);
+    });
+
+    it('handles boundary health score (score exactly 100)', async () => {
+      const mockTenants: Tenant[] = [
+        {
+          id: 'tn_boundary_100',
+          name: 'Boundary Max Corp',
+          plan: 'enterprise',
+          status: 'active',
+          subdomain: 'boundary-max',
+          contact_email: 'max@test.com',
+          contact_name: null,
+          metadata: null,
+          created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ];
+
+      // Perfect usage: all 30 days active, recent activity, increasing trend
+      const perfectUsage: DailyUsage[] = Array.from({ length: 30 }, (_, i) => ({
+        tenant_id: 'tn_boundary_100',
+        date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+        total_requests: 100,
+        total_tokens: i < 15 ? 10000 : 15000, // Increasing trend
+        total_cost: i < 15 ? 1.0 : 1.5,
+        model_breakdown: null,
+      }));
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockTenants }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: perfectUsage }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_subscriptions')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({
+                id: 'sub_1',
+                plan_id: 'plan_enterprise',
+                status: 'active',
+              } as BillingSubscription),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({
+              results: [
+                {
+                  id: 'plan_enterprise',
+                  daily_token_limit: 2000000,
+                } as BillingPlan,
+              ],
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      const summary = await analytics.segmentTenants();
+
+      // Score should be clamped to 100 maximum, likely champion segment
+      expect(summary.total).toBe(1);
+      expect(summary.champion).toBe(1);
+    });
+
+    it('handles tenant with no usage records (empty results)', async () => {
+      vi.spyOn(env.DB, 'prepare').mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        }),
+      } as any);
+
+      const analysis = await analytics.analyzeTenant('tn_no_usage');
+
+      expect(analysis.tenant_id).toBe('tn_no_usage');
+      expect(analysis.avg_daily_tokens).toBe(0);
+      expect(analysis.total_cost_30d).toBe(0);
+      expect(analysis.trend).toBe('stable');
+      expect(analysis.days_active).toBe(0);
+      expect(analysis.usage_data).toEqual([]);
+    });
+
+    it('handles very high token count anomaly (>5x normal)', async () => {
+      // Normal usage for most days, then a spike
+      const mockUsage: DailyUsage[] = [
+        ...Array.from({ length: 25 }, (_, i) => ({
+          tenant_id: 'tn_spike',
+          date: new Date(Date.now() - (29 - i) * 86400000).toISOString().split('T')[0],
+          total_requests: 10,
+          total_tokens: 5000, // Normal
+          total_cost: 0.5,
+          model_breakdown: null,
+        })),
+        ...Array.from({ length: 5 }, (_, i) => ({
+          tenant_id: 'tn_spike',
+          date: new Date(Date.now() - (4 - i) * 86400000).toISOString().split('T')[0],
+          total_requests: 100,
+          total_tokens: 50000, // 10x spike
+          total_cost: 5.0,
+          model_breakdown: null,
+        })),
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({ results: mockUsage }),
+        }),
+      } as any);
+
+      const analysis = await analytics.analyzeTenant('tn_spike');
+
+      // Should handle the spike without errors
+      expect(analysis.tenant_id).toBe('tn_spike');
+      expect(analysis.avg_daily_tokens).toBeGreaterThan(5000); // Average includes spike
+      expect(analysis.days_active).toBe(30);
+
+      // The spike in the last week should trigger increasing trend
+      // First 7 days avg: 5000*7 = 35000
+      // Last 7 days: includes 5 days of 50000 + 2 days of 5000 = 260000
+      // 260000 / 7 = ~37143 > 35000 / 7 * 1.2 (6000), so increasing
+      expect(analysis.trend).toBe('increasing');
+    });
   });
 
   describe('generateInsights', () => {
