@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory';
-import type { Bindings, Variables } from '../types/index.js';
+import type { ApiResponse, Bindings, Variables } from '../types/index.js';
 import { ERROR_CODES } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
@@ -10,7 +10,7 @@ export const envValidatorMiddleware = createMiddleware<{ Bindings: Bindings; Var
 
   if (missing.length > 0) {
     structuredError('missing_required_bindings', new Error(`Missing bindings: ${missing.join(', ')}`));
-    return c.json({
+    return c.json<ApiResponse>({
       success: false,
       error: 'Service configuration error',
       code: ERROR_CODES.CONFIGURATION_ERROR,

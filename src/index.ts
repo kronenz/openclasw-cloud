@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Bindings } from './types/index.js';
+import type { Bindings, ApiResponse } from './types/index.js';
 import { health } from './routes/health.js';
 import { tenants } from './routes/tenants.js';
 import { billing } from './routes/billing.js';
@@ -68,7 +68,7 @@ app.onError((err, c) => {
     path: c.req.path,
   });
 
-  return c.json({
+  return c.json<ApiResponse>({
     success: false,
     error: 'Internal server error',
     code: ERROR_CODES.INTERNAL_ERROR,
@@ -77,7 +77,7 @@ app.onError((err, c) => {
 
 // 404 handler
 app.notFound((c) => {
-  return c.json({
+  return c.json<ApiResponse>({
     success: false,
     error: 'Not found',
     code: ERROR_CODES.NOT_FOUND,

@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory';
-import type { Bindings, Variables } from '../types/index.js';
+import type { ApiResponse, Bindings, Variables } from '../types/index.js';
 import { RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS, ERROR_CODES } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
@@ -29,7 +29,7 @@ export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Vari
     const current = Number.isNaN(parsed) ? 0 : parsed;
 
     if (current >= config.maxRequests) {
-      return c.json({
+      return c.json<ApiResponse>({
         success: false,
         error: 'Rate limit exceeded',
         code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
