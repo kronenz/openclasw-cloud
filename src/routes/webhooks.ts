@@ -1,10 +1,9 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/index.js';
-import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { withErrorHandler } from '../utils/error-handler.js';

@@ -1,3 +1,6 @@
+// AI model
+export const DEFAULT_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+
 // Rate limiting
 export const RATE_LIMIT_MAX_REQUESTS = 100;
 export const RATE_LIMIT_WINDOW_MS = 60_000;

@@ -255,5 +255,3 @@ export interface CronLog {
   error_message: string | null;
 }
 
-// Constants
-export const DEFAULT_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';

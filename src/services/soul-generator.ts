@@ -1,8 +1,7 @@
 import type { Bindings, OnboardingSurvey, AiTextResponse } from '../types/index.js';
-import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
-import { AI_MAX_TOKENS_SOUL } from '../config/constants.js';
+import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_SOUL } from '../config/constants.js';
 import { structuredWarn } from '../utils/log.js';
 
 export class SoulGenerator {
