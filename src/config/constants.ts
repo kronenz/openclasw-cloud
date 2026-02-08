@@ -33,3 +33,33 @@ export const RESERVED_SUBDOMAINS = new Set([
   'test', 'staging', 'dev', 'development', 'production',
   'openclaw', 'openclasw',
 ]);
+
+// AI model settings
+export const AI_MAX_TOKENS_DEFAULT = 1000;
+export const AI_MAX_TOKENS_SOUL = 2000;
+
+// Cache TTL (seconds)
+export const CACHE_TTL_SOUL_MD = 3600;  // 1 hour
+
+// JWT defaults (seconds)
+export const JWT_DEFAULT_EXPIRY_SECONDS = 3600;  // 1 hour
+
+// HSTS max-age (seconds)
+export const HSTS_MAX_AGE_SECONDS = 31536000;  // 1 year
+
+// Input length limits
+export const MAX_BUSINESS_DESCRIPTION_LENGTH = 2000;
+export const MAX_CUSTOM_INSTRUCTIONS_LENGTH = 5000;
+
+// External API limits
+export const R2_LIST_LIMIT = 1000;
+export const DB_QUERY_LIMIT = 1000;
+
+// Customer analytics thresholds
+export const LOW_USAGE_THRESHOLD = 1000;
+export const INDUSTRY_BENCHMARKS: Record<string, number> = {
+  cafe: 50_000,
+  office: 80_000,
+  shopping: 60_000,
+  default: 45_000,
+};

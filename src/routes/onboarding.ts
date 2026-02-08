@@ -8,18 +8,23 @@ import {
   listSoulVersions,
 } from '../db/queries-v2.js';
 import { SoulGenerator } from '../services/soul-generator.js';
-import { MAX_SOUL_CONTENT_LENGTH } from '../config/constants.js';
+import {
+  MAX_SOUL_CONTENT_LENGTH,
+  MAX_BUSINESS_DESCRIPTION_LENGTH,
+  MAX_CUSTOM_INSTRUCTIONS_LENGTH,
+  CACHE_TTL_SOUL_MD,
+} from '../config/constants.js';
 
 const onboarding = new Hono<{ Bindings: Bindings }>();
 
 // Validation schemas
 const surveySchema = z.object({
   industry: z.string().min(1).max(50),
-  business_description: z.string().max(2000).optional().nullable(),
+  business_description: z.string().max(MAX_BUSINESS_DESCRIPTION_LENGTH).optional().nullable(),
   preferred_tone: z.string().default('polite'),
   preferred_language: z.string().max(10).default('ko'),
   target_services: z.array(z.string()).max(20).optional(),
-  custom_instructions: z.string().max(5000).optional().nullable(),
+  custom_instructions: z.string().max(MAX_CUSTOM_INSTRUCTIONS_LENGTH).optional().nullable(),
 });
 
 const soulUpdateSchema = z.object({
@@ -160,7 +165,7 @@ onboarding.get('/:tenantId/soul', async (c) => {
         }
 
         soulContent = await r2Object.text();
-        await c.env.CACHE.put(cacheKey, soulContent, { expirationTtl: 3600 });
+        await c.env.CACHE.put(cacheKey, soulContent, { expirationTtl: CACHE_TTL_SOUL_MD });
       }
 
       return c.json<ApiResponse<{ content: string }>>({

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
+import { structuredLog } from '../utils/log.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -211,12 +212,10 @@ admin.post('/tenants/:id/suspend', async (c) => {
     }
 
     // Log the action
-    console.log(JSON.stringify({
-      action: 'tenant_suspended',
+    structuredLog('tenant_suspended', {
       tenant_id: id,
       admin: c.get('jwtPayload'),
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     return c.json<ApiResponse<Tenant>>({
       success: true,
@@ -247,12 +246,10 @@ admin.post('/tenants/:id/activate', async (c) => {
     }
 
     // Log the action
-    console.log(JSON.stringify({
-      action: 'tenant_activated',
+    structuredLog('tenant_activated', {
       tenant_id: id,
       admin: c.get('jwtPayload'),
-      timestamp: new Date().toISOString(),
-    }));
+    });
 
     return c.json<ApiResponse<Tenant>>({
       success: true,

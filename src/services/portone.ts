@@ -1,6 +1,7 @@
 // OpenClasw Cloud PortOne Payment Integration Service
 import type { Bindings } from '../types/index.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 const PORTONE_API_BASE = 'https://api.portone.io/v2';
 
@@ -49,7 +50,7 @@ export class PortOneClient {
    */
   async createCheckoutUrl(params: CheckoutParams): Promise<string> {
     try {
-      const response = await fetch(`${PORTONE_API_BASE}/payments/prepare`, {
+      const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/prepare`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,7 +69,7 @@ export class PortOneClient {
             plan_id: params.planId,
           },
         }),
-      });
+      }, 15_000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -97,7 +98,7 @@ export class PortOneClient {
    */
   async processRefund(params: RefundParams): Promise<void> {
     try {
-      const response = await fetch(`${PORTONE_API_BASE}/payments/${params.paymentId}/cancel`, {
+      const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/${params.paymentId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ export class PortOneClient {
           amount: params.amount,
           reason: params.reason,
         }),
-      });
+      }, 15_000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -132,7 +133,7 @@ export class PortOneClient {
    */
   async createBillingKey(params: BillingKeyParams): Promise<string> {
     try {
-      const response = await fetch(`${PORTONE_API_BASE}/billing-keys`, {
+      const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ export class PortOneClient {
           birth: params.cardInfo.birthOrBusinessRegistrationNumber,
           pwd_2digit: params.cardInfo.passwordTwoDigits,
         }),
-      });
+      }, 15_000);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -172,7 +173,7 @@ export class PortOneClient {
    */
   async chargeWithBillingKey(params: ChargeParams): Promise<void> {
     try {
-      const response = await fetch(`${PORTONE_API_BASE}/billing-keys/${params.billingKey}/charge`, {
+      const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys/${params.billingKey}/charge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ export class PortOneClient {
           amount: params.amount,
           name: params.orderName,
         }),
-      });
+      }, 15_000);
 
       if (!response.ok) {
         const errorText = await response.text();

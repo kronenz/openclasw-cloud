@@ -1,4 +1,5 @@
 import type { Bindings } from '../types/index.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 export class SlackNotifier {
   constructor(private env: Bindings) {}
@@ -9,7 +10,7 @@ export class SlackNotifier {
     }
 
     try {
-      const res = await fetch(this.env.SLACK_WEBHOOK_URL, {
+      const res = await fetchWithTimeout(this.env.SLACK_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

@@ -1,4 +1,6 @@
 import type { Bindings, AiTextResponse } from '../types/index.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
+import { AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
 
 interface TelegramUpdate {
   update_id: number;
@@ -32,7 +34,7 @@ export class TelegramBot {
 
   // Send a message via Telegram Bot API
   private async sendMessage(botToken: string, chatId: number, text: string): Promise<boolean> {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const res = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -40,7 +42,7 @@ export class TelegramBot {
         text,
         parse_mode: 'Markdown',
       }),
-    });
+    }, 15_000);
 
     const result = await res.json() as TelegramSendResult;
     if (!result.ok) {
@@ -75,7 +77,7 @@ export class TelegramBot {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        max_tokens: 1000,
+        max_tokens: AI_MAX_TOKENS_DEFAULT,
       });
 
       const responseText = (aiResult as AiTextResponse).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
@@ -88,11 +90,11 @@ export class TelegramBot {
 
   // Register webhook URL with Telegram
   async registerWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+    const res = await fetchWithTimeout(`https://api.telegram.org/bot${botToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: webhookUrl }),
-    });
+    }, 15_000);
 
     const result = await res.json() as TelegramSendResult;
     return result.ok;

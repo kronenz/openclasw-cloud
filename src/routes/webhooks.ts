@@ -4,7 +4,9 @@ import type { Bindings, ApiResponse, AiTextResponse } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { MAX_MESSAGE_LENGTH } from '../config/constants.js';
+import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
+import { structuredLog } from '../utils/log.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
 
@@ -70,12 +72,10 @@ webhooks.post('/messenger', async (c) => {
     const platform = platformHeader || body.platform || 'unknown';
 
     // Log webhook receipt
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'messenger_webhook_received',
+    structuredLog('messenger_webhook_received', {
       platform,
       body,
-    }));
+    });
 
     // Route to appropriate handler based on platform
     switch (platform) {
@@ -161,7 +161,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        max_tokens: 1000,
+        max_tokens: AI_MAX_TOKENS_DEFAULT,
       });
       responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
     } catch (error) {
@@ -279,7 +279,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
           ],
-          max_tokens: 1000,
+          max_tokens: AI_MAX_TOKENS_DEFAULT,
         });
         responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {
@@ -291,7 +291,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
       const slackBotToken = await c.env.CACHE.get(`slack:bot:${tenantId}`);
       if (slackBotToken) {
         c.executionCtx.waitUntil(
-          fetch('https://slack.com/api/chat.postMessage', {
+          fetchWithTimeout('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${slackBotToken}`,
@@ -362,7 +362,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
           ],
-          max_tokens: 1000,
+          max_tokens: AI_MAX_TOKENS_DEFAULT,
         });
         responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {

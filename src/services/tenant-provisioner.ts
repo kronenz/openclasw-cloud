@@ -10,6 +10,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateResourceId, generateSubdomain } from '../utils/id.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
+import { structuredLog } from '../utils/log.js';
 
 interface AuthConfig {
   apiKey: string;
@@ -89,11 +90,7 @@ export class TenantProvisioner {
   // Step 6: Notify - placeholder for email notification
   async notifyCustomer(tenantId: string, auth: AuthConfig): Promise<void> {
     // Phase 1: Log notification (email integration in Phase 2)
-    console.log(JSON.stringify({
-      event: 'tenant_provisioned',
-      tenant_id: tenantId,
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('tenant_provisioned', { tenant_id: tenantId });
   }
 
   // Orchestrator - runs all 6 steps with logging and rollback

@@ -4,6 +4,7 @@ import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
 import { MS_PER_DAY } from '../config/constants.js';
+import { structuredLog } from '../utils/log.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -104,11 +105,7 @@ export class CustomerAnalytics {
       summary[segment.segment]++;
     }
 
-    console.log(JSON.stringify({
-      event: 'tenant_segmentation_completed',
-      summary,
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('tenant_segmentation_completed', { summary });
 
     return summary;
   }

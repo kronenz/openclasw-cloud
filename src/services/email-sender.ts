@@ -1,5 +1,7 @@
 import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
+import { structuredLog } from '../utils/log.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 interface EmailMessage {
   to: string;
@@ -16,18 +18,16 @@ export class EmailSender {
     const resendApiKey = this.env.RESEND_API_KEY;
 
     if (!resendApiKey) {
-      console.log(JSON.stringify({
-        event: 'email_send_skipped',
+      structuredLog('email_send_skipped', {
         reason: 'RESEND_API_KEY not configured',
         to: message.to,
         subject: message.subject,
-        timestamp: new Date().toISOString(),
-      }));
+      });
       return true; // Don't fail provisioning over missing email config
     }
 
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const res = await fetchWithTimeout('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resendApiKey}`,
@@ -48,12 +48,10 @@ export class EmailSender {
         return false;
       }
 
-      console.log(JSON.stringify({
-        event: 'email_sent',
+      structuredLog('email_sent', {
         to: message.to,
         subject: message.subject,
-        timestamp: new Date().toISOString(),
-      }));
+      });
       return true;
     } catch (error) {
       console.error('Email send error:', error);

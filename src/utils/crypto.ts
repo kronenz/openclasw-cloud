@@ -1,4 +1,5 @@
 // JWT functions using Web Crypto API (Cloudflare Workers compatible)
+import { JWT_DEFAULT_EXPIRY_SECONDS } from '../config/constants.js';
 
 // Helper: base64url encode
 function base64UrlEncode(data: ArrayBuffer | Uint8Array): string {
@@ -49,7 +50,7 @@ async function verify(data: string, signature: string, secret: string): Promise<
 export async function createJWT(
   payload: Record<string, unknown>,
   secret: string,
-  expiresInSeconds: number = 3600
+  expiresInSeconds: number = JWT_DEFAULT_EXPIRY_SECONDS
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const claims = {

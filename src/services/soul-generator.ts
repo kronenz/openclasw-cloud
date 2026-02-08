@@ -2,6 +2,7 @@ import type { Bindings, OnboardingSurvey, AiTextResponse } from '../types/index.
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
+import { AI_MAX_TOKENS_SOUL } from '../config/constants.js';
 
 export class SoulGenerator {
   constructor(private env: Bindings) {}
@@ -64,7 +65,7 @@ SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
           { role: 'system', content: '당신은 AI 비서 설정 문서(SOUL.md) 전문 작성자입니다. 마크다운 형식으로 작성합니다.' },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 2000,
+        max_tokens: AI_MAX_TOKENS_SOUL,
       });
 
       // The AI response has a 'response' field

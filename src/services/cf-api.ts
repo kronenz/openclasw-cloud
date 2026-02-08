@@ -1,5 +1,6 @@
 import type { Bindings } from '../types/index.js';
 import { generateId } from '../utils/id.js';
+import { fetchWithTimeout } from '../utils/fetch.js';
 
 interface CfApiConfig {
   apiToken: string;
@@ -23,14 +24,14 @@ export class CloudflareApi {
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
     const url = `https://api.cloudflare.com/client/v4/accounts/${this.config.accountId}${path}`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       ...options,
       headers: {
         'Authorization': `Bearer ${this.config.apiToken}`,
         'Content-Type': 'application/json',
         ...options?.headers,
       },
-    });
+    }, 30_000);
 
     const data = await res.json() as { success: boolean; result: T; errors: Array<{ code: number; message: string }> };
     if (!data.success) {
@@ -108,11 +109,11 @@ export class CloudflareApi {
     formData.append('index.js', new Blob([workerScript], { type: 'application/javascript+module' }), 'index.js');
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${this.config.accountId}/workers/scripts/${name}`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${this.config.apiToken}` },
       body: formData,
-    });
+    }, 30_000);
 
     if (!res.ok) {
       throw new Error(`Worker creation failed: ${await res.text()}`);

@@ -2,6 +2,7 @@ import type { Bindings, TenantHealth, Alert } from '../types/index.js';
 import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { SlackNotifier } from './slack-notifier.js';
+import { structuredLog } from '../utils/log.js';
 
 interface HealthReport {
   timestamp: string;
@@ -122,11 +123,7 @@ export class HealthChecker {
 
   // Send alert via Slack webhook
   async sendAlert(alert: Alert): Promise<void> {
-    console.log(JSON.stringify({
-      event: 'alert',
-      ...alert,
-      timestamp: new Date().toISOString(),
-    }));
+    structuredLog('alert', { ...alert });
 
     const notifier = new SlackNotifier(this.env);
     const severityMap: Record<string, string> = {
