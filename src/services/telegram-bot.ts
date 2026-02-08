@@ -1,4 +1,4 @@
-import type { Bindings, AiTextResponse, AiModelId } from '../types/index.js';
+import type { Bindings, AiTextResponse } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE, API_TIMEOUT_STANDARD, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
@@ -73,7 +73,7 @@ export class TelegramBot {
         : DEFAULT_AI_SYSTEM_PROMPT;
 
       // Call AI Gateway
-      const aiResult = await this.env.AI.run(DEFAULT_AI_MODEL as AiModelId, {
+      const aiResult = await this.env.AI.run(DEFAULT_AI_MODEL, {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },

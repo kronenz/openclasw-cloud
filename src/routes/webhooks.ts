@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { Bindings, Variables, ApiResponse, AiTextResponse, AiModelId } from '../types/index.js';
+import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
 import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
@@ -18,7 +18,7 @@ async function runAiInference(
 ): Promise<string> {
   const systemPrompt = soulContent || DEFAULT_AI_SYSTEM_PROMPT;
   try {
-    const aiResult = await ai.run(DEFAULT_AI_MODEL as AiModelId, {
+    const aiResult = await ai.run(DEFAULT_AI_MODEL, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
