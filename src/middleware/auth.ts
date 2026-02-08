@@ -6,10 +6,15 @@ import { ERROR_CODES } from '../config/constants.js';
 
 // Auth middleware - verifies Bearer token
 // Sets c.set('tenantId', ...) on success
-// Skips auth for /health routes
+// Skips auth for /health routes and webhook endpoints (which have their own verification)
 export const authMiddleware = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   // Skip auth for health endpoints
   if (c.req.path.startsWith('/health')) {
+    return next();
+  }
+
+  // Skip JWT auth for billing webhook — verified via HMAC signature in the handler
+  if (c.req.path === '/api/billing/webhook' && c.req.method === 'POST') {
     return next();
   }
 

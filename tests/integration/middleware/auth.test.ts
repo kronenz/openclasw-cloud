@@ -114,6 +114,20 @@ describe('Auth Middleware', () => {
     expect(res.status).toBe(200);
   });
 
+  it('skips JWT auth for POST /api/billing/webhook (uses HMAC verification)', async () => {
+    // Webhook should not return 401 even without JWT
+    // It will return 503 (no PORTONE_WEBHOOK_SECRET configured) — but NOT 401
+    (env as any).PORTONE_WEBHOOK_SECRET = undefined;
+
+    const res = await app.request('/api/billing/webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'payment.paid' }),
+    }, env);
+
+    expect(res.status).not.toBe(401);
+  });
+
   it('returns 401 for completely missing Authorization header', async () => {
     const res = await app.request('/api/tenants', {
       method: 'GET',

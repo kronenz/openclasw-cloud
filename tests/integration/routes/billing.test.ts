@@ -115,10 +115,10 @@ describe('Billing Routes', () => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      const headers = await getAuthHeader();
+      // No JWT auth needed — webhook uses HMAC signature verification
       const res = await app.request('/api/billing/webhook', {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
+        headers: { 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
         body: payload,
       }, env);
 
@@ -131,10 +131,9 @@ describe('Billing Routes', () => {
     it('rejects webhook without signature when secret is configured', async () => {
       (env as any).PORTONE_WEBHOOK_SECRET = 'test-webhook-secret';
 
-      const headers = await getAuthHeader();
       const res = await app.request('/api/billing/webhook', {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'payment.paid',
           tenant_id: 'tn_test-tenant-1',
@@ -151,10 +150,9 @@ describe('Billing Routes', () => {
     it('rejects webhook when secret is not configured', async () => {
       (env as any).PORTONE_WEBHOOK_SECRET = undefined;
 
-      const headers = await getAuthHeader();
       const res = await app.request('/api/billing/webhook', {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'payment.paid',
           tenant_id: 'tn_test-tenant-1',
@@ -183,10 +181,9 @@ describe('Billing Routes', () => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      const headers = await getAuthHeader();
       const res = await app.request('/api/billing/webhook', {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
+        headers: { 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
         body: invalidPayload,
       }, env);
 
@@ -214,10 +211,9 @@ describe('Billing Routes', () => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      const headers = await getAuthHeader();
       const res = await app.request('/api/billing/webhook', {
         method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
+        headers: { 'Content-Type': 'application/json', 'X-Portone-Signature': signature },
         body: payload,
       }, env);
 
