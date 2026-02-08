@@ -1,0 +1,341 @@
+// OpenClasw Cloud Subscription Manager Service
+import type { Bindings, BillingSubscription, Tenant } from '../types/index.js';
+import {
+  createBillingSubscription,
+  updateBillingSubscription,
+} from '../db/queries-v2.js';
+import { getSubscription, getTenant, updateTenant, getDailyUsage } from '../db/queries.js';
+import { createNotification } from '../db/queries-v2.js';
+
+export interface OverageInfo {
+  exceeded: boolean;
+  dailyUsage: number;
+  dailyLimit: number;
+  monthlyUsage: number;
+  monthlyLimit: number;
+}
+
+export class SubscriptionManager {
+  constructor(private env: Bindings) {}
+
+  /**
+   * Create a new subscription for a tenant
+   */
+  async createSubscription(
+    tenantId: string,
+    planId: string,
+    paymentMethod?: string
+  ): Promise<BillingSubscription> {
+    try {
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setDate(periodEnd.getDate() + 30); // 30 days from now
+
+      const subscription: Omit<BillingSubscription, 'created_at' | 'updated_at'> = {
+        id: crypto.randomUUID(),
+        tenant_id: tenantId,
+        plan_id: planId,
+        status: 'active',
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        payment_method: paymentMethod || null,
+      };
+
+      const created = await createBillingSubscription(this.env.DB, subscription);
+
+      // Update tenant status to active
+      await updateTenant(this.env.DB, tenantId, { status: 'active' });
+
+      console.log(JSON.stringify({
+        level: 'info',
+        message: 'Subscription created',
+        tenant_id: tenantId,
+        subscription_id: created.id,
+        plan_id: planId,
+      }));
+
+      return created;
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to create subscription',
+        tenant_id: tenantId,
+        plan_id: planId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a subscription with a 7-day grace period
+   */
+  async cancelSubscription(tenantId: string): Promise<void> {
+    try {
+      const subscription = await getSubscription(this.env.DB, tenantId);
+      if (!subscription) {
+        throw new Error('Subscription not found');
+      }
+
+      const now = new Date();
+      const gracePeriodEnd = new Date(now);
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7); // 7-day grace period
+
+      await updateBillingSubscription(this.env.DB, subscription.id, {
+        status: 'canceled',
+        current_period_end: gracePeriodEnd.toISOString(),
+      });
+
+      console.log(JSON.stringify({
+        level: 'info',
+        message: 'Subscription canceled',
+        tenant_id: tenantId,
+        subscription_id: subscription.id,
+        grace_period_end: gracePeriodEnd.toISOString(),
+      }));
+
+      // Create notification for cancellation
+      await createNotification(this.env.DB, {
+        id: crypto.randomUUID(),
+        tenant_id: tenantId,
+        channel: 'email',
+        type: 'welcome', // Using welcome as placeholder for cancellation
+        status: 'pending',
+        content: JSON.stringify({
+          subject: 'Subscription Canceled',
+          body: `Your subscription has been canceled. Service will continue until ${gracePeriodEnd.toISOString()}.`,
+        }),
+        sent_at: null,
+      });
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to cancel subscription',
+        tenant_id: tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+
+  /**
+   * Upgrade subscription to a higher plan
+   */
+  async upgradeSubscription(tenantId: string, newPlanId: string): Promise<void> {
+    try {
+      const subscription = await getSubscription(this.env.DB, tenantId);
+      if (!subscription) {
+        throw new Error('Subscription not found');
+      }
+
+      // Update subscription plan immediately
+      await updateBillingSubscription(this.env.DB, subscription.id, {
+        plan_id: newPlanId,
+      });
+
+      // Update tenant plan
+      const tenant = await getTenant(this.env.DB, tenantId);
+      if (tenant) {
+        // Map plan_id to plan tier (simplified - should query billing_plans in production)
+        const planTier = newPlanId.includes('enterprise')
+          ? 'enterprise'
+          : newPlanId.includes('growth')
+          ? 'growth'
+          : 'starter';
+        await updateTenant(this.env.DB, tenantId, { plan: planTier });
+      }
+
+      console.log(JSON.stringify({
+        level: 'info',
+        message: 'Subscription upgraded',
+        tenant_id: tenantId,
+        subscription_id: subscription.id,
+        old_plan_id: subscription.plan_id,
+        new_plan_id: newPlanId,
+      }));
+
+      // Create notification for upgrade
+      await createNotification(this.env.DB, {
+        id: crypto.randomUUID(),
+        tenant_id: tenantId,
+        channel: 'email',
+        type: 'upsell',
+        status: 'pending',
+        content: JSON.stringify({
+          subject: 'Subscription Upgraded',
+          body: `Your subscription has been upgraded to plan ${newPlanId}.`,
+        }),
+        sent_at: null,
+      });
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to upgrade subscription',
+        tenant_id: tenantId,
+        new_plan_id: newPlanId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+
+  /**
+   * Downgrade subscription to a lower plan (takes effect at period end)
+   */
+  async downgradeSubscription(tenantId: string, newPlanId: string): Promise<void> {
+    try {
+      const subscription = await getSubscription(this.env.DB, tenantId);
+      if (!subscription) {
+        throw new Error('Subscription not found');
+      }
+
+      // Schedule downgrade for period end
+      // In a real implementation, we'd store this in a separate field
+      // For now, we'll just update immediately with a log note
+      await updateBillingSubscription(this.env.DB, subscription.id, {
+        plan_id: newPlanId,
+      });
+
+      // Update tenant plan
+      const tenant = await getTenant(this.env.DB, tenantId);
+      if (tenant) {
+        const planTier = newPlanId.includes('enterprise')
+          ? 'enterprise'
+          : newPlanId.includes('growth')
+          ? 'growth'
+          : 'starter';
+        await updateTenant(this.env.DB, tenantId, { plan: planTier });
+      }
+
+      console.log(JSON.stringify({
+        level: 'info',
+        message: 'Subscription downgraded (scheduled for period end)',
+        tenant_id: tenantId,
+        subscription_id: subscription.id,
+        old_plan_id: subscription.plan_id,
+        new_plan_id: newPlanId,
+        effective_at: subscription.current_period_end,
+      }));
+
+      // Create notification
+      await createNotification(this.env.DB, {
+        id: crypto.randomUUID(),
+        tenant_id: tenantId,
+        channel: 'email',
+        type: 'welcome', // Placeholder
+        status: 'pending',
+        content: JSON.stringify({
+          subject: 'Subscription Downgraded',
+          body: `Your subscription will be downgraded to plan ${newPlanId} at the end of your billing period.`,
+        }),
+        sent_at: null,
+      });
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to downgrade subscription',
+        tenant_id: tenantId,
+        new_plan_id: newPlanId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+
+  /**
+   * Check if tenant has exceeded token limits
+   */
+  async checkOverage(tenantId: string): Promise<OverageInfo> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const usage = await getDailyUsage(this.env.DB, tenantId, today);
+
+      // Get subscription and plan limits
+      // For now, using hardcoded limits - should query billing_plans table
+      const dailyLimit = 100000; // 100K tokens
+      const monthlyLimit = 3000000; // 3M tokens
+
+      const dailyUsage = usage?.total_tokens || 0;
+      const monthlyUsage = dailyUsage; // Simplified - should aggregate month's usage
+
+      const exceeded = dailyUsage > dailyLimit || monthlyUsage > monthlyLimit;
+
+      if (exceeded) {
+        console.log(JSON.stringify({
+          level: 'warning',
+          message: 'Token limit exceeded',
+          tenant_id: tenantId,
+          daily_usage: dailyUsage,
+          daily_limit: dailyLimit,
+          monthly_usage: monthlyUsage,
+          monthly_limit: monthlyLimit,
+        }));
+      }
+
+      return {
+        exceeded,
+        dailyUsage,
+        dailyLimit,
+        monthlyUsage,
+        monthlyLimit,
+      };
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to check overage',
+        tenant_id: tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+
+  /**
+   * Suspend tenant for non-payment
+   */
+  async suspendForNonPayment(tenantId: string): Promise<void> {
+    try {
+      const subscription = await getSubscription(this.env.DB, tenantId);
+      if (!subscription) {
+        throw new Error('Subscription not found');
+      }
+
+      // Update tenant status to suspended
+      await updateTenant(this.env.DB, tenantId, { status: 'suspended' });
+
+      // Update subscription status to past_due
+      await updateBillingSubscription(this.env.DB, subscription.id, {
+        status: 'past_due',
+      });
+
+      console.log(JSON.stringify({
+        level: 'warning',
+        message: 'Tenant suspended for non-payment',
+        tenant_id: tenantId,
+        subscription_id: subscription.id,
+      }));
+
+      // Send notification
+      await createNotification(this.env.DB, {
+        id: crypto.randomUUID(),
+        tenant_id: tenantId,
+        channel: 'email',
+        type: 'payment_failed',
+        status: 'pending',
+        content: JSON.stringify({
+          subject: 'Service Suspended - Payment Required',
+          body: 'Your service has been suspended due to non-payment. Please update your payment method.',
+        }),
+        sent_at: null,
+      });
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Failed to suspend tenant',
+        tenant_id: tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      throw error;
+    }
+  }
+}

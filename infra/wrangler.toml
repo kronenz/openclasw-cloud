@@ -2,7 +2,7 @@
 # OpenClaw Cloud 인프라 구성
 
 name = "openclasw-cloud"
-main = "src/index.ts"
+main = "../src/index.ts"
 compatibility_date = "2026-02-08"
 compatibility_flags = ["nodejs_compat"]
 
@@ -40,6 +40,16 @@ preview_id = "TODO"
 # AI Gateway 바인딩
 [ai]
 binding = "AI"
+
+# Cron Triggers
+[triggers]
+crons = [
+  "*/5 * * * *",
+  "0 * * * *",
+  "0 0 * * *",
+  "0 0 * * 1",
+  "0 0 1 * *"
+]
 
 # 환경별 설정: 스테이징
 [env.staging]
@@ -84,14 +94,6 @@ id = "TODO"
 [[env.production.kv_namespaces]]
 binding = "SESSIONS"
 id = "TODO"
-
-# 빌드 설정
-[build]
-command = "npm run build"
-
-# 업로드 규칙
-[build.upload]
-format = "service-worker"
 
 # 로깅
 [observability]
