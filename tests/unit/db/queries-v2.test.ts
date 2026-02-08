@@ -9,6 +9,8 @@ import {
   createNotification,
   updateNotification,
   listNotifications,
+  hasRecentNotification,
+  createEmailNotification,
   createSoulVersion,
   getActiveSoul,
   listSoulVersions,
@@ -425,6 +427,108 @@ describe('queries-v2', () => {
         const result = await listNotifications(db);
 
         expect(result).toEqual([]);
+      });
+    });
+
+    describe('hasRecentNotification', () => {
+      it('returns true when recent notification exists (count > 0)', async () => {
+        const { db, mockPrepare, mockBind, mockFirst } = createMockDB();
+
+        mockFirst.mockResolvedValue({ count: 3 });
+
+        const result = await hasRecentNotification(db, 'tn_1', 'welcome', 7);
+
+        expect(mockPrepare).toHaveBeenCalledWith(
+          expect.stringContaining("SELECT COUNT(*) as count FROM notifications WHERE tenant_id = ? AND type = ? AND created_at > datetime('now', '-' || ? || ' days')")
+        );
+        expect(mockBind).toHaveBeenCalledWith('tn_1', 'welcome', 7);
+        expect(result).toBe(true);
+      });
+
+      it('returns false when no recent notification (count = 0)', async () => {
+        const { db, mockFirst } = createMockDB();
+
+        mockFirst.mockResolvedValue({ count: 0 });
+
+        const result = await hasRecentNotification(db, 'tn_1', 're_engagement', 14);
+
+        expect(result).toBe(false);
+      });
+
+      it('returns false when result is null', async () => {
+        const { db, mockFirst } = createMockDB();
+
+        mockFirst.mockResolvedValue(null);
+
+        const result = await hasRecentNotification(db, 'tn_1', 'upsell', 30);
+
+        expect(result).toBe(false);
+      });
+
+      it('passes correct parameters (tenantId, type, withinDays) to the query', async () => {
+        const { db, mockPrepare, mockBind, mockFirst } = createMockDB();
+
+        mockFirst.mockResolvedValue({ count: 1 });
+
+        await hasRecentNotification(db, 'tn_test_123', 'payment_failed', 5);
+
+        expect(mockPrepare).toHaveBeenCalledWith(
+          expect.stringContaining("SELECT COUNT(*) as count FROM notifications WHERE tenant_id = ? AND type = ? AND created_at > datetime('now', '-' || ? || ' days')")
+        );
+        expect(mockBind).toHaveBeenCalledWith('tn_test_123', 'payment_failed', 5);
+      });
+    });
+
+    describe('createEmailNotification', () => {
+      it('creates notification with correct channel (email) and status (pending)', async () => {
+        const { db, mockPrepare, mockBind } = createMockDB();
+
+        await createEmailNotification(db, 'tn_1', 'welcome', 'Welcome to OpenClaw', 'Thank you for joining!');
+
+        expect(mockPrepare).toHaveBeenCalledWith(
+          expect.stringContaining('INSERT INTO notifications')
+        );
+
+        const bindCall = mockBind.mock.calls[0];
+        expect(bindCall[1]).toBe('tn_1'); // tenant_id
+        expect(bindCall[2]).toBe('email'); // channel
+        expect(bindCall[3]).toBe('welcome'); // type
+        expect(bindCall[4]).toBe('pending'); // status
+        expect(bindCall[6]).toBeNull(); // sent_at
+      });
+
+      it('passes subject and body as JSON stringified content', async () => {
+        const { db, mockBind } = createMockDB();
+
+        await createEmailNotification(
+          db,
+          'tn_1',
+          'payment_failed',
+          'Payment Failed',
+          'Your payment could not be processed'
+        );
+
+        const bindCall = mockBind.mock.calls[0];
+        const content = bindCall[5]; // content field
+        expect(content).toBe(JSON.stringify({
+          subject: 'Payment Failed',
+          body: 'Your payment could not be processed'
+        }));
+      });
+
+      it('generates a unique ID (crypto.randomUUID)', async () => {
+        const { db, mockBind } = createMockDB();
+
+        // Mock crypto.randomUUID
+        const mockUUID = 'test-uuid-1234';
+        vi.spyOn(crypto, 'randomUUID').mockReturnValue(mockUUID);
+
+        await createEmailNotification(db, 'tn_1', 'upsell', 'Upgrade Now', 'Get more features');
+
+        const bindCall = mockBind.mock.calls[0];
+        expect(bindCall[0]).toBe(mockUUID); // id field
+
+        vi.restoreAllMocks();
       });
     });
   });

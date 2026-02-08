@@ -289,6 +289,60 @@ describe('CustomerEngagement', () => {
 
       expect(result).toBe(false);
     });
+
+    it('skips when recent re_engagement notification exists within 7 days', async () => {
+      const mockTenant: Tenant = {
+        id: 'tn_dedup',
+        name: 'Dedup Corp',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'dedup',
+        contact_email: 'dedup@test.com',
+        contact_name: 'Dedup User',
+        metadata: null,
+        created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const insertSpy = vi.fn().mockResolvedValue({});
+      const emailSpy = vi.spyOn(engagement['emailSender'], 'sendReEngagementEmail');
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }), // No activity
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT COUNT(*) as count FROM notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ count: 1 }), // Recent notification exists
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: insertSpy,
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        } as any;
+      });
+
+      const result = await engagement.checkReEngagement(mockTenant);
+
+      expect(result).toBe(false);
+      expect(emailSpy).not.toHaveBeenCalled();
+      expect(insertSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('checkUpsellOpportunity', () => {
@@ -449,6 +503,101 @@ describe('CustomerEngagement', () => {
       const result = await engagement.checkUpsellOpportunity(mockTenant);
 
       expect(result).toBe(false);
+    });
+
+    it('skips when recent upsell notification exists within 14 days', async () => {
+      const mockTenant: Tenant = {
+        id: 'tn_upsell_dedup',
+        name: 'Upsell Dedup Corp',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'upsell-dedup',
+        contact_email: 'upsell-dedup@test.com',
+        contact_name: 'Upsell User',
+        metadata: null,
+        created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const mockUsage: DailyUsage[] = Array.from({ length: 7 }, (_, i) => ({
+        tenant_id: 'tn_upsell_dedup',
+        date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
+        total_requests: 100,
+        total_tokens: 85000, // 85% of 100K limit - should trigger upsell
+        total_cost: 4.0,
+        model_breakdown: null,
+      }));
+
+      const insertSpy = vi.fn().mockResolvedValue({});
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM billing_subscriptions')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({
+                id: 'sub_1',
+                plan_id: 'plan_starter',
+                status: 'active',
+              } as BillingSubscription),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({
+              results: [
+                {
+                  id: 'plan_starter',
+                  name: 'starter',
+                  display_name: 'Starter',
+                  daily_token_limit: 100000,
+                  monthly_price: 49000,
+                } as BillingPlan,
+                {
+                  id: 'plan_growth',
+                  name: 'growth',
+                  display_name: 'Growth',
+                  daily_token_limit: 500000,
+                  monthly_price: 149000,
+                } as BillingPlan,
+              ],
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockUsage }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT COUNT(*) as count FROM notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ count: 1 }), // Recent notification exists
+            }),
+          } as any;
+        }
+        if (query.includes('INSERT INTO notifications')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: insertSpy,
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      const result = await engagement.checkUpsellOpportunity(mockTenant);
+
+      expect(result).toBe(false);
+      expect(insertSpy).not.toHaveBeenCalled();
     });
   });
 
