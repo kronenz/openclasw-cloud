@@ -19,7 +19,10 @@ export const authMiddleware = createMiddleware<{ Bindings: Bindings; Variables: 
   }
   try {
     const payload = await verifyJWT(token, c.env.JWT_SECRET);
-    c.set('tenantId', payload.sub as string);
+    if (typeof payload.sub !== 'string' || !payload.sub) {
+      return c.json({ success: false, error: 'Invalid token: missing subject', code: ERROR_CODES.AUTH_INVALID }, 401);
+    }
+    c.set('tenantId', payload.sub);
     c.set('jwtPayload', payload);
     await next();
   } catch {
