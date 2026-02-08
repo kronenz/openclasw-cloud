@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TelegramBot } from '../../../src/services/telegram-bot.js';
 import type { Bindings } from '../../../src/types/index.js';
 
+// Mock the structuredError utility
+vi.mock('../../../src/utils/log.js', () => ({
+  structuredError: vi.fn(),
+}));
+
+import { structuredError } from '../../../src/utils/log.js';
+
 function createMockEnv(): Bindings {
   const env: any = {
     DB: {} as any,
@@ -193,7 +200,6 @@ describe('TelegramBot', () => {
 
       const bot = new TelegramBot(env);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const fetchMock = vi.fn();
       global.fetch = fetchMock;
 
@@ -209,12 +215,12 @@ describe('TelegramBot', () => {
 
       await bot.handleUpdate('tn_test123', update);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('No bot token for tenant tn_test123')
+      expect(structuredError).toHaveBeenCalledWith(
+        'telegram_no_bot_token',
+        expect.any(Error),
+        { tenantId: 'tn_test123' }
       );
       expect(fetchMock).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('sends error message when AI processing fails', async () => {
@@ -231,8 +237,6 @@ describe('TelegramBot', () => {
       });
       global.fetch = fetchMock;
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       const update = {
         update_id: 1,
         message: {
@@ -245,16 +249,14 @@ describe('TelegramBot', () => {
 
       await bot.handleUpdate('tn_test123', update);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Telegram AI processing failed'),
+      expect(structuredError).toHaveBeenCalledWith(
+        'telegram_ai_failed',
         expect.any(Error)
       );
 
       const lastCall = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
       const callBody = JSON.parse(lastCall[1].body);
       expect(callBody.text).toContain('죄송합니다. 일시적인 오류가 발생했습니다.');
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('sends default response when AI returns no response', async () => {
@@ -345,7 +347,6 @@ describe('TelegramBot', () => {
 
       const bot = new TelegramBot(env);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const fetchMock = vi.fn().mockResolvedValue({
         ok: false,
         json: async () => ({ ok: false, description: 'Chat not found' }),
@@ -364,12 +365,10 @@ describe('TelegramBot', () => {
 
       await bot.handleUpdate('tn_test123', update);
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Telegram sendMessage failed:',
-        'Chat not found'
+      expect(structuredError).toHaveBeenCalledWith(
+        'telegram_send_failed',
+        expect.any(Error)
       );
-
-      consoleErrorSpy.mockRestore();
     });
   });
 });

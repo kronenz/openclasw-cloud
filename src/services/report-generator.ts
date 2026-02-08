@@ -364,7 +364,7 @@ export class ReportGenerator {
           ...platformReport,
         });
       } catch (error) {
-        console.error('Failed to generate platform report:', error);
+        structuredError('platform_report_failed', error);
       }
 
       await updateCronLog(this.env.DB, cronLog.id, {

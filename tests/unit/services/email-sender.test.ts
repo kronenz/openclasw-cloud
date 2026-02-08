@@ -16,7 +16,7 @@ vi.mock('../../../src/utils/log.js', () => ({
 }));
 
 import { fetchWithTimeout } from '../../../src/utils/fetch.js';
-import { structuredLog } from '../../../src/utils/log.js';
+import { structuredLog, structuredError } from '../../../src/utils/log.js';
 
 function createMockEnv(resendApiKey?: string): Bindings {
   const env: any = {
@@ -39,15 +39,8 @@ function createMockEnv(resendApiKey?: string): Bindings {
 }
 
 describe('EmailSender', () => {
-  let consoleErrorSpy: any;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   describe('sendWelcomeEmail', () => {
@@ -159,7 +152,7 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send failed:', 'Invalid API key');
+      expect(structuredError).toHaveBeenCalledWith('email_send_failed', expect.any(Error));
     });
 
     it('handles network errors gracefully', async () => {
@@ -179,7 +172,7 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send error:', error);
+      expect(structuredError).toHaveBeenCalledWith('email_send_error', error);
     });
   });
 
@@ -318,7 +311,7 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send failed:', 'Rate limit exceeded');
+      expect(structuredError).toHaveBeenCalledWith('email_send_failed', expect.any(Error));
     });
 
     it('skips sending when API key is not configured', async () => {

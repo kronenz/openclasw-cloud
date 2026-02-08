@@ -14,6 +14,7 @@ import {
   MAX_CUSTOM_INSTRUCTIONS_LENGTH,
   CACHE_TTL_SOUL_MD,
 } from '../config/constants.js';
+import { structuredError } from '../utils/log.js';
 
 const onboarding = new Hono<{ Bindings: Bindings }>();
 
@@ -70,7 +71,7 @@ onboarding.post('/:tenantId/survey', async (c) => {
       data: survey,
     }, 201);
   } catch (e) {
-    console.error('Failed to create survey:', e);
+    structuredError('survey_create_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to create survey',
@@ -98,7 +99,7 @@ onboarding.get('/:tenantId/survey', async (c) => {
       data: survey,
     });
   } catch (e) {
-    console.error('Failed to get survey:', e);
+    structuredError('survey_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get survey',
@@ -134,7 +135,7 @@ onboarding.post('/:tenantId/soul/generate', async (c) => {
       data: { content },
     });
   } catch (e) {
-    console.error('Failed to generate SOUL:', e);
+    structuredError('soul_generate_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to generate SOUL.md',
@@ -179,7 +180,7 @@ onboarding.get('/:tenantId/soul', async (c) => {
       data: soul,
     });
   } catch (e) {
-    console.error('Failed to get SOUL:', e);
+    structuredError('soul_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get SOUL.md',
@@ -199,7 +200,7 @@ onboarding.get('/:tenantId/soul/versions', async (c) => {
       data: versions,
     });
   } catch (e) {
-    console.error('Failed to list SOUL versions:', e);
+    structuredError('soul_versions_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list SOUL versions',
@@ -237,7 +238,7 @@ onboarding.put('/:tenantId/soul', async (c) => {
       data: { content },
     });
   } catch (e) {
-    console.error('Failed to update SOUL:', e);
+    structuredError('soul_update_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to update SOUL.md',

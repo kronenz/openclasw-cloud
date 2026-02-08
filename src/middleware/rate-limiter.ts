@@ -1,6 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
 import { RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS } from '../config/constants.js';
+import { structuredError } from '../utils/log.js';
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -43,7 +44,7 @@ export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Vari
 
     await next();
   } catch (error) {
-    console.error('Rate limiter cache error:', error);
+    structuredError('rate_limiter_cache_error', error);
     await next(); // Allow request on cache failure
   }
 });

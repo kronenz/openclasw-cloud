@@ -5,6 +5,7 @@ import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/
 import { updateTenant } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';
+import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
 const billing = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -33,7 +34,7 @@ billing.get('/plans', async (c) => {
       data: plans,
     });
   } catch (e) {
-    console.error('Failed to list billing plans:', e);
+    structuredError('billing_plans_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list billing plans',
@@ -70,7 +71,7 @@ billing.get('/subscription', async (c) => {
       data: subscription,
     });
   } catch (e) {
-    console.error('Failed to get subscription:', e);
+    structuredError('subscription_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get subscription',
@@ -112,7 +113,7 @@ billing.post('/subscription/upgrade', async (c) => {
       data: { message: 'Subscription upgraded successfully' },
     });
   } catch (e) {
-    console.error('Failed to upgrade subscription:', e);
+    structuredError('subscription_upgrade_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to upgrade subscription',
@@ -142,7 +143,7 @@ billing.post('/subscription/cancel', async (c) => {
       data: { message: 'Subscription canceled. Service will continue for 7 days.' },
     });
   } catch (e) {
-    console.error('Failed to cancel subscription:', e);
+    structuredError('subscription_cancel_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to cancel subscription',
@@ -182,7 +183,7 @@ billing.get('/invoices', async (c) => {
       data: invoices,
     });
   } catch (e) {
-    console.error('Failed to list invoices:', e);
+    structuredError('invoices_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list invoices',
@@ -236,7 +237,7 @@ billing.get('/usage', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get usage:', e);
+    structuredError('billing_usage_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get usage',
@@ -268,7 +269,7 @@ billing.post('/webhook', async (c) => {
       const sigBytes = new TextEncoder().encode(signature);
       const expBytes = new TextEncoder().encode(expectedHex);
       if (sigBytes.length !== expBytes.length || !crypto.subtle.timingSafeEqual(sigBytes, expBytes)) {
-        console.warn('Invalid webhook signature');
+        structuredWarn('webhook_invalid_signature');
         return c.json<ApiResponse>({
           success: false,
           error: 'Invalid signature',
@@ -279,7 +280,7 @@ billing.post('/webhook', async (c) => {
       try {
         payload = JSON.parse(body);
       } catch (parseError) {
-        console.error('Invalid JSON in webhook payload:', parseError);
+        structuredError('webhook_invalid_json', parseError);
         return c.json<ApiResponse>({
           success: false,
           error: 'Invalid JSON payload',
@@ -307,13 +308,13 @@ billing.post('/webhook', async (c) => {
     // Handle payment events
     switch (payload.type) {
       case 'payment.paid': {
-        console.log('Payment successful:', payload);
-
         const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
         const planId = payload.metadata?.plan_id || payload.plan_id;
 
+        structuredLog('webhook_payment_paid', { tenant_id: tenantId, plan_id: planId });
+
         if (!tenantId) {
-          console.error('No tenant_id in payment.paid webhook');
+          structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.paid' });
           break;
         }
 
@@ -345,12 +346,12 @@ billing.post('/webhook', async (c) => {
       }
 
       case 'payment.failed': {
-        console.log('Payment failed:', payload);
-
         const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
 
+        structuredLog('webhook_payment_failed', { tenant_id: tenantId });
+
         if (!tenantId) {
-          console.error('No tenant_id in payment.failed webhook');
+          structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.failed' });
           break;
         }
 
@@ -371,12 +372,12 @@ billing.post('/webhook', async (c) => {
       }
 
       case 'payment.canceled': {
-        console.log('Payment canceled:', payload);
-
         const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
 
+        structuredLog('webhook_payment_canceled', { tenant_id: tenantId });
+
         if (!tenantId) {
-          console.error('No tenant_id in payment.canceled webhook');
+          structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.canceled' });
           break;
         }
 
@@ -386,7 +387,7 @@ billing.post('/webhook', async (c) => {
       }
 
       default:
-        console.log('Unknown webhook event:', payload.type);
+        structuredWarn('webhook_unknown_event', { type: payload.type });
     }
 
     return c.json<ApiResponse>({
@@ -394,7 +395,7 @@ billing.post('/webhook', async (c) => {
       data: { received: true },
     });
   } catch (e) {
-    console.error('Failed to process webhook:', e);
+    structuredError('webhook_process_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to process webhook',

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
-import { structuredLog } from '../utils/log.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -88,7 +88,7 @@ admin.get('/', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get dashboard summary:', e);
+    structuredError('dashboard_summary_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get dashboard summary',
@@ -164,7 +164,7 @@ admin.get('/tenants', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to list tenants:', e);
+    structuredError('admin_tenants_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list tenants',
@@ -232,7 +232,7 @@ admin.get('/tenants/:id', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get tenant details:', e);
+    structuredError('admin_tenant_details_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get tenant details',
@@ -278,7 +278,7 @@ admin.post('/tenants/:id/suspend', async (c) => {
       data: tenant,
     });
   } catch (e) {
-    console.error('Failed to suspend tenant:', e);
+    structuredError('admin_tenant_suspend_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to suspend tenant',
@@ -312,7 +312,7 @@ admin.post('/tenants/:id/activate', async (c) => {
       data: tenant,
     });
   } catch (e) {
-    console.error('Failed to activate tenant:', e);
+    structuredError('admin_tenant_activate_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to activate tenant',
@@ -360,7 +360,7 @@ admin.get('/metrics', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get metrics:', e);
+    structuredError('admin_metrics_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get metrics',
@@ -403,7 +403,7 @@ admin.get('/incidents', async (c) => {
       data: incidents,
     });
   } catch (e) {
-    console.error('Failed to list incidents:', e);
+    structuredError('admin_incidents_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list incidents',
@@ -455,7 +455,7 @@ admin.get('/segments', async (c) => {
       data: segments.results || [],
     });
   } catch (e) {
-    console.error('Failed to get segments:', e);
+    structuredError('admin_segments_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get segments',
@@ -504,7 +504,7 @@ admin.get('/billing/summary', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get billing summary:', e);
+    structuredError('admin_billing_summary_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get billing summary',
@@ -566,7 +566,7 @@ admin.get('/billing/transactions', async (c) => {
       },
     } as const);
   } catch (e) {
-    console.error('Failed to get billing transactions:', e);
+    structuredError('admin_billing_transactions_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get billing transactions',

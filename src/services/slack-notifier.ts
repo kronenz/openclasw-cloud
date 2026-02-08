@@ -1,5 +1,6 @@
 import type { Bindings } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { structuredError } from '../utils/log.js';
 
 export class SlackNotifier {
   constructor(private env: Bindings) {}
@@ -17,7 +18,7 @@ export class SlackNotifier {
       });
       return res.ok;
     } catch (error) {
-      console.error('Slack notification failed:', error);
+      structuredError('slack_notification_failed', error);
       return false;
     }
   }

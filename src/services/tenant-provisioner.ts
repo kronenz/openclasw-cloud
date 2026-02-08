@@ -10,7 +10,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateResourceId, generateSubdomain } from '../utils/id.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
-import { structuredLog } from '../utils/log.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 
 interface AuthConfig {
   apiKey: string;
@@ -167,13 +167,10 @@ export class TenantProvisioner {
         if (plan?.tenantId) {
           const tenantId = plan.tenantId;
           await updateTenant(this.env.DB, tenantId, { status: 'suspended' }).catch((rollbackError) => {
-            console.error(JSON.stringify({
-              level: 'error',
-              message: 'Rollback failed',
+            structuredError('provisioning_rollback_failed', rollbackError, {
               tenant_id: tenantId,
               step,
-              error: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
-            }));
+            });
           });
         }
 

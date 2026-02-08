@@ -1,6 +1,6 @@
 import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
-import { structuredLog } from '../utils/log.js';
+import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 
 interface EmailMessage {
@@ -44,7 +44,7 @@ export class EmailSender {
 
       if (!res.ok) {
         const err = await res.text();
-        console.error('Email send failed:', err);
+        structuredError('email_send_failed', new Error(err));
         return false;
       }
 
@@ -54,7 +54,7 @@ export class EmailSender {
       });
       return true;
     } catch (error) {
-      console.error('Email send error:', error);
+      structuredError('email_send_error', error);
       return false;
     }
   }

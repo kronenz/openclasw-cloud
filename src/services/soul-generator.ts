@@ -3,6 +3,7 @@ import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { AI_MAX_TOKENS_SOUL } from '../config/constants.js';
+import { structuredWarn } from '../utils/log.js';
 
 export class SoulGenerator {
   constructor(private env: Bindings) {}
@@ -72,7 +73,7 @@ SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
       const content = (result as AiTextResponse).response || '';
       return content || this.generateFallback(survey);
     } catch (error) {
-      console.error('AI generation failed, using fallback:', error);
+      structuredWarn('ai_generation_fallback', { error: String(error) });
       return this.generateFallback(survey);
     }
   }

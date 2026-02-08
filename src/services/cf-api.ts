@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/index.js';
 import { generateId } from '../utils/id.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { structuredLog } from '../utils/log.js';
 
 interface CfApiConfig {
   apiToken: string;
@@ -47,7 +48,7 @@ export class CloudflareApi {
   async createD1Database(name: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
       const id = generateId('d1');
-      console.log('[CF-API] Creating D1 database (simulated):', { name, id });
+      structuredLog('cf_api_d1_simulated', { name, id });
       return { id, name };
     }
     // Real Cloudflare API call: POST /d1/database with { name }
@@ -56,14 +57,14 @@ export class CloudflareApi {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
-    console.log('[CF-API] D1 database created:', { name, id: result.id });
+    structuredLog('cf_api_d1_created', { name, id: result.id });
     return result;
   }
 
   async createKvNamespace(title: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
       const id = generateId('kv');
-      console.log('[CF-API] Creating KV namespace (simulated):', { title, id });
+      structuredLog('cf_api_kv_simulated', { title, id });
       return { id, name: title };
     }
     // Real Cloudflare API call: POST /storage/kv/namespaces with { title }
@@ -72,14 +73,14 @@ export class CloudflareApi {
       method: 'POST',
       body: JSON.stringify({ title }),
     });
-    console.log('[CF-API] KV namespace created:', { title, id: result.id });
+    structuredLog('cf_api_kv_created', { title, id: result.id });
     return { id: result.id, name: title };
   }
 
   async createR2Bucket(name: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
       const id = generateId('r2');
-      console.log('[CF-API] Creating R2 bucket (simulated):', { name, id });
+      structuredLog('cf_api_r2_simulated', { name, id });
       return { id, name };
     }
     // Real Cloudflare API call: POST /r2/buckets with { name }
@@ -88,14 +89,14 @@ export class CloudflareApi {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
-    console.log('[CF-API] R2 bucket created:', { name, id: name });
+    structuredLog('cf_api_r2_created', { name, id: name });
     return { id: name, name };
   }
 
   async createWorker(name: string, script?: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
       const id = generateId('worker');
-      console.log('[CF-API] Creating Worker (simulated):', { name, id });
+      structuredLog('cf_api_worker_simulated', { name, id });
       return { id, name };
     }
     // Real Cloudflare API call: PUT /workers/scripts/{name} with multipart form data
@@ -118,7 +119,7 @@ export class CloudflareApi {
     if (!res.ok) {
       throw new Error(`Worker creation failed: ${await res.text()}`);
     }
-    console.log('[CF-API] Worker created:', { name, id: name });
+    structuredLog('cf_api_worker_created', { name, id: name });
     return { id: name, name };
   }
 
@@ -131,7 +132,7 @@ export class CloudflareApi {
     r2: CfResourceResult;
   }> {
     const prefix = `oc-${subdomain}`;
-    console.log('[CF-API] Provisioning tenant resources:', { tenantId, subdomain, prefix });
+    structuredLog('cf_api_provision_start', { tenantId, subdomain, prefix });
 
     const [worker, d1, kv, r2] = await Promise.all([
       this.createWorker(`${prefix}-worker`),
@@ -140,7 +141,7 @@ export class CloudflareApi {
       this.createR2Bucket(`${prefix}-storage`),
     ]);
 
-    console.log('[CF-API] Tenant resources provisioned:', { tenantId, worker: worker.id, d1: d1.id, kv: kv.id, r2: r2.id });
+    structuredLog('cf_api_provision_complete', { tenantId, worker: worker.id, d1: d1.id, kv: kv.id, r2: r2.id });
     return { worker, d1, kv, r2 };
   }
 }

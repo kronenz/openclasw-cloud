@@ -5,7 +5,7 @@ import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
 import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
-import { structuredLog } from '../utils/log.js';
+import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
@@ -93,14 +93,14 @@ webhooks.post('/messenger', async (c) => {
         return await handleDiscord(c, body as DiscordInteraction);
 
       default:
-        console.warn('Unknown messenger platform:', platform);
+        structuredWarn('unknown_messenger_platform', { platform });
         return c.json<ApiResponse>({
           success: true,
           data: { received: true },
         });
     }
   } catch (e) {
-    console.error('Failed to process messenger webhook:', e);
+    structuredError('messenger_webhook_failed', e);
 
     // Still return 200 to avoid webhook retries
     return c.json<ApiResponse>({
@@ -165,7 +165,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
       });
       responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
     } catch (error) {
-      console.error('AI inference failed:', error);
+      structuredError('ai_inference_failed', error);
       responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
     }
 
@@ -181,7 +181,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
       },
     });
   } catch (error) {
-    console.error('KakaoTalk handler error:', error);
+    structuredError('kakaotalk_handler_error', error);
     return c.json({
       version: '2.0',
       template: {
@@ -231,7 +231,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: Telegram
       data: { received: true },
     });
   } catch (error) {
-    console.error('Telegram handler error:', error);
+    structuredError('telegram_handler_error', error);
     return c.json<ApiResponse>({
       success: true,
       data: { received: true },
@@ -283,7 +283,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
         });
         responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {
-        console.error('AI inference failed:', error);
+        structuredError('ai_inference_failed', error);
         responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
       }
 
@@ -302,7 +302,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
               text: responseText,
             }),
           }).catch((error) => {
-            console.error('Failed to send Slack message:', error);
+            structuredError('slack_message_send_failed', error);
           })
         );
       }
@@ -314,7 +314,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
       data: { received: true },
     });
   } catch (error) {
-    console.error('Slack handler error:', error);
+    structuredError('slack_handler_error', error);
     return c.json<ApiResponse>({
       success: true,
       data: { received: true },
@@ -366,7 +366,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
         });
         responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {
-        console.error('AI inference failed:', error);
+        structuredError('ai_inference_failed', error);
         responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
       }
 
@@ -385,7 +385,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
       data: { received: true },
     });
   } catch (error) {
-    console.error('Discord handler error:', error);
+    structuredError('discord_handler_error', error);
     return c.json({
       type: 4,
       data: {

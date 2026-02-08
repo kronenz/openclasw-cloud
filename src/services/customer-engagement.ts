@@ -76,7 +76,7 @@ export class CustomerEngagement {
           status,
         });
       } catch (error) {
-        console.error(`Engagement check failed for tenant ${tenant.id}:`, error);
+        structuredError('engagement_check_failed', error, { tenantId: tenant.id });
         results.push({
           tenant_id: tenant.id,
           tenant_name: tenant.name,

@@ -1,6 +1,7 @@
 import type { Bindings, AiTextResponse } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
+import { structuredError } from '../utils/log.js';
 
 interface TelegramUpdate {
   update_id: number;
@@ -46,7 +47,7 @@ export class TelegramBot {
 
     const result = await res.json() as TelegramSendResult;
     if (!result.ok) {
-      console.error('Telegram sendMessage failed:', result.description);
+      structuredError('telegram_send_failed', new Error(result.description || 'Unknown error'));
     }
     return result.ok;
   }
@@ -57,7 +58,7 @@ export class TelegramBot {
 
     const botToken = await this.getBotToken(tenantId);
     if (!botToken) {
-      console.error(`No bot token for tenant ${tenantId}`);
+      structuredError('telegram_no_bot_token', new Error('Missing bot token'), { tenantId });
       return;
     }
 
@@ -83,7 +84,7 @@ export class TelegramBot {
       const responseText = (aiResult as AiTextResponse).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
       await this.sendMessage(botToken, chatId, responseText);
     } catch (error) {
-      console.error('Telegram AI processing failed:', error);
+      structuredError('telegram_ai_failed', error);
       await this.sendMessage(botToken, chatId, '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     }
   }

@@ -13,6 +13,7 @@ import {
 import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
+import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
 const tenants = new Hono<{ Bindings: Bindings }>();
 
@@ -89,7 +90,7 @@ tenants.post('/', async (c) => {
           contact_name: data.contact_name,
           metadata: data.metadata,
         }).catch(async (error) => {
-          console.error(`Provisioning failed for tenant ${tenantId}:`, error);
+          structuredError('provisioning_failed', error, { tenantId });
           // Create incident for failed provisioning so operators are notified
           try {
             await createIncident(c.env.DB, {
@@ -103,14 +104,14 @@ tenants.post('/', async (c) => {
               resolved_at: null,
             });
           } catch (incidentError) {
-            console.error('Failed to create incident for provisioning failure:', incidentError);
+            structuredError('incident_creation_failed', incidentError);
           }
         })
       );
     } catch (e) {
       // In test environment, executionCtx is not available
       // Provisioning will be handled separately or mocked
-      console.log('ExecutionContext not available, skipping background provisioning');
+      structuredWarn('provisioning_no_execution_context');
     }
 
     return c.json<ApiResponse<Tenant>>({
@@ -118,7 +119,7 @@ tenants.post('/', async (c) => {
       data: tenant,
     }, 201);
   } catch (e) {
-    console.error('Failed to create tenant:', e);
+    structuredError('tenant_create_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to create tenant',
@@ -145,7 +146,7 @@ tenants.get('/', async (c) => {
       data: tenantList,
     });
   } catch (e) {
-    console.error('Failed to list tenants:', e);
+    structuredError('tenant_list_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to list tenants',
@@ -173,7 +174,7 @@ tenants.get('/:id', async (c) => {
       data: tenant,
     });
   } catch (e) {
-    console.error('Failed to get tenant:', e);
+    structuredError('tenant_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get tenant',
@@ -223,7 +224,7 @@ tenants.put('/:id', async (c) => {
       data: tenant,
     });
   } catch (e) {
-    console.error('Failed to update tenant:', e);
+    structuredError('tenant_update_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to update tenant',
@@ -251,7 +252,7 @@ tenants.delete('/:id', async (c) => {
       data: tenant,
     });
   } catch (e) {
-    console.error('Failed to delete tenant:', e);
+    structuredError('tenant_delete_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to delete tenant',
@@ -299,7 +300,7 @@ tenants.get('/:id/usage', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to get tenant usage:', e);
+    structuredError('tenant_usage_get_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to get tenant usage',
@@ -338,7 +339,7 @@ tenants.get('/:id/health', async (c) => {
       },
     });
   } catch (e) {
-    console.error('Failed to check tenant health:', e);
+    structuredError('tenant_health_check_failed', e);
     return c.json<ApiResponse>({
       success: false,
       error: 'Failed to check tenant health',

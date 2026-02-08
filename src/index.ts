@@ -19,6 +19,7 @@ import { CustomerEngagement } from './services/customer-engagement.js';
 import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
+import { structuredError } from './utils/log.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -42,12 +43,9 @@ app.route('/api/admin', admin);
 
 // Global error handler
 app.onError((err, c) => {
-  console.error(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    error: err.message,
-    stack: err.stack,
+  structuredError('unhandled_error', err, {
     path: c.req.path,
-  }));
+  });
 
   return c.json({
     success: false,
@@ -99,7 +97,7 @@ export default {
           // Logging failure is not critical
         }
       } catch (error) {
-        console.error(`Cron job ${jobName} failed:`, error);
+        structuredError('cron_job_failed', error, { jobName });
         try {
           await updateCronLog(env.DB, logId, {
             status: 'failed',

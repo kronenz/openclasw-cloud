@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SlackNotifier } from '../../../src/services/slack-notifier.js';
 import type { Bindings } from '../../../src/types/index.js';
 
+// Mock the structuredError utility
+vi.mock('../../../src/utils/log.js', () => ({
+  structuredError: vi.fn(),
+}));
+
+import { structuredError } from '../../../src/utils/log.js';
+
 describe('SlackNotifier', () => {
   let mockEnv: Bindings;
   let notifier: SlackNotifier;
@@ -112,7 +119,6 @@ describe('SlackNotifier', () => {
 
     it('handles fetch errors gracefully and returns false', async () => {
       fetchMock.mockRejectedValue(new Error('Network error'));
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await notifier.sendAlert({
         severity: 'P1',
@@ -121,12 +127,10 @@ describe('SlackNotifier', () => {
       });
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Slack notification failed:',
+      expect(structuredError).toHaveBeenCalledWith(
+        'slack_notification_failed',
         expect.any(Error)
       );
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('returns true on successful send', async () => {

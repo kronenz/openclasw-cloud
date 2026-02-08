@@ -2,6 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Bindings } from '../../src/types/index.js';
 import { app } from '../../src/index.js';
 
+// Mock the structuredError utility
+vi.mock('../../src/utils/log.js', () => ({
+  structuredError: vi.fn(),
+  structuredLog: vi.fn(),
+  structuredWarn: vi.fn(),
+}));
+
+import { structuredError } from '../../src/utils/log.js';
+
 function createMockEnv(): Bindings {
   return {
     DB: {
@@ -50,16 +59,11 @@ function createMockExecutionContext(): ExecutionContext {
 describe('Cron Handler Integration', () => {
   let env: Bindings;
   let ctx: ExecutionContext;
-  let consoleErrorSpy: any;
 
   beforeEach(() => {
     env = createMockEnv();
     ctx = createMockExecutionContext();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    vi.clearAllMocks();
   });
 
   describe('App Structure', () => {
@@ -328,9 +332,10 @@ describe('Cron Handler Integration', () => {
       }
 
       // Should log the error
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('health_check'),
-        expect.any(Error)
+      expect(structuredError).toHaveBeenCalledWith(
+        'cron_job_failed',
+        expect.any(Error),
+        { jobName: 'health_check' }
       );
     });
   });
