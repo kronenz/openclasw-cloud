@@ -85,6 +85,19 @@ interface DiscordInteraction {
   };
 }
 
+// Platform-specific response types
+interface KakaoTalkResponse {
+  version: '2.0';
+  template: {
+    outputs: Array<{ simpleText: { text: string } }>;
+  };
+}
+
+interface DiscordInteractionResponse {
+  type: number;
+  data?: { content: string };
+}
+
 // POST /messenger - receive webhook from messenger platforms
 webhooks.post('/messenger', withErrorHandler('messenger_webhook_failed', async (c) => {
   // Parse platform type from header or body
@@ -127,7 +140,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
   try {
     // Validate request structure
     if (!body.userRequest?.utterance) {
-      return c.json({
+      return c.json<KakaoTalkResponse>({
         version: '2.0',
         template: {
           outputs: [{
@@ -145,7 +158,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
     const tenantId = body.bot?.id;
     if (!tenantId) {
       structuredWarn('kakaotalk_missing_tenant_id', { body });
-      return c.json({
+      return c.json<KakaoTalkResponse>({
         version: '2.0',
         template: {
           outputs: [{ simpleText: { text: '서비스 설정이 필요합니다. 관리자에게 문의하세요.' } }],
@@ -156,7 +169,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
     // Validate tenant
     const tenant = await getTenant(c.env.DB, tenantId);
     if (!tenant || tenant.status !== 'active') {
-      return c.json({
+      return c.json<KakaoTalkResponse>({
         version: '2.0',
         template: {
           outputs: [{
@@ -176,7 +189,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
     const responseText = await runAiInference(c.env.AI, userMessage, soulText);
 
     // Return KakaoTalk skill response format
-    return c.json({
+    return c.json<KakaoTalkResponse>({
       version: '2.0',
       template: {
         outputs: [{
@@ -188,7 +201,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
     });
   } catch (error) {
     structuredError('kakaotalk_handler_error', error);
-    return c.json({
+    return c.json<KakaoTalkResponse>({
       version: '2.0',
       template: {
         outputs: [{
@@ -258,7 +271,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
   try {
     // Handle URL verification challenge
     if (body.type === 'url_verification' && body.challenge) {
-      return c.json({ challenge: body.challenge });
+      return c.json<{ challenge: string }>({ challenge: body.challenge });
     }
 
     // Handle message events
@@ -334,7 +347,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
   try {
     // Handle PING verification (type 1)
     if (body.type === 1) {
-      return c.json({ type: 1 }); // PONG
+      return c.json<DiscordInteractionResponse>({ type: 1 }); // PONG
     }
 
     // Handle application commands or message components
@@ -355,7 +368,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
       // Validate tenant
       const tenant = await getTenant(c.env.DB, tenantId);
       if (!tenant || tenant.status !== 'active') {
-        return c.json({
+        return c.json<DiscordInteractionResponse>({
           type: 4,
           data: {
             content: '서비스를 사용할 수 없습니다. 관리자에게 문의하세요.',
@@ -371,7 +384,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
       const responseText = await runAiInference(c.env.AI, userMessage, soulText);
 
       // Return Discord interaction response
-      return c.json({
+      return c.json<DiscordInteractionResponse>({
         type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
         data: {
           content: responseText,
@@ -386,7 +399,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
     });
   } catch (error) {
     structuredError('discord_handler_error', error);
-    return c.json({
+    return c.json<DiscordInteractionResponse>({
       type: 4,
       data: {
         content: '죄송합니다. 일시적인 오류가 발생했습니다.',
