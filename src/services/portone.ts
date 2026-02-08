@@ -34,6 +34,10 @@ export interface ChargeParams {
   orderName: string;
 }
 
+// PortOne API response types
+interface CheckoutResponse { checkout_url?: string }
+interface BillingKeyResponse { billing_key?: string }
+
 export class PortOneClient {
   private apiKey: string;
 
@@ -48,6 +52,13 @@ export class PortOneClient {
     if (!this.apiKey) {
       throw new Error('PortOne API key is not configured. Set PORTONE_API_KEY environment variable.');
     }
+  }
+
+  private get authHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.apiKey}`,
+    };
   }
 
   private async requireOk(response: Response): Promise<void> {
@@ -65,10 +76,7 @@ export class PortOneClient {
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/prepare`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.authHeaders,
         body: JSON.stringify({
           merchant_uid: `order_${params.tenantId}_${Date.now()}`,
           amount: params.amount,
@@ -86,7 +94,7 @@ export class PortOneClient {
 
       await this.requireOk(response);
 
-      const data = await response.json() as { checkout_url?: string };
+      const data = await response.json() as CheckoutResponse;
 
       structuredLog('checkout_url_created', {
         tenant_id: params.tenantId,
@@ -111,10 +119,7 @@ export class PortOneClient {
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/payments/${params.paymentId}/cancel`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.authHeaders,
         body: JSON.stringify({
           amount: params.amount,
           reason: params.reason,
@@ -144,10 +149,7 @@ export class PortOneClient {
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.authHeaders,
         body: JSON.stringify({
           customer_uid: params.tenantId,
           card_number: params.cardInfo.cardNumber,
@@ -159,7 +161,7 @@ export class PortOneClient {
 
       await this.requireOk(response);
 
-      const data = await response.json() as { billing_key?: string };
+      const data = await response.json() as BillingKeyResponse;
 
       structuredLog('billing_key_created', {
         tenant_id: params.tenantId,
@@ -182,10 +184,7 @@ export class PortOneClient {
     try {
       const response = await fetchWithTimeout(`${PORTONE_API_BASE}/billing-keys/${params.billingKey}/charge`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+        headers: this.authHeaders,
         body: JSON.stringify({
           merchant_uid: `charge_${Date.now()}`,
           amount: params.amount,
