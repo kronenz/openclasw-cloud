@@ -3,6 +3,7 @@ import { generateWelcomeEmail } from '../templates/email/welcome.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { RESEND_API_URL, OPENCLAW_DOMAIN, API_TIMEOUT_STANDARD } from '../config/constants.js';
+import { escapeHtml } from '../utils/html.js';
 
 interface EmailMessage {
   to: string;
@@ -91,11 +92,13 @@ export class EmailSender {
     tenantName: string;
   }): Promise<boolean> {
     const subject = `[OpenClaw] ${params.tenantName} 결제 실패 안내`;
+    const safeName = escapeHtml(params.contactName);
+    const safeTenant = escapeHtml(params.tenantName);
     const html = `
 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2>결제 처리에 실패했습니다</h2>
-  <p>안녕하세요, ${params.contactName}님.</p>
-  <p><strong>${params.tenantName}</strong>의 정기 결제가 실패했습니다.</p>
+  <p>안녕하세요, ${safeName}님.</p>
+  <p><strong>${safeTenant}</strong>의 정기 결제가 실패했습니다.</p>
   <p>결제 수단을 확인하고 업데이트해 주세요. 7일 이내에 결제가 완료되지 않으면 서비스가 일시 중지될 수 있습니다.</p>
   <p>문의: support@openclaw.ai</p>
 </div>`.trim();
@@ -115,11 +118,13 @@ export class EmailSender {
     inactiveDays: number;
   }): Promise<boolean> {
     const subject = `[OpenClaw] ${params.contactName}님, ${params.tenantName} AI 비서가 기다리고 있어요`;
+    const safeName = escapeHtml(params.contactName);
+    const safeTenant = escapeHtml(params.tenantName);
     const html = `
 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2>AI 비서를 다시 활용해 보세요!</h2>
-  <p>안녕하세요, ${params.contactName}님.</p>
-  <p>최근 ${params.inactiveDays}일간 <strong>${params.tenantName}</strong>의 AI 비서 이용이 없었습니다.</p>
+  <p>안녕하세요, ${safeName}님.</p>
+  <p>최근 ${params.inactiveDays}일간 <strong>${safeTenant}</strong>의 AI 비서 이용이 없었습니다.</p>
   <p>AI 비서가 도움을 드릴 수 있는 다양한 기능이 있습니다:</p>
   <ul>
     <li>고객 문의 자동 응대</li>
