@@ -129,12 +129,10 @@ export class SubscriptionManager {
       // Update tenant plan
       const tenant = await getTenant(this.env.DB, tenantId);
       if (tenant) {
-        // Map plan_id to plan tier (simplified - should query billing_plans in production)
-        const planTier = newPlanId.includes('enterprise')
-          ? 'enterprise'
-          : newPlanId.includes('growth')
-          ? 'growth'
-          : 'starter';
+        // Look up plan tier from billing_plans table
+        const plans = await listBillingPlans(this.env.DB);
+        const targetPlan = plans.find(p => p.id === newPlanId);
+        const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
         await updateTenant(this.env.DB, tenantId, { plan: planTier });
       }
 
@@ -187,11 +185,10 @@ export class SubscriptionManager {
       // Update tenant plan
       const tenant = await getTenant(this.env.DB, tenantId);
       if (tenant) {
-        const planTier = newPlanId.includes('enterprise')
-          ? 'enterprise'
-          : newPlanId.includes('growth')
-          ? 'growth'
-          : 'starter';
+        // Look up plan tier from billing_plans table
+        const plans = await listBillingPlans(this.env.DB);
+        const targetPlan = plans.find(p => p.id === newPlanId);
+        const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
         await updateTenant(this.env.DB, tenantId, { plan: planTier });
       }
 

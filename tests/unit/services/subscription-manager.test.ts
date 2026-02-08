@@ -244,6 +244,15 @@ describe('SubscriptionManager', () => {
             }),
           } as any;
         }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({ results: [
+              { id: 'plan_starter', name: 'starter', monthly_price: 29000, monthly_token_limit: 3000000, daily_token_limit: 100000 },
+              { id: 'plan_growth', name: 'growth', monthly_price: 149000, monthly_token_limit: 10000000, daily_token_limit: 500000 },
+              { id: 'plan_enterprise', name: 'enterprise', monthly_price: 490000, monthly_token_limit: 50000000, daily_token_limit: 2000000 },
+            ] }),
+          } as any;
+        }
         if (query.includes('SELECT * FROM tenants WHERE id')) {
           return {
             bind: vi.fn().mockReturnValue({
@@ -325,6 +334,15 @@ describe('SubscriptionManager', () => {
             bind: vi.fn().mockReturnValue({
               first: vi.fn().mockResolvedValue(mockSubscription),
             }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({ results: [
+              { id: 'plan_starter', name: 'starter', monthly_price: 29000, monthly_token_limit: 3000000, daily_token_limit: 100000 },
+              { id: 'plan_growth', name: 'growth', monthly_price: 149000, monthly_token_limit: 10000000, daily_token_limit: 500000 },
+              { id: 'plan_enterprise', name: 'enterprise', monthly_price: 490000, monthly_token_limit: 50000000, daily_token_limit: 2000000 },
+            ] }),
           } as any;
         }
         if (query.includes('SELECT * FROM tenants WHERE id')) {

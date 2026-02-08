@@ -50,6 +50,30 @@ describe('Security Middleware', () => {
     expect(res.headers.get('Permissions-Policy')).toBe('camera=(), microphone=(), geolocation=()');
   });
 
+  it('sets Cross-Origin-Opener-Policy header', async () => {
+    const res = await app.request('/health', {
+      method: 'GET',
+    }, env);
+
+    expect(res.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
+  });
+
+  it('sets Cross-Origin-Embedder-Policy header', async () => {
+    const res = await app.request('/health', {
+      method: 'GET',
+    }, env);
+
+    expect(res.headers.get('Cross-Origin-Embedder-Policy')).toBe('require-corp');
+  });
+
+  it('sets Cross-Origin-Resource-Policy header', async () => {
+    const res = await app.request('/health', {
+      method: 'GET',
+    }, env);
+
+    expect(res.headers.get('Cross-Origin-Resource-Policy')).toBe('same-origin');
+  });
+
   it('sets CSP and HSTS headers in production environment', async () => {
     // Save original environment
     const originalEnv = (env as any).ENVIRONMENT;

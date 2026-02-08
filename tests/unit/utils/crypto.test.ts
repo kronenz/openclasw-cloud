@@ -32,6 +32,18 @@ describe('JWT', () => {
     await expect(verifyJWT('invalid', TEST_SECRET)).rejects.toThrow('Invalid JWT format');
   });
 
+  it('throws on malformed JWT payload', async () => {
+    // Create a JWT-like string with valid structure but invalid JSON payload
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const invalidPayload = btoa('not-valid-json').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    // Create a dummy signature
+    const signature = 'dummysignature';
+    const malformedToken = `${header}.${invalidPayload}.${signature}`;
+
+    await expect(verifyJWT(malformedToken, TEST_SECRET))
+      .rejects.toThrow();
+  });
+
   it('includes iat and exp claims', async () => {
     const before = Math.floor(Date.now() / 1000);
     const token = await createJWT({ sub: 'test' }, TEST_SECRET, 3600);

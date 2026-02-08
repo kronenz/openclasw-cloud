@@ -108,13 +108,16 @@ billing.get('/invoices', withErrorHandler('billing_invoices_list_failed', async 
     return validationError(c, 'tenant_id is required');
   }
 
-  // Placeholder: In production, query invoices table or aggregate from billing_subscriptions
   const subscription = await getSubscription(c.env.DB, tenantId);
+
+  // Look up plan price for invoice amount
+  const plans = await listBillingPlans(c.env.DB);
+  const plan = subscription ? plans.find(p => p.id === subscription.plan_id) : undefined;
 
   const invoices = subscription ? [{
     id: subscription.id,
     tenant_id: subscription.tenant_id,
-    amount: 0, // Would come from billing_plans
+    amount: plan?.monthly_price || 0,
     period_start: subscription.current_period_start,
     period_end: subscription.current_period_end,
     status: subscription.status,
