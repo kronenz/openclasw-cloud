@@ -9,13 +9,14 @@ import type {
   Incident,
   ProvisioningLog,
 } from '../types/index.js';
+import { nowISO } from '../utils/id.js';
 
 // Tenant CRUD
 export async function createTenant(
   db: D1Database,
   tenant: Omit<Tenant, 'created_at' | 'updated_at'>
 ): Promise<Tenant> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO tenants (id, name, plan, status, subdomain, contact_email, contact_name, metadata, created_at, updated_at)
@@ -110,7 +111,7 @@ export async function updateTenant(
   }
 
   setClauses.push('updated_at = ?');
-  bindings.push(new Date().toISOString());
+  bindings.push(nowISO());
   bindings.push(id);
 
   const query = `UPDATE tenants SET ${setClauses.join(', ')} WHERE id = ?`;
@@ -125,7 +126,7 @@ export async function createTenantResource(
   db: D1Database,
   resource: Omit<TenantResource, 'created_at'>
 ): Promise<TenantResource> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO tenant_resources (id, tenant_id, resource_type, resource_id, config, created_at)
@@ -161,7 +162,7 @@ export async function getTenantResources(
 
 // Usage
 export async function logUsage(db: D1Database, log: Omit<UsageLog, 'created_at'>): Promise<void> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO usage_logs (id, tenant_id, model, input_tokens, output_tokens, cost_usd, endpoint, created_at)
@@ -233,7 +234,7 @@ export async function createProvisioningLog(
   db: D1Database,
   log: Omit<ProvisioningLog, 'created_at'>
 ): Promise<ProvisioningLog> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO provisioning_logs (id, tenant_id, step, status, details, started_at, completed_at, error_message, created_at)
@@ -315,7 +316,7 @@ export async function createIncident(
   db: D1Database,
   incident: Omit<Incident, 'created_at' | 'updated_at'>
 ): Promise<Incident> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO incidents (id, tenant_id, severity, status, title, description, auto_recovery_attempts, resolved_at, created_at, updated_at)
@@ -377,7 +378,7 @@ export async function updateIncident(
   }
 
   setClauses.push('updated_at = ?');
-  bindings.push(new Date().toISOString());
+  bindings.push(nowISO());
   bindings.push(id);
 
   const query = `UPDATE incidents SET ${setClauses.join(', ')} WHERE id = ?`;

@@ -3,6 +3,7 @@ import { listTenants, getTenant } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { BACKUP_RETENTION_DAYS } from '../config/constants.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
+import { nowISO } from '../utils/id.js';
 
 interface BackupResult {
   success: boolean;
@@ -47,7 +48,7 @@ export class BackupService {
             contentType: 'text/markdown',
           },
           customMetadata: {
-            backup_timestamp: new Date().toISOString(),
+            backup_timestamp: nowISO(),
             tenant_name: tenant.name,
           },
         });
@@ -57,7 +58,7 @@ export class BackupService {
       // Backup tenant config/metadata as JSON
       const config = {
         tenant,
-        backup_timestamp: new Date().toISOString(),
+        backup_timestamp: nowISO(),
         backup_version: '1.0',
       };
 

@@ -22,6 +22,7 @@ import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
 import { structuredError, structuredWarn, formatErrorMessage } from './utils/log.js';
 import { CRON_JOB_TIMEOUT_MS, OPENCLAW_DOMAIN } from './config/constants.js';
+import { nowISO } from './utils/id.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -97,7 +98,7 @@ export default {
           status: 'running',
           tenants_processed: 0,
           details: null,
-          started_at: new Date().toISOString(),
+          started_at: nowISO(),
         });
       } catch (logError) {
         structuredWarn('cron_log_write_failed', { jobName, error: logError });
@@ -111,7 +112,7 @@ export default {
         try {
           await updateCronLog(env.DB, logId, {
             status: 'completed',
-            completed_at: new Date().toISOString(),
+            completed_at: nowISO(),
           });
         } catch (logError) {
           structuredWarn('cron_log_write_failed', { jobName, error: logError });
@@ -121,7 +122,7 @@ export default {
         try {
           await updateCronLog(env.DB, logId, {
             status: 'failed',
-            completed_at: new Date().toISOString(),
+            completed_at: nowISO(),
             error_message: formatErrorMessage(error),
           });
         } catch (logError) {

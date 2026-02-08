@@ -1,3 +1,5 @@
+import { nowISO } from './id.js';
+
 type LogLevel = 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -9,7 +11,7 @@ interface LogEntry {
 
 export function structuredLog(event: string, data: Record<string, unknown> = {}): void {
   const entry: LogEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     level: 'info',
     event,
     ...data,
@@ -19,7 +21,7 @@ export function structuredLog(event: string, data: Record<string, unknown> = {})
 
 export function structuredWarn(event: string, data: Record<string, unknown> = {}): void {
   const entry: LogEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     level: 'warn',
     event,
     ...data,
@@ -29,7 +31,7 @@ export function structuredWarn(event: string, data: Record<string, unknown> = {}
 
 export function structuredError(event: string, error: unknown, data: Record<string, unknown> = {}): void {
   const entry: LogEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     level: 'error',
     event,
     error_message: formatErrorMessage(error),

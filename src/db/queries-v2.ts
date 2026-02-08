@@ -7,13 +7,14 @@ import type {
   CronLog,
   BillingSubscription,
 } from '../types/index.js';
+import { nowISO } from '../utils/id.js';
 
 // Onboarding Surveys
 export async function createSurvey(
   db: D1Database,
   survey: Omit<OnboardingSurvey, 'created_at'>
 ): Promise<OnboardingSurvey> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO onboarding_surveys (id, tenant_id, industry, business_description, preferred_tone, preferred_language, target_services, custom_instructions, completed_at, created_at)
@@ -104,7 +105,7 @@ export async function upsertTenantSegment(
   db: D1Database,
   segment: TenantSegment
 ): Promise<void> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO tenant_segments (tenant_id, segment, score, last_active_at, risk_factors, updated_at)
@@ -155,7 +156,7 @@ export async function createNotification(
   db: D1Database,
   notification: Omit<Notification, 'created_at'>
 ): Promise<Notification> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO notifications (id, tenant_id, channel, type, status, content, sent_at, created_at)
@@ -265,7 +266,7 @@ export async function createSoulVersion(
   db: D1Database,
   version: Omit<SoulVersion, 'created_at'>
 ): Promise<SoulVersion> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO soul_versions (id, tenant_id, version, content, generated_by, is_active, created_at)
@@ -386,7 +387,7 @@ export async function createBillingSubscription(
   db: D1Database,
   sub: Omit<BillingSubscription, 'created_at' | 'updated_at'>
 ): Promise<BillingSubscription> {
-  const now = new Date().toISOString();
+  const now = nowISO();
   const stmt = db
     .prepare(
       `INSERT INTO billing_subscriptions (id, tenant_id, plan_id, status, current_period_start, current_period_end, payment_method, created_at, updated_at)
@@ -447,7 +448,7 @@ export async function updateBillingSubscription(
   }
 
   setClauses.push('updated_at = ?');
-  bindings.push(new Date().toISOString());
+  bindings.push(nowISO());
   bindings.push(id);
 
   const query = `UPDATE billing_subscriptions SET ${setClauses.join(', ')} WHERE id = ?`;

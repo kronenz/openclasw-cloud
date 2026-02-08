@@ -7,7 +7,7 @@ import {
   getTenantResources,
 } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
-import { generateIncidentId } from '../utils/id.js';
+import { generateIncidentId, nowISO } from '../utils/id.js';
 import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
 import { SlackNotifier } from './slack-notifier.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
@@ -68,7 +68,7 @@ export class AutoRecovery {
         description: JSON.stringify({
           ...health.details,
           recovery_attempt: incident.auto_recovery_attempts + 1,
-          last_attempt: new Date().toISOString(),
+          last_attempt: nowISO(),
         }),
       });
 
@@ -82,11 +82,11 @@ export class AutoRecovery {
         // Recovery succeeded - resolve incident
         await updateIncident(this.env.DB, incident.id, {
           status: 'resolved',
-          resolved_at: new Date().toISOString(),
+          resolved_at: nowISO(),
           description: JSON.stringify({
             ...health.details,
             recovery_result: recoveryResult,
-            resolved_at: new Date().toISOString(),
+            resolved_at: nowISO(),
           }),
         });
 
@@ -171,7 +171,7 @@ export class AutoRecovery {
         message: steps.join(', '),
         details: {
           steps,
-          timestamp: new Date().toISOString(),
+          timestamp: nowISO(),
         },
       };
     } catch (error) {
@@ -226,7 +226,7 @@ export class AutoRecovery {
       description: JSON.stringify({
         ...health.details,
         escalation_reason: 'Auto-recovery exhausted (3 attempts)',
-        escalated_at: new Date().toISOString(),
+        escalated_at: nowISO(),
       }),
     });
 

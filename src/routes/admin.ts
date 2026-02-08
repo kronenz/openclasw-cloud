@@ -2,10 +2,11 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
-import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, TENANT_SEGMENTS } from '../config/constants.js';
+import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, TENANT_SEGMENTS, ERROR_CODES } from '../config/constants.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
+import { nowISO } from '../utils/id.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -85,7 +86,7 @@ admin.get('/', withErrorHandler('dashboard_summary_failed', async (c) => {
       },
       incidents: incidents.results || [],
       uptime: uptime.toFixed(2),
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO(),
     },
   });
 }));
@@ -162,7 +163,7 @@ admin.get('/tenants/:id', withErrorHandler('admin_tenant_details_failed', async 
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -228,7 +229,7 @@ admin.post('/tenants/:id/suspend', withErrorHandler('admin_tenant_suspend_failed
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -254,7 +255,7 @@ admin.post('/tenants/:id/activate', withErrorHandler('admin_tenant_activate_fail
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -304,7 +305,7 @@ admin.get('/metrics', withErrorHandler('admin_metrics_failed', async (c) => {
     data: {
       overview: metrics,
       model_breakdown: modelBreakdown.results || [],
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO(),
     },
   });
 }));
@@ -413,7 +414,7 @@ admin.get('/billing/summary', withErrorHandler('admin_billing_summary_failed', a
       paying_customers: totalCustomers,
       arpu: summary?.arpu || 0,
       churn_rate: churnRate,
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO(),
     },
   });
 }));

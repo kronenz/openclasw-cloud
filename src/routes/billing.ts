@@ -5,7 +5,7 @@ import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/
 import { updateTenant } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';
-import { BILLING_PLAN_IDS } from '../config/constants.js';
+import { BILLING_PLAN_IDS, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 
@@ -50,7 +50,7 @@ billing.get('/subscription', withErrorHandler('billing_subscription_get_failed',
     return c.json<ApiResponse>({
       success: false,
       error: 'Subscription not found',
-      code: 'SUBSCRIPTION_NOT_FOUND',
+      code: ERROR_CODES.SUBSCRIPTION_NOT_FOUND,
     }, 404);
   }
 
@@ -145,7 +145,7 @@ billing.get('/usage', withErrorHandler('billing_usage_get_failed', async (c) => 
     return c.json<ApiResponse>({
       success: false,
       error: 'Subscription not found',
-      code: 'SUBSCRIPTION_NOT_FOUND',
+      code: ERROR_CODES.SUBSCRIPTION_NOT_FOUND,
     }, 404);
   }
 
@@ -198,7 +198,7 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
       return c.json<ApiResponse>({
         success: false,
         error: 'Invalid signature',
-        code: 'INVALID_SIGNATURE',
+        code: ERROR_CODES.INVALID_SIGNATURE,
       }, 401);
     }
 
@@ -209,7 +209,7 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
       return c.json<ApiResponse>({
         success: false,
         error: 'Invalid JSON payload',
-        code: 'INVALID_PAYLOAD',
+        code: ERROR_CODES.INVALID_PAYLOAD,
       }, 400);
     }
   } else if (!webhookSecret) {
@@ -217,14 +217,14 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
     return c.json<ApiResponse>({
       success: false,
       error: 'Webhook verification not configured',
-      code: 'CONFIGURATION_ERROR',
+      code: ERROR_CODES.CONFIGURATION_ERROR,
     }, 503);
   } else {
     // Signature missing but secret is configured
     return c.json<ApiResponse>({
       success: false,
       error: 'Missing webhook signature',
-      code: 'INVALID_SIGNATURE',
+      code: ERROR_CODES.INVALID_SIGNATURE,
     }, 401);
   }
 

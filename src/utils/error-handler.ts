@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import type { Bindings, Variables, ApiResponse } from '../types/index.js';
 import { structuredError } from './log.js';
+import { ERROR_CODES } from '../config/constants.js';
 
 /**
  * Wraps a route handler with standardized error handling.
@@ -16,7 +17,7 @@ export function withErrorHandler<B extends Bindings = Bindings, V extends object
     } catch (e) {
       structuredError(eventName, e);
       return c.json<ApiResponse>(
-        { success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' },
+        { success: false, error: 'Internal server error', code: ERROR_CODES.INTERNAL_ERROR },
         500
       );
     }
@@ -28,7 +29,7 @@ export function withErrorHandler<B extends Bindings = Bindings, V extends object
  */
 export function validationError(c: Context, message: string, details?: unknown) {
   return c.json<ApiResponse>(
-    { success: false, error: message, code: 'VALIDATION_ERROR', details },
+    { success: false, error: message, code: ERROR_CODES.VALIDATION_ERROR, details },
     400
   );
 }

@@ -13,9 +13,11 @@ import {
   MAX_BUSINESS_DESCRIPTION_LENGTH,
   MAX_CUSTOM_INSTRUCTIONS_LENGTH,
   CACHE_TTL_SOUL_MD,
+  ERROR_CODES,
 } from '../config/constants.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
+import { nowISO } from '../utils/id.js';
 
 const onboarding = new Hono<{ Bindings: Bindings }>();
 
@@ -44,7 +46,7 @@ onboarding.post('/:tenantId/survey', tenantScope, withErrorHandler('survey_creat
   }
 
   const data = parsed.data;
-  const now = new Date().toISOString();
+  const now = nowISO();
 
   // Convert target_services array to JSON string
   const targetServices = data.target_services ? JSON.stringify(data.target_services) : null;
@@ -76,7 +78,7 @@ onboarding.get('/:tenantId/survey', tenantScope, withErrorHandler('survey_get_fa
     return c.json<ApiResponse>({
       success: false,
       error: 'Survey not found',
-      code: 'SURVEY_NOT_FOUND',
+      code: ERROR_CODES.SURVEY_NOT_FOUND,
     }, 404);
   }
 
@@ -129,7 +131,7 @@ onboarding.get('/:tenantId/soul', tenantScope, withErrorHandler('soul_get_failed
         return c.json<ApiResponse>({
           success: false,
           error: 'SOUL.md not found',
-          code: 'SOUL_NOT_FOUND',
+          code: ERROR_CODES.SOUL_NOT_FOUND,
         }, 404);
       }
 

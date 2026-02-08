@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { structuredError } from '../utils/log.js';
+import { nowISO } from '../utils/id.js';
 
 export class SlackNotifier {
   constructor(private env: Bindings) {}
@@ -51,7 +52,7 @@ export class SlackNotifier {
           type: 'context',
           elements: [{
             type: 'mrkdwn',
-            text: `Tenant: \`${params.tenantId}\` | ${new Date().toISOString()}`,
+            text: `Tenant: \`${params.tenantId}\` | ${nowISO()}`,
           }],
         }] : []),
       ],

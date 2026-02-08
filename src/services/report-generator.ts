@@ -3,7 +3,7 @@ import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans }
 import { createNotification, createEmailNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
-import { toDateString } from '../utils/id.js';
+import { toDateString, nowISO } from '../utils/id.js';
 import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_LOW_THRESHOLD_PERCENT, LIST_TENANTS_LIMIT } from '../config/constants.js';
 import { calculateUsageTrend } from '../utils/analytics.js';
 
@@ -226,7 +226,7 @@ export class ReportGenerator {
     }
 
     return {
-      timestamp: now.toISOString(),
+      timestamp: nowISO(),
       period: { start: startDate, end: endDate },
       tenants: {
         total: allTenants.length,
@@ -252,7 +252,7 @@ export class ReportGenerator {
       status: 'running',
       tenants_processed: 0,
       details: null,
-      started_at: new Date().toISOString(),
+      started_at: nowISO(),
     });
 
     let sent = 0;
@@ -286,13 +286,13 @@ export class ReportGenerator {
         status: 'completed',
         tenants_processed: sent,
         details: JSON.stringify({ sent, failed }),
-        completed_at: new Date().toISOString(),
+        completed_at: nowISO(),
       });
     } catch (error) {
       await updateCronLog(this.env.DB, cronLog.id, {
         status: 'failed',
         error_message: formatErrorMessage(error),
-        completed_at: new Date().toISOString(),
+        completed_at: nowISO(),
       });
     }
 
@@ -306,7 +306,7 @@ export class ReportGenerator {
       status: 'running',
       tenants_processed: 0,
       details: null,
-      started_at: new Date().toISOString(),
+      started_at: nowISO(),
     });
 
     let sent = 0;
@@ -350,13 +350,13 @@ export class ReportGenerator {
         status: 'completed',
         tenants_processed: sent,
         details: JSON.stringify({ sent, failed }),
-        completed_at: new Date().toISOString(),
+        completed_at: nowISO(),
       });
     } catch (error) {
       await updateCronLog(this.env.DB, cronLog.id, {
         status: 'failed',
         error_message: formatErrorMessage(error),
-        completed_at: new Date().toISOString(),
+        completed_at: nowISO(),
       });
     }
 

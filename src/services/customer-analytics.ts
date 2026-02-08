@@ -2,7 +2,7 @@ import type { Bindings, BillingSubscription, DailyUsage, Tenant } from '../types
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
-import { toDateString } from '../utils/id.js';
+import { toDateString, nowISO } from '../utils/id.js';
 import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD, MIN_ACTIVE_TOKENS } from '../config/constants.js';
 import { structuredLog } from '../utils/log.js';
 import { calculateUsageTrend, aggregateTokenUsage } from '../utils/analytics.js';
@@ -190,7 +190,7 @@ export class CustomerAnalytics {
         score: 60,
         last_active_at: analysis.usage_data.length > 0 ? analysis.usage_data[analysis.usage_data.length - 1].date : null,
         risk_factors: JSON.stringify(['new_tenant']),
-        updated_at: new Date().toISOString(),
+        updated_at: nowISO(),
       };
     }
 
@@ -261,7 +261,7 @@ export class CustomerAnalytics {
       score: Math.max(0, Math.min(100, score)),
       last_active_at: lastActiveDate?.toISOString() || null,
       risk_factors: riskFactors.length > 0 ? JSON.stringify(riskFactors) : null,
-      updated_at: new Date().toISOString(),
+      updated_at: nowISO(),
     };
   }
 

@@ -3,7 +3,7 @@ import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans }
 import { createNotification, createEmailNotification, hasRecentNotification } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
-import { toDateString } from '../utils/id.js';
+import { toDateString, nowISO } from '../utils/id.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
 import { aggregateTokenUsage } from '../utils/analytics.js';
@@ -136,7 +136,7 @@ export class CustomerEngagement {
             subject: `${tenant.name} AI 비서가 기다리고 있어요`,
             inactive_days: 7,
           }),
-          sent_at: new Date().toISOString(),
+          sent_at: nowISO(),
         });
 
         structuredLog('re_engagement_email_sent', {
@@ -250,7 +250,7 @@ export class CustomerEngagement {
           prev_week_tokens: prevWeek,
           this_week_tokens: thisWeek,
         }),
-        sent_at: new Date().toISOString(),
+        sent_at: nowISO(),
       });
 
       structuredLog('usage_drop_detected', {

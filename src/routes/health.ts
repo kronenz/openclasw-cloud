@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings } from '../types/index.js';
 import { withErrorHandler } from '../utils/error-handler.js';
+import { nowISO } from '../utils/id.js';
 
 const health = new Hono<{ Bindings: Bindings }>();
 
@@ -8,7 +9,7 @@ const health = new Hono<{ Bindings: Bindings }>();
 health.get('/', (c) => {
   return c.json({
     status: 'healthy',
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     version: '0.1.0',
   });
 });
@@ -48,7 +49,7 @@ health.get('/detailed', withErrorHandler('health_detailed_check_failed', async (
 
   return c.json({
     status: overallStatus,
-    timestamp: new Date().toISOString(),
+    timestamp: nowISO(),
     version: '0.1.0',
     environment: c.env.ENVIRONMENT,
     checks,

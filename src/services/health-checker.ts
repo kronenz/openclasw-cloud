@@ -3,6 +3,7 @@ import { listTenants, getTenantResources, listIncidents } from '../db/queries.js
 import { AutoRecovery } from './auto-recovery.js';
 import { SlackNotifier } from './slack-notifier.js';
 import { structuredLog, formatErrorMessage } from '../utils/log.js';
+import { nowISO } from '../utils/id.js';
 
 interface HealthReport {
   timestamp: string;
@@ -64,7 +65,7 @@ export class HealthChecker {
     const health: TenantHealth = {
       tenant_id: tenantId,
       status,
-      last_checked: new Date().toISOString(),
+      last_checked: nowISO(),
       details,
     };
 
@@ -95,7 +96,7 @@ export class HealthChecker {
     }
 
     const report: HealthReport = {
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO(),
       total_tenants: tenants.length,
       healthy: results.filter(r => r.status === 'healthy').length,
       degraded: results.filter(r => r.status === 'degraded').length,

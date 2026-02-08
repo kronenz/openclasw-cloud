@@ -8,7 +8,7 @@ import {
   getTenant,
   getTenantResources
 } from '../db/queries.js';
-import { generateTenantId, generateResourceId, generateSubdomain } from '../utils/id.js';
+import { generateTenantId, generateResourceId, generateSubdomain, nowISO } from '../utils/id.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
@@ -108,7 +108,7 @@ export class TenantProvisioner {
         step,
         status: 'running',
         details: null,
-        started_at: new Date().toISOString(),
+        started_at: nowISO(),
         completed_at: null,
         error_message: null,
       });
@@ -152,7 +152,7 @@ export class TenantProvisioner {
         await updateProvisioningLog(this.env.DB, logId, {
           tenant_id: plan?.tenantId,
           status: 'completed',
-          completed_at: new Date().toISOString(),
+          completed_at: nowISO(),
         });
       } catch (error) {
         const errorMsg = formatErrorMessage(error);
@@ -160,7 +160,7 @@ export class TenantProvisioner {
           tenant_id: plan?.tenantId,
           status: 'failed',
           error_message: errorMsg,
-          completed_at: new Date().toISOString(),
+          completed_at: nowISO(),
         });
 
         // Rollback: mark tenant as suspended if it was created

@@ -10,9 +10,9 @@ import {
   getTenantResources,
   createIncident,
 } from '../db/queries.js';
-import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.js';
+import { generateTenantId, generateSubdomain, toDateString, nowISO } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
-import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES } from '../config/constants.js';
+import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
@@ -164,7 +164,7 @@ tenants.get('/:id', tenantScope, withErrorHandler('tenant_get_failed', async (c)
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -200,7 +200,7 @@ tenants.put('/:id', tenantScope, withErrorHandler('tenant_update_failed', async 
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -219,7 +219,7 @@ tenants.delete('/:id', tenantScope, withErrorHandler('tenant_delete_failed', asy
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -268,7 +268,7 @@ tenants.get('/:id/health', tenantScope, withErrorHandler('tenant_health_check_fa
     return c.json<ApiResponse>({
       success: false,
       error: 'Tenant not found',
-      code: 'TENANT_NOT_FOUND',
+      code: ERROR_CODES.TENANT_NOT_FOUND,
     }, 404);
   }
 
@@ -284,7 +284,7 @@ tenants.get('/:id/health', tenantScope, withErrorHandler('tenant_health_check_fa
       status,
       tenant_status: tenant.status,
       resources_count: resources.length,
-      last_checked: new Date().toISOString(),
+      last_checked: nowISO(),
     },
   });
 }));

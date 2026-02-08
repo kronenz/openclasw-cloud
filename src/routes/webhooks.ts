@@ -4,7 +4,7 @@ import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE } from '../config/constants.js';
+import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { withErrorHandler } from '../utils/error-handler.js';
@@ -220,7 +220,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variab
       return c.json<ApiResponse>({
         success: false,
         error: 'Missing X-Tenant-ID header',
-        code: 'MISSING_TENANT_ID',
+        code: ERROR_CODES.MISSING_TENANT_ID,
       }, 400);
     }
 
@@ -230,7 +230,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variab
       return c.json<ApiResponse>({
         success: false,
         error: 'Tenant not found or inactive',
-        code: 'TENANT_INACTIVE',
+        code: ERROR_CODES.TENANT_INACTIVE,
       }, 403);
     }
 
