@@ -8,6 +8,10 @@ describe('Logger Middleware', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('logs request details', async () => {
     const logSpy = vi.spyOn(console, 'log');
 

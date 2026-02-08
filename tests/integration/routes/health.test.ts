@@ -9,6 +9,10 @@ describe('Health Routes', () => {
     await setupTestDb();
   });
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('GET /health', () => {
     it('returns 200 with status healthy', async () => {
       const res = await app.request('/health', {}, env);

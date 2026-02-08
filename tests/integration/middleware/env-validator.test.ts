@@ -9,6 +9,10 @@ describe('Environment Validator Middleware', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('allows requests when all required bindings are present', async () => {
     const app = new Hono();
     app.use('*', envValidatorMiddleware);

@@ -33,3 +33,8 @@ export function generateSubdomain(name: string): string {
 export function toDateString(date: Date = new Date()): string {
   return date.toISOString().split('T')[0];
 }
+
+/** Returns current UTC timestamp in ISO 8601 format */
+export function nowISO(): string {
+  return new Date().toISOString();
+}

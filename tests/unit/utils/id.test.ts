@@ -7,6 +7,7 @@ import {
   generateSubscriptionId,
   generateSubdomain,
   toDateString,
+  nowISO,
 } from '../../../src/utils/id.js';
 
 describe('ID Generation', () => {
@@ -82,5 +83,18 @@ describe('toDateString', () => {
   it('defaults to current date', () => {
     const result = toDateString();
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('nowISO', () => {
+  it('returns ISO format string', () => {
+    const result = nowISO();
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+  it('returns a valid ISO 8601 timestamp', () => {
+    const result = nowISO();
+    const date = new Date(result);
+    expect(date instanceof Date).toBe(true);
+    expect(date.toString()).not.toBe('Invalid Date');
   });
 });
