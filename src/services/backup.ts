@@ -1,5 +1,6 @@
 import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getTenant } from '../db/queries.js';
+import { safeJsonParse } from '../utils/json.js';
 
 interface BackupResult {
   success: boolean;
@@ -166,7 +167,7 @@ export class BackupService {
 
       if (configBackup) {
         const configText = await configBackup.text();
-        const parsedConfig = JSON.parse(configText);
+        const parsedConfig = safeJsonParse<{ tenant?: Tenant }>(configText, {});
         configData = parsedConfig.tenant;
       }
 

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Bindings, Variables, ApiResponse, Tenant, TenantSegment, Incident } from '../types/index.js';
 import { getTenant, listTenants, updateTenant, listIncidents } from '../db/queries.js';
+import { safeJsonParse } from '../utils/json.js';
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -177,9 +178,9 @@ admin.get('/tenants/:id', async (c) => {
       success: true,
       data: {
         ...tenant,
-        resources: details?.resources ? JSON.parse(details.resources as string) : [],
-        subscription: details?.subscription ? JSON.parse(details.subscription as string) : null,
-        segment: details?.segment ? JSON.parse(details.segment as string) : null,
+        resources: safeJsonParse(details?.resources as string | undefined, []),
+        subscription: safeJsonParse(details?.subscription as string | undefined, null),
+        segment: safeJsonParse(details?.segment as string | undefined, null),
         monthly_cost: details?.monthly_cost || 0,
       },
     });

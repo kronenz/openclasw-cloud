@@ -1,6 +1,7 @@
 import type { Bindings, OnboardingSurvey } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
+import { safeJsonParse } from '../utils/json.js';
 
 export class SoulGenerator {
   constructor(private env: Bindings) {}
@@ -16,7 +17,7 @@ export class SoulGenerator {
     };
 
     const industryContext = industryTemplates[survey.industry] || industryTemplates.general;
-    const targetServices = survey.target_services ? JSON.parse(survey.target_services) : [];
+    const targetServices = safeJsonParse<string[]>(survey.target_services, []);
 
     const prompt = `당신은 AI 비서 전문가입니다. 다음 정보를 기반으로 SOUL.md 파일을 한국어로 작성하세요.
 

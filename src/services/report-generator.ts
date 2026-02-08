@@ -2,6 +2,7 @@ import type { Bindings, Tenant, DailyUsage } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
+import { safeJsonParse } from '../utils/json.js';
 
 interface WeeklyReport {
   tenant_id: string;
@@ -52,15 +53,13 @@ export class ReportGenerator {
     const modelTotals: Record<string, { tokens: number; cost: number }> = {};
     for (const day of usage) {
       if (day.model_breakdown) {
-        try {
-          const breakdown = JSON.parse(day.model_breakdown);
-          for (const [model, data] of Object.entries(breakdown)) {
-            const d = data as { tokens?: number; cost?: number };
-            if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-            modelTotals[model].tokens += d.tokens || 0;
-            modelTotals[model].cost += d.cost || 0;
-          }
-        } catch { /* skip invalid JSON */ }
+        const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
+        for (const [model, data] of Object.entries(breakdown)) {
+          const d = data as { tokens?: number; cost?: number };
+          if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
+          modelTotals[model].tokens += d.tokens || 0;
+          modelTotals[model].cost += d.cost || 0;
+        }
       }
     }
     const topModels = Object.entries(modelTotals)
@@ -107,15 +106,13 @@ export class ReportGenerator {
     const modelTotals: Record<string, { tokens: number; cost: number }> = {};
     for (const day of usage) {
       if (day.model_breakdown) {
-        try {
-          const breakdown = JSON.parse(day.model_breakdown);
-          for (const [model, data] of Object.entries(breakdown)) {
-            const d = data as { tokens?: number; cost?: number };
-            if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-            modelTotals[model].tokens += d.tokens || 0;
-            modelTotals[model].cost += d.cost || 0;
-          }
-        } catch { /* skip */ }
+        const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
+        for (const [model, data] of Object.entries(breakdown)) {
+          const d = data as { tokens?: number; cost?: number };
+          if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
+          modelTotals[model].tokens += d.tokens || 0;
+          modelTotals[model].cost += d.cost || 0;
+        }
       }
     }
     const topModels = Object.entries(modelTotals)

@@ -4,7 +4,7 @@ import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
 
-const JWT_SECRET = 'test-jwt-secret';
+const JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars!';
 
 async function getAdminHeader() {
   const token = await createJWT({ sub: 'admin_user', role: 'admin' }, JWT_SECRET);

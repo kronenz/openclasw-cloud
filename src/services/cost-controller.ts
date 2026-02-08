@@ -1,5 +1,6 @@
 import type { Bindings, UsageLog, DailyUsage, ModelRecommendation, Alert } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
+import { safeJsonParse } from '../utils/json.js';
 
 // Model cost per 1K tokens (USD)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
@@ -53,7 +54,7 @@ export class CostController {
 
     // At 80% usage, recommend downgrade
     if (usagePercent >= 80) {
-      const breakdown = usage.model_breakdown ? JSON.parse(usage.model_breakdown) : {};
+      const breakdown = safeJsonParse<Record<string, unknown>>(usage.model_breakdown, {});
       // Find the most expensive model being used
       const currentModel = Object.keys(breakdown).sort((a, b) => {
         const costA = MODEL_COSTS[a]?.output || 0;

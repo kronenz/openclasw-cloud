@@ -104,7 +104,7 @@ webhooks.post('/messenger', async (c) => {
     // Still return 200 to avoid webhook retries
     return c.json<ApiResponse>({
       success: true,
-      data: { received: true, error: String(e) },
+      data: { received: true },
     });
   }
 });
@@ -233,7 +233,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: Telegram
     console.error('Telegram handler error:', error);
     return c.json<ApiResponse>({
       success: true,
-      data: { received: true, error: String(error) },
+      data: { received: true },
     });
   }
 }
@@ -314,7 +314,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
     console.error('Slack handler error:', error);
     return c.json<ApiResponse>({
       success: true,
-      data: { received: true, error: String(error) },
+      data: { received: true },
     });
   }
 }

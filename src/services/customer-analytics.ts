@@ -1,6 +1,7 @@
 import type { Bindings, DailyUsage, Tenant, BillingPlan } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
+import { safeJsonParse } from '../utils/json.js';
 
 interface TenantAnalysis {
   tenant_id: string;
@@ -240,7 +241,7 @@ export class CustomerAnalytics {
       general: { avg_tokens: 45000, avg_cost: 2.0 },
     };
 
-    const metadata = tenant.metadata ? JSON.parse(tenant.metadata) : {};
+    const metadata = safeJsonParse<{ industry?: string }>(tenant.metadata, {});
     const industry = metadata.industry || 'general';
     const benchmark = INDUSTRY_BENCHMARKS[industry as keyof typeof INDUSTRY_BENCHMARKS] || INDUSTRY_BENCHMARKS.general;
 
@@ -273,7 +274,7 @@ export class CustomerAnalytics {
     }
 
     if (segment?.risk_factors) {
-      const riskFactors = JSON.parse(segment.risk_factors);
+      const riskFactors = safeJsonParse<string[]>(segment.risk_factors, []);
       if (riskFactors.includes('inactive_7d')) {
         recommendations.push('최근 활동이 없습니다. 대시보드에서 상태를 확인해 주세요');
       }

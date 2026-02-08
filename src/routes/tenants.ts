@@ -8,6 +8,7 @@ import {
   updateTenant,
   getTenantUsageSummary,
   getTenantResources,
+  createIncident,
 } from '../db/queries.js';
 import { generateTenantId, generateSubdomain } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
@@ -74,8 +75,23 @@ tenants.post('/', async (c) => {
           contact_email: data.contact_email,
           contact_name: data.contact_name,
           metadata: data.metadata,
-        }).catch((error) => {
+        }).catch(async (error) => {
           console.error(`Provisioning failed for tenant ${tenantId}:`, error);
+          // Create incident for failed provisioning so operators are notified
+          try {
+            await createIncident(c.env.DB, {
+              id: crypto.randomUUID(),
+              tenant_id: tenantId,
+              severity: 'P1',
+              status: 'open',
+              title: `Provisioning failed for tenant ${tenantId}`,
+              description: error instanceof Error ? error.message : String(error),
+              auto_recovery_attempts: 0,
+              resolved_at: null,
+            });
+          } catch (incidentError) {
+            console.error('Failed to create incident for provisioning failure:', incidentError);
+          }
         })
       );
     } catch (e) {
