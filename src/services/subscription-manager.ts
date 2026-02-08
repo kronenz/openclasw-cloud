@@ -22,6 +22,30 @@ export class SubscriptionManager {
   constructor(private env: Bindings) {}
 
   /**
+   * Get subscription or throw if not found
+   */
+  private async requireSubscription(tenantId: string): Promise<BillingSubscription> {
+    const subscription = await getSubscription(this.env.DB, tenantId);
+    if (!subscription) {
+      throw new Error('Subscription not found');
+    }
+    return subscription;
+  }
+
+  /**
+   * Resolve plan tier name from plan ID and update tenant
+   */
+  private async updateTenantPlan(tenantId: string, planId: string): Promise<void> {
+    const tenant = await getTenant(this.env.DB, tenantId);
+    if (!tenant) return;
+
+    const plans = await listBillingPlans(this.env.DB);
+    const targetPlan = plans.find(p => p.id === planId);
+    const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
+    await updateTenant(this.env.DB, tenantId, { plan: planTier });
+  }
+
+  /**
    * Create a new subscription for a tenant
    */
   async createSubscription(
@@ -70,10 +94,7 @@ export class SubscriptionManager {
    */
   async cancelSubscription(tenantId: string): Promise<void> {
     try {
-      const subscription = await getSubscription(this.env.DB, tenantId);
-      if (!subscription) {
-        throw new Error('Subscription not found');
-      }
+      const subscription = await this.requireSubscription(tenantId);
 
       const now = new Date();
       const gracePeriodEnd = new Date(now);
@@ -116,10 +137,7 @@ export class SubscriptionManager {
    */
   async upgradeSubscription(tenantId: string, newPlanId: string): Promise<void> {
     try {
-      const subscription = await getSubscription(this.env.DB, tenantId);
-      if (!subscription) {
-        throw new Error('Subscription not found');
-      }
+      const subscription = await this.requireSubscription(tenantId);
 
       // Update subscription plan immediately
       await updateBillingSubscription(this.env.DB, subscription.id, {
@@ -127,14 +145,7 @@ export class SubscriptionManager {
       });
 
       // Update tenant plan
-      const tenant = await getTenant(this.env.DB, tenantId);
-      if (tenant) {
-        // Look up plan tier from billing_plans table
-        const plans = await listBillingPlans(this.env.DB);
-        const targetPlan = plans.find(p => p.id === newPlanId);
-        const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
-        await updateTenant(this.env.DB, tenantId, { plan: planTier });
-      }
+      await this.updateTenantPlan(tenantId, newPlanId);
 
       structuredLog('subscription_upgraded', {
         tenant_id: tenantId,
@@ -170,10 +181,7 @@ export class SubscriptionManager {
    */
   async downgradeSubscription(tenantId: string, newPlanId: string): Promise<void> {
     try {
-      const subscription = await getSubscription(this.env.DB, tenantId);
-      if (!subscription) {
-        throw new Error('Subscription not found');
-      }
+      const subscription = await this.requireSubscription(tenantId);
 
       // Schedule downgrade for period end
       // In a real implementation, we'd store this in a separate field
@@ -183,14 +191,7 @@ export class SubscriptionManager {
       });
 
       // Update tenant plan
-      const tenant = await getTenant(this.env.DB, tenantId);
-      if (tenant) {
-        // Look up plan tier from billing_plans table
-        const plans = await listBillingPlans(this.env.DB);
-        const targetPlan = plans.find(p => p.id === newPlanId);
-        const planTier = (targetPlan?.name as 'starter' | 'growth' | 'enterprise' | undefined) || 'starter';
-        await updateTenant(this.env.DB, tenantId, { plan: planTier });
-      }
+      await this.updateTenantPlan(tenantId, newPlanId);
 
       structuredLog('subscription_downgraded', {
         tenant_id: tenantId,
@@ -292,10 +293,7 @@ export class SubscriptionManager {
    */
   async suspendForNonPayment(tenantId: string): Promise<void> {
     try {
-      const subscription = await getSubscription(this.env.DB, tenantId);
-      if (!subscription) {
-        throw new Error('Subscription not found');
-      }
+      const subscription = await this.requireSubscription(tenantId);
 
       // Update tenant status to suspended
       await updateTenant(this.env.DB, tenantId, { status: 'suspended' });
