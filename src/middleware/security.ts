@@ -11,6 +11,9 @@ export const securityMiddleware = createMiddleware<{ Bindings: Bindings; Variabl
   c.header('X-XSS-Protection', '1; mode=block');
   c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  c.header('Cross-Origin-Opener-Policy', 'same-origin');
+  c.header('Cross-Origin-Embedder-Policy', 'require-corp');
+  c.header('Cross-Origin-Resource-Policy', 'same-origin');
 
   if (c.env.ENVIRONMENT === 'production') {
     c.header('Strict-Transport-Security', `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`);

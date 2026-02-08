@@ -11,6 +11,28 @@ import { withErrorHandler } from '../utils/error-handler.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
 
+// Helper function to run AI inference with error handling
+async function runAiInference(
+  ai: Ai,
+  userMessage: string,
+  soulContent: string | null,
+): Promise<string> {
+  const systemPrompt = soulContent || '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+  try {
+    const aiResult = await ai.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      max_tokens: AI_MAX_TOKENS_DEFAULT,
+    });
+    return (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
+  } catch (error) {
+    structuredError('ai_inference_failed', error);
+    return '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+  }
+}
+
 // Telegram webhook types
 interface TelegramUpdate {
   update_id: number;
@@ -140,25 +162,10 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
 
     // Get SOUL.md for this tenant
     const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
-    const systemPrompt = soulContent
-      ? await soulContent.text()
-      : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+    const soulText = soulContent ? await soulContent.text() : null;
 
     // Call AI Gateway with error handling
-    let responseText: string;
-    try {
-      const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ],
-        max_tokens: AI_MAX_TOKENS_DEFAULT,
-      });
-      responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
-    } catch (error) {
-      structuredError('ai_inference_failed', error);
-      responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-    }
+    const responseText = await runAiInference(c.env.AI, userMessage, soulText);
 
     // Return KakaoTalk skill response format
     return c.json({
@@ -258,25 +265,10 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
 
       // Get SOUL.md for this tenant
       const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
-      const systemPrompt = soulContent
-        ? await soulContent.text()
-        : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+      const soulText = soulContent ? await soulContent.text() : null;
 
       // Call AI Gateway with error handling
-      let responseText: string;
-      try {
-        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage },
-          ],
-          max_tokens: AI_MAX_TOKENS_DEFAULT,
-        });
-        responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
-      } catch (error) {
-        structuredError('ai_inference_failed', error);
-        responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      }
+      const responseText = await runAiInference(c.env.AI, userMessage, soulText);
 
       // Send response via Slack Web API (requires bot token in KV)
       const slackBotToken = await c.env.CACHE.get(`slack:bot:${tenantId}`);
@@ -341,25 +333,10 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
 
       // Get SOUL.md for this tenant
       const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
-      const systemPrompt = soulContent
-        ? await soulContent.text()
-        : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+      const soulText = soulContent ? await soulContent.text() : null;
 
       // Call AI Gateway with error handling
-      let responseText: string;
-      try {
-        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage },
-          ],
-          max_tokens: AI_MAX_TOKENS_DEFAULT,
-        });
-        responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
-      } catch (error) {
-        structuredError('ai_inference_failed', error);
-        responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      }
+      const responseText = await runAiInference(c.env.AI, userMessage, soulText);
 
       // Return Discord interaction response
       return c.json({
