@@ -202,6 +202,26 @@ describe('Onboarding Routes', () => {
       expect(body.code).toBe('VALIDATION_ERROR');
     });
 
+    it('rejects invalid preferred_tone value', async () => {
+      const tenantId = 'tn_survey_bad_tone';
+      await createTestTenant({ id: tenantId });
+      const headers = await getAuthHeader(tenantId);
+
+      const res = await app.request(`/api/tenants/${tenantId}/survey`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industry: 'cafe',
+          preferred_tone: 'sarcastic',
+        }),
+      }, env);
+
+      expect(res.status).toBe(400);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
+    });
+
     it('requires authentication (401 without JWT)', async () => {
       const tenantId = 'tn_survey_noauth';
       await createTestTenant({ id: tenantId });
