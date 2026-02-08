@@ -276,14 +276,23 @@ billing.post('/webhook', async (c) => {
         }, 401);
       }
 
-      payload = JSON.parse(body);
+      try {
+        payload = JSON.parse(body);
+      } catch (parseError) {
+        console.error('Invalid JSON in webhook payload:', parseError);
+        return c.json<ApiResponse>({
+          success: false,
+          error: 'Invalid JSON payload',
+          code: 'INVALID_PAYLOAD',
+        }, 400);
+      }
     } else if (!webhookSecret) {
       // Webhook secret not configured - reject for security
       return c.json<ApiResponse>({
         success: false,
         error: 'Webhook verification not configured',
         code: 'CONFIGURATION_ERROR',
-      }, 500);
+      }, 503);
     } else {
       // Signature missing but secret is configured
       return c.json<ApiResponse>({

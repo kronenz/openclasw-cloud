@@ -105,7 +105,7 @@ describe('Billing Routes', () => {
         }),
       }, env);
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(503);
       const body = await res.json() as any;
       expect(body.success).toBe(false);
       expect(body.code).toBe('CONFIGURATION_ERROR');

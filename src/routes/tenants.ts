@@ -12,6 +12,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateSubdomain } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
+import { RESERVED_SUBDOMAINS } from '../config/constants.js';
 
 const tenants = new Hono<{ Bindings: Bindings }>();
 
@@ -21,7 +22,10 @@ const createTenantSchema = z.object({
   plan: z.enum(['starter', 'growth', 'enterprise']).optional().default('starter'),
   contact_email: z.string().email(),
   contact_name: z.string().max(100).optional(),
-  subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
+  subdomain: z.string().max(63)
+    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens')
+    .refine((val) => !RESERVED_SUBDOMAINS.has(val), { message: 'This subdomain is reserved' })
+    .optional(),
   metadata: z.record(z.unknown()).optional().refine(
     (val) => !val || JSON.stringify(val).length <= 10240,
     { message: 'Metadata must be 10KB or less' }
@@ -33,7 +37,10 @@ const updateTenantSchema = z.object({
   plan: z.enum(['starter', 'growth', 'enterprise']).optional(),
   status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
   contact_email: z.string().email().optional(),
-  subdomain: z.string().max(63).regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens').optional(),
+  subdomain: z.string().max(63)
+    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens')
+    .refine((val) => !RESERVED_SUBDOMAINS.has(val), { message: 'This subdomain is reserved' })
+    .optional(),
   metadata: z.record(z.unknown()).optional().refine(
     (val) => !val || JSON.stringify(val).length <= 10240,
     { message: 'Metadata must be 10KB or less' }
