@@ -168,7 +168,16 @@ export class TenantProvisioner {
 
         // Rollback: mark tenant as suspended if it was created
         if (plan?.tenantId) {
-          await updateTenant(this.env.DB, plan.tenantId, { status: 'suspended' }).catch(() => {});
+          const tenantId = plan.tenantId;
+          await updateTenant(this.env.DB, tenantId, { status: 'suspended' }).catch((rollbackError) => {
+            console.error(JSON.stringify({
+              level: 'error',
+              message: 'Rollback failed',
+              tenant_id: tenantId,
+              step,
+              error: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+            }));
+          });
         }
 
         throw new Error(`Provisioning failed at step '${step}': ${errorMsg}`);

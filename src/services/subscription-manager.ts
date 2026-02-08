@@ -4,7 +4,7 @@ import {
   createBillingSubscription,
   updateBillingSubscription,
 } from '../db/queries-v2.js';
-import { getSubscription, getTenant, updateTenant, getDailyUsage } from '../db/queries.js';
+import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 
 export interface OverageInfo {
@@ -250,10 +250,28 @@ export class SubscriptionManager {
       const today = new Date().toISOString().split('T')[0];
       const usage = await getDailyUsage(this.env.DB, tenantId, today);
 
-      // Get subscription and plan limits
-      // For now, using hardcoded limits - should query billing_plans table
-      const dailyLimit = 100000; // 100K tokens
-      const monthlyLimit = 3000000; // 3M tokens
+      // Get subscription and plan limits from billing_plans table
+      const subscription = await getSubscription(this.env.DB, tenantId);
+      let dailyLimit = 100000; // Default: 100K tokens
+      let monthlyLimit = 3000000; // Default: 3M tokens
+
+      if (subscription) {
+        try {
+          const plans = await listBillingPlans(this.env.DB);
+          const plan = plans.find(p => p.id === subscription.plan_id);
+          if (plan) {
+            dailyLimit = plan.daily_token_limit;
+            monthlyLimit = plan.monthly_token_limit;
+          }
+        } catch (planError) {
+          console.warn(JSON.stringify({
+            level: 'warning',
+            message: 'Failed to fetch plan limits, using defaults',
+            tenant_id: tenantId,
+            error: planError instanceof Error ? planError.message : String(planError),
+          }));
+        }
+      }
 
       const dailyUsage = usage?.total_tokens || 0;
       const monthlyUsage = dailyUsage; // Simplified - should aggregate month's usage

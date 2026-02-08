@@ -1,4 +1,5 @@
 import type { Bindings, OnboardingSurvey } from '../types/index.js';
+import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 
 export class SoulGenerator {
@@ -57,7 +58,7 @@ export class SoulGenerator {
 SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
 
     try {
-      const result = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
+      const result = await this.env.AI.run(DEFAULT_AI_MODEL as any, {
         messages: [
           { role: 'system', content: '당신은 AI 비서 설정 문서(SOUL.md) 전문 작성자입니다. 마크다운 형식으로 작성합니다.' },
           { role: 'user', content: prompt },

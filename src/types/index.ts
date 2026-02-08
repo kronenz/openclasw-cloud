@@ -14,6 +14,8 @@ export interface Bindings {
   SLACK_WEBHOOK_URL?: string;
   PORTONE_WEBHOOK_SECRET?: string;
   PORTONE_API_KEY?: string;
+  CF_API_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
 }
 
 // Hono app context variables
@@ -246,3 +248,6 @@ export interface CronLog {
   completed_at: string | null;
   error_message: string | null;
 }
+
+// Constants
+export const DEFAULT_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct';

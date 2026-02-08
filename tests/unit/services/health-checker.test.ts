@@ -43,13 +43,28 @@ describe('HealthChecker', () => {
 
   describe('checkTenant', () => {
     it('returns healthy when all checks pass', async () => {
-      // Mock resources exist
-      (env.DB.prepare as any).mockReturnValue({
+      // Mock getTenantResources to return resources (needed for healthy status)
+      const mockPrepare = vi.fn();
+      mockPrepare.mockReturnValueOnce({
         bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ count: 5 }),
           all: vi.fn().mockResolvedValue({ results: [{ id: 'res_1', resource_type: 'worker' }] }),
         }),
       });
+      // Mock STORAGE.head to return SOUL.md exists
+      (env.STORAGE.head as any).mockResolvedValue({ key: 'tenants/tn_test/SOUL.md' });
+      // Mock listIncidents to return no open incidents
+      mockPrepare.mockReturnValueOnce({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        }),
+      });
+      // Mock usage count query
+      mockPrepare.mockReturnValueOnce({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue({ count: 5 }),
+        }),
+      });
+      (env.DB.prepare as any) = mockPrepare;
 
       const health = await checker.checkTenant('tn_test');
       expect(health.tenant_id).toBe('tn_test');

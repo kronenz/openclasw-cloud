@@ -76,8 +76,8 @@ admin.get('/', async (c) => {
 admin.get('/tenants', async (c) => {
   try {
     const status = c.req.query('status');
-    const limit = parseInt(c.req.query('limit') || '100', 10);
-    const offset = parseInt(c.req.query('offset') || '0', 10);
+    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '100', 10), 500));
+    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
 
     // Get tenants with subscription and segment info
     let query = `
@@ -101,7 +101,7 @@ admin.get('/tenants', async (c) => {
     }
 
     query += ` ORDER BY t.created_at DESC LIMIT ? OFFSET ?`;
-    bindings.push(Math.min(limit, 500), offset);
+    bindings.push(limit, offset);
 
     const stmt = c.env.DB.prepare(query).bind(...bindings);
     const result = await stmt.all();
@@ -420,8 +420,8 @@ admin.get('/billing/summary', async (c) => {
 // GET /billing/transactions - Recent billing transactions
 admin.get('/billing/transactions', async (c) => {
   try {
-    const limit = parseInt(c.req.query('limit') || '50', 10);
-    const offset = parseInt(c.req.query('offset') || '0', 10);
+    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '50', 10), 500));
+    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
 
     const transactionsStmt = c.env.DB.prepare(`
       SELECT
@@ -440,7 +440,7 @@ admin.get('/billing/transactions', async (c) => {
       JOIN billing_plans bp ON bs.plan_id = bp.id
       ORDER BY bs.updated_at DESC
       LIMIT ? OFFSET ?
-    `).bind(Math.min(limit, 200), offset);
+    `).bind(limit, offset);
 
     const transactions = await transactionsStmt.all();
 

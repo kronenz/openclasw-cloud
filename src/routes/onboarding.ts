@@ -120,6 +120,10 @@ onboarding.post('/:tenantId/soul/generate', async (c) => {
     const content = await generator.generate(tenantId, survey);
     await generator.storeVersion(c.env.DB, tenantId, content, 'survey');
 
+    // Invalidate cache after generation
+    const cacheKey = `soul:${tenantId}`;
+    await c.env.CACHE.delete(cacheKey);
+
     return c.json<ApiResponse<{ content: string }>>({
       success: true,
       data: { content },
@@ -141,20 +145,27 @@ onboarding.get('/:tenantId/soul', async (c) => {
     const soul = await getActiveSoul(c.env.DB, tenantId);
 
     if (!soul) {
-      // Fallback to R2 if no version exists
-      const r2Object = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
-      if (!r2Object) {
-        return c.json<ApiResponse>({
-          success: false,
-          error: 'SOUL.md not found',
-          code: 'SOUL_NOT_FOUND',
-        }, 404);
+      // Fallback to R2 with KV caching
+      const cacheKey = `soul:${tenantId}`;
+      let soulContent = await c.env.CACHE.get(cacheKey);
+
+      if (!soulContent) {
+        const r2Object = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+        if (!r2Object) {
+          return c.json<ApiResponse>({
+            success: false,
+            error: 'SOUL.md not found',
+            code: 'SOUL_NOT_FOUND',
+          }, 404);
+        }
+
+        soulContent = await r2Object.text();
+        await c.env.CACHE.put(cacheKey, soulContent, { expirationTtl: 3600 });
       }
 
-      const content = await r2Object.text();
       return c.json<ApiResponse<{ content: string }>>({
         success: true,
-        data: { content },
+        data: { content: soulContent },
       });
     }
 
@@ -211,6 +222,10 @@ onboarding.put('/:tenantId/soul', async (c) => {
     const { content } = parsed.data;
     const generator = new SoulGenerator(c.env);
     await generator.storeVersion(c.env.DB, tenantId, content, 'manual');
+
+    // Invalidate cache after update
+    const cacheKey = `soul:${tenantId}`;
+    await c.env.CACHE.delete(cacheKey);
 
     return c.json<ApiResponse<{ content: string }>>({
       success: true,

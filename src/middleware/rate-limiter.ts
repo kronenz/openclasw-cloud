@@ -17,27 +17,32 @@ export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Vari
     return next();
   }
 
-  const config = DEFAULT_CONFIG;
-  const windowKey = Math.floor(Date.now() / config.windowMs);
-  const key = `ratelimit:${tenantId}:${windowKey}`;
+  try {
+    const config = DEFAULT_CONFIG;
+    const windowKey = Math.floor(Date.now() / config.windowMs);
+    const key = `ratelimit:${tenantId}:${windowKey}`;
 
-  const currentStr = await c.env.CACHE.get(key);
-  const current = currentStr ? parseInt(currentStr, 10) : 0;
+    const currentStr = await c.env.CACHE.get(key);
+    const current = currentStr ? parseInt(currentStr, 10) : 0;
 
-  if (current >= config.maxRequests) {
-    return c.json({
-      success: false,
-      error: 'Rate limit exceeded',
-      code: 'RATE_LIMIT_EXCEEDED',
-    }, 429);
+    if (current >= config.maxRequests) {
+      return c.json({
+        success: false,
+        error: 'Rate limit exceeded',
+        code: 'RATE_LIMIT_EXCEEDED',
+      }, 429);
+    }
+
+    await c.env.CACHE.put(key, String(current + 1), {
+      expirationTtl: Math.ceil(config.windowMs / 1000),
+    });
+
+    c.header('X-RateLimit-Limit', String(config.maxRequests));
+    c.header('X-RateLimit-Remaining', String(config.maxRequests - current - 1));
+
+    await next();
+  } catch (error) {
+    console.error('Rate limiter cache error:', error);
+    await next(); // Allow request on cache failure
   }
-
-  await c.env.CACHE.put(key, String(current + 1), {
-    expirationTtl: Math.ceil(config.windowMs / 1000),
-  });
-
-  c.header('X-RateLimit-Limit', String(config.maxRequests));
-  c.header('X-RateLimit-Remaining', String(config.maxRequests - current - 1));
-
-  await next();
 });

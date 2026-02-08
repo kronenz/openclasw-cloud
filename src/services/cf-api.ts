@@ -16,8 +16,8 @@ export class CloudflareApi {
 
   constructor(private env: Bindings) {
     this.config = {
-      apiToken: (env as any).CF_API_TOKEN || '',
-      accountId: (env as any).CF_ACCOUNT_ID || '',
+      apiToken: env.CF_API_TOKEN || '',
+      accountId: env.CF_ACCOUNT_ID || '',
     };
   }
 
@@ -32,7 +32,7 @@ export class CloudflareApi {
       },
     });
 
-    const data = await res.json() as { success: boolean; result: T; errors: any[] };
+    const data = await res.json() as { success: boolean; result: T; errors: Array<{ code: number; message: string }> };
     if (!data.success) {
       throw new Error(`CF API error: ${JSON.stringify(data.errors)}`);
     }

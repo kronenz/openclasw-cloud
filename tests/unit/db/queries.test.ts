@@ -43,6 +43,18 @@ describe('D1 Queries', () => {
     });
 
     it('lists tenants with status filter', async () => {
+      // Create test data first
+      await createTenant(env.DB, {
+        id: 'tn_q-list-1',
+        name: 'List Test 1',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'list-test-1',
+        contact_email: 'list1@test.com',
+        contact_name: null,
+        metadata: null,
+      });
+
       const all = await listTenants(env.DB);
       expect(all.length).toBeGreaterThan(0);
 
@@ -174,12 +186,35 @@ describe('D1 Queries', () => {
     });
 
     it('updates incident status', async () => {
-      await updateIncident(env.DB, 'inc_test-1', {
+      // Create fresh test data for this test
+      await createTenant(env.DB, {
+        id: 'tn_q-inc-2',
+        name: 'Incident Test 2',
+        plan: 'starter',
+        status: 'active',
+        subdomain: 'inc-test-2',
+        contact_email: 'inc2@test.com',
+        contact_name: null,
+        metadata: null,
+      });
+
+      await createIncident(env.DB, {
+        id: 'inc_test-2',
+        tenant_id: 'tn_q-inc-2',
+        severity: 'P2',
+        status: 'open',
+        title: 'Test Incident 2',
+        description: 'Test description 2',
+        auto_recovery_attempts: 0,
+        resolved_at: null,
+      });
+
+      await updateIncident(env.DB, 'inc_test-2', {
         status: 'resolved',
         resolved_at: new Date().toISOString(),
       });
 
-      const resolved = await listIncidents(env.DB, { tenantId: 'tn_q-inc', status: 'resolved' });
+      const resolved = await listIncidents(env.DB, { tenantId: 'tn_q-inc-2', status: 'resolved' });
       expect(resolved).toHaveLength(1);
     });
   });

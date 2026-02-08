@@ -8,6 +8,16 @@ import { SubscriptionManager } from '../services/subscription-manager.js';
 
 const billing = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+// Portone webhook payload type
+interface PortoneWebhookPayload {
+  type: string;
+  metadata?: { tenant_id?: string; plan_id?: string };
+  tenant_id?: string;
+  plan_id?: string;
+  amount?: number;
+  [key: string]: unknown;
+}
+
 // Validation schemas
 const upgradePlanSchema = z.object({
   new_plan_id: z.string().min(1),
@@ -241,7 +251,7 @@ billing.post('/webhook', async (c) => {
     const signature = c.req.header('X-Portone-Signature');
     const webhookSecret = c.env.PORTONE_WEBHOOK_SECRET;
 
-    let payload: any;
+    let payload: PortoneWebhookPayload;
 
     // Verify webhook signature
     if (webhookSecret && signature) {
@@ -264,10 +274,20 @@ billing.post('/webhook', async (c) => {
       }
 
       payload = JSON.parse(body);
+    } else if (!webhookSecret) {
+      // Webhook secret not configured - reject for security
+      return c.json<ApiResponse>({
+        success: false,
+        error: 'Webhook verification not configured',
+        code: 'CONFIGURATION_ERROR',
+      }, 500);
     } else {
-      // No signature verification configured or provided
-      payload = await c.req.json();
-      console.log('Webhook received (no verification):', payload);
+      // Signature missing but secret is configured
+      return c.json<ApiResponse>({
+        success: false,
+        error: 'Missing webhook signature',
+        code: 'INVALID_SIGNATURE',
+      }, 401);
     }
 
     const manager = new SubscriptionManager(c.env);

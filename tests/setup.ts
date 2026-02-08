@@ -95,6 +95,60 @@ export async function setupTestDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      channel TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      content TEXT NOT NULL,
+      sent_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS onboarding_surveys (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      industry TEXT NOT NULL,
+      business_description TEXT,
+      preferred_tone TEXT NOT NULL DEFAULT 'polite',
+      preferred_language TEXT NOT NULL DEFAULT 'ko',
+      target_services TEXT,
+      custom_instructions TEXT,
+      completed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS tenant_segments (
+      tenant_id TEXT PRIMARY KEY REFERENCES tenants(id),
+      segment TEXT NOT NULL,
+      score INTEGER DEFAULT 0,
+      last_active_at TEXT,
+      risk_factors TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS soul_versions (
+      id TEXT PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      version INTEGER NOT NULL DEFAULT 1,
+      content TEXT NOT NULL,
+      generated_by TEXT NOT NULL DEFAULT 'template',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS cron_logs (
+      id TEXT PRIMARY KEY,
+      job_name TEXT NOT NULL,
+      status TEXT NOT NULL,
+      tenants_processed INTEGER DEFAULT 0,
+      details TEXT,
+      started_at TEXT NOT NULL,
+      completed_at TEXT,
+      error_message TEXT
+    );
+
     INSERT OR IGNORE INTO billing_plans (id, name, display_name, monthly_price, daily_token_limit, monthly_token_limit, models_allowed, features) VALUES
       ('plan_starter', 'starter', 'Starter', 49000, 100000, 2000000, '["haiku","flash"]', '{"support":"email","sla":"best-effort"}'),
       ('plan_growth', 'growth', 'Growth', 149000, 500000, 10000000, '["haiku","sonnet","flash"]', '{"support":"priority-email","sla":"8h-response","custom_skills":true}'),
@@ -124,14 +178,18 @@ export async function createTestTenant(overrides?: Partial<{
     name: overrides?.name || 'Test Corp',
     plan: overrides?.plan || 'starter',
     status: overrides?.status || 'active',
-    subdomain: overrides?.subdomain || 'test-corp',
+    subdomain: overrides?.subdomain || `test-corp-${Date.now()}`,
     contact_email: overrides?.contact_email || 'test@example.com',
   };
 
-  await env.DB.prepare(
-    `INSERT OR REPLACE INTO tenants (id, name, plan, status, subdomain, contact_email, created_at, updated_at)
+  const result = await env.DB.prepare(
+    `INSERT INTO tenants (id, name, plan, status, subdomain, contact_email, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
   ).bind(tenant.id, tenant.name, tenant.plan, tenant.status, tenant.subdomain, tenant.contact_email).run();
+
+  if (!result.success) {
+    throw new Error(`Failed to create tenant ${tenant.id}: ${JSON.stringify(result)}`);
+  }
 
   return tenant;
 }
