@@ -1,4 +1,4 @@
-import type { Bindings, DailyUsage } from '../types/index.js';
+import type { Bindings, DailyUsage, ModelBreakdownData } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { createEmailNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
@@ -56,7 +56,7 @@ export class ReportGenerator {
     const modelTotals: Record<string, { tokens: number; cost: number }> = {};
     for (const day of usage) {
       if (day.model_breakdown) {
-        const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
+        const breakdown = safeJsonParse<ModelBreakdownData>(day.model_breakdown, {});
         for (const [model, data] of Object.entries(breakdown)) {
           if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
           modelTotals[model].tokens += data.tokens || 0;
@@ -103,7 +103,7 @@ export class ReportGenerator {
     const modelTotals: Record<string, { tokens: number; cost: number }> = {};
     for (const day of usage) {
       if (day.model_breakdown) {
-        const breakdown = safeJsonParse<Record<string, { tokens?: number; cost?: number }>>(day.model_breakdown, {});
+        const breakdown = safeJsonParse<ModelBreakdownData>(day.model_breakdown, {});
         for (const [model, data] of Object.entries(breakdown)) {
           if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
           modelTotals[model].tokens += data.tokens || 0;

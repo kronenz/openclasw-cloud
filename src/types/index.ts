@@ -1,3 +1,6 @@
+// Cloudflare AI model identifier type
+export type AiModelId = Parameters<Ai['run']>[0];
+
 // Cloudflare bindings
 export interface Bindings {
   DB: D1Database;
@@ -83,6 +86,9 @@ export interface DailyUsage {
   total_cost: number;
   model_breakdown: string | null;
 }
+
+// Parsed model_breakdown JSON structure
+export type ModelBreakdownData = Record<string, { tokens?: number; cost?: number; requests?: number }>;
 
 // Billing
 export interface BillingPlan {

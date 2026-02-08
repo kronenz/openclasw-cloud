@@ -1,4 +1,4 @@
-import type { Bindings, ModelRecommendation, Alert } from '../types/index.js';
+import type { Bindings, ModelRecommendation, Alert, ModelBreakdownData } from '../types/index.js';
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
@@ -56,7 +56,7 @@ export class CostController {
 
     // At 80% usage, recommend downgrade
     if (usagePercent >= USAGE_HIGH_THRESHOLD_PERCENT) {
-      const breakdown = safeJsonParse<Record<string, unknown>>(usage.model_breakdown, {});
+      const breakdown = safeJsonParse<ModelBreakdownData>(usage.model_breakdown, {});
       // Find the most expensive model being used
       const currentModel = Object.keys(breakdown).sort((a, b) => {
         const costA = MODEL_COSTS[a]?.output || 0;
