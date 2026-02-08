@@ -44,7 +44,7 @@ app.use('*', cors({
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Platform-Type'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Platform-Type', 'X-Tenant-ID'],
 }));
 app.use('*', securityMiddleware);
 app.use('*', loggerMiddleware);
