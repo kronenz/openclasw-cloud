@@ -164,3 +164,5 @@ Agent가 Human Gate 조건 감지
 3. 필요시 org/manuals/{topic}-manual.md 생성
 4. CLAUDE.md의 Org Structure 테이블 업데이트
 ```
+
+for frontend design please refer to the lookAndFeel.md in the LookAndFeel folder

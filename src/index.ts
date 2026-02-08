@@ -6,7 +6,9 @@ import { tenants } from './routes/tenants.js';
 import { billing } from './routes/billing.js';
 import { webhooks } from './routes/webhooks.js';
 import { onboarding } from './routes/onboarding.js';
+import { admin } from './routes/admin.js';
 import { authMiddleware } from './middleware/auth.js';
+import { adminAuth } from './middleware/admin-auth.js';
 import { loggerMiddleware } from './middleware/logger.js';
 import { securityMiddleware } from './middleware/security.js';
 import { rateLimiterMiddleware } from './middleware/rate-limiter.js';
@@ -26,12 +28,16 @@ app.use('*', loggerMiddleware);
 app.use('/api/*', authMiddleware);
 app.use('/api/*', rateLimiterMiddleware);
 
+// Admin routes (with admin auth)
+app.use('/api/admin/*', adminAuth);
+
 // Routes
 app.route('/health', health);
 app.route('/api/tenants', tenants);
 app.route('/api/billing', billing);
 app.route('/api/webhooks', webhooks);
 app.route('/api/tenants', onboarding);
+app.route('/api/admin', admin);
 
 // Global error handler
 app.onError((err, c) => {
