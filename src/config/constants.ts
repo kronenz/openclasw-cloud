@@ -103,6 +103,11 @@ export const TENANT_SEGMENTS = ['champion', 'at_risk', 'potential_upsell', 'need
 export const ADMIN_TENANT_STATUSES = ['active', 'provisioning', 'suspended', 'deactivated'] as const;
 export const PREFERRED_TONES = ['polite', 'friendly', 'formal'] as const;
 
+// Engagement Windows
+export const INACTIVITY_THRESHOLD_DAYS = 7;            // Days of inactivity before re-engagement
+export const UPSELL_COOLDOWN_DAYS = 14;                // Days between upsell notifications
+export const USAGE_DROP_WINDOW_DAYS = 14;              // Days of data for usage drop analysis
+
 // Analytics & Engagement Thresholds
 export const USAGE_HIGH_THRESHOLD_PERCENT = 80;       // Trigger upsell/downgrade recommendation
 export const USAGE_LOW_THRESHOLD_PERCENT = 30;        // Underutilization warning

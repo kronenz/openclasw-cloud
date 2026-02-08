@@ -5,7 +5,7 @@ import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString, nowISO } from '../utils/id.js';
 import { structuredLog, structuredError } from '../utils/log.js';
-import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD, INACTIVITY_THRESHOLD_DAYS, UPSELL_COOLDOWN_DAYS, USAGE_DROP_WINDOW_DAYS } from '../config/constants.js';
 import { aggregateTokenUsage } from '../utils/analytics.js';
 
 interface EngagementResult {
@@ -106,14 +106,14 @@ export class CustomerEngagement {
   // Check if tenant has been inactive for 7 days and send re-engagement email
   async checkReEngagement(tenant: Tenant): Promise<boolean> {
     const endDate = toDateString();
-    const startDate = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
+    const startDate = toDateString(new Date(Date.now() - INACTIVITY_THRESHOLD_DAYS * MS_PER_DAY));
 
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
     const hasRecentActivity = usage.some(day => day.total_requests > 0);
 
     if (!hasRecentActivity && tenant.contact_email) {
-      // Check if we already sent a re-engagement email in the last 7 days
-      if (await hasRecentNotification(this.env.DB, tenant.id, 're_engagement', 7)) {
+      // Check if we already sent a re-engagement email recently
+      if (await hasRecentNotification(this.env.DB, tenant.id, 're_engagement', INACTIVITY_THRESHOLD_DAYS)) {
         return false; // Already sent recently
       }
 
@@ -122,7 +122,7 @@ export class CustomerEngagement {
         contactEmail: tenant.contact_email,
         contactName: tenant.contact_name || 'Customer',
         tenantName: tenant.name,
-        inactiveDays: 7,
+        inactiveDays: INACTIVITY_THRESHOLD_DAYS,
       });
 
       if (sent) {
@@ -134,7 +134,7 @@ export class CustomerEngagement {
           status: 'sent',
           content: JSON.stringify({
             subject: `${tenant.name} AI 비서가 기다리고 있어요`,
-            inactive_days: 7,
+            inactive_days: INACTIVITY_THRESHOLD_DAYS,
           }),
           sent_at: nowISO(),
         });
@@ -162,7 +162,7 @@ export class CustomerEngagement {
 
     // Check last 7 days usage
     const endDate = toDateString();
-    const startDate = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
+    const startDate = toDateString(new Date(Date.now() - INACTIVITY_THRESHOLD_DAYS * MS_PER_DAY));
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 
     const avgDailyTokens = usage.length > 0
@@ -173,7 +173,7 @@ export class CustomerEngagement {
 
     if (usagePercent > USAGE_HIGH_THRESHOLD_PERCENT) {
       // Check if already notified recently
-      if (await hasRecentNotification(this.env.DB, tenant.id, 'upsell', 14)) {
+      if (await hasRecentNotification(this.env.DB, tenant.id, 'upsell', UPSELL_COOLDOWN_DAYS)) {
         return false; // Already notified
       }
 
@@ -210,10 +210,10 @@ export class CustomerEngagement {
   // Detect 50% usage drop and send at-risk alert to operator
   async checkUsageDrop(tenant: Tenant): Promise<boolean> {
     const endDate = toDateString();
-    const startDate = toDateString(new Date(Date.now() - 14 * MS_PER_DAY));
+    const startDate = toDateString(new Date(Date.now() - USAGE_DROP_WINDOW_DAYS * MS_PER_DAY));
     const usage = await getTenantUsageSummary(this.env.DB, tenant.id, startDate, endDate);
 
-    if (usage.length < 14) return false;
+    if (usage.length < USAGE_DROP_WINDOW_DAYS) return false;
 
     // Compare this week (last 7 days) to previous week (8-14 days ago)
     const thisWeek = aggregateTokenUsage(usage, 0, 7);

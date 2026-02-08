@@ -240,55 +240,53 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
   const manager = new SubscriptionManager(c.env);
   const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
 
-  // All payment events require a tenant ID
-  if (payload.type?.startsWith('payment.') && !tenantId) {
-    structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: payload.type });
-    return c.json<ApiResponse>({ success: true, data: { received: true } });
-  }
+  // Handle payment events (require tenant ID)
+  if (payload.type?.startsWith('payment.')) {
+    if (!tenantId) {
+      structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: payload.type });
+      return c.json<ApiResponse>({ success: true, data: { received: true } });
+    }
 
-  // Handle payment events (tenantId guaranteed by guard above for payment.* events)
-  const tid = tenantId as string;
-  switch (payload.type) {
-    case 'payment.paid': {
-      const planId = payload.metadata?.plan_id || payload.plan_id;
-      structuredLog('webhook_payment_paid', { tenant_id: tid, plan_id: planId });
+    switch (payload.type) {
+      case 'payment.paid': {
+        const planId = payload.metadata?.plan_id || payload.plan_id;
+        structuredLog('webhook_payment_paid', { tenant_id: tenantId, plan_id: planId });
 
-      // Create or activate subscription
-      const existingSub = await getSubscription(c.env.DB, tid);
+        const existingSub = await getSubscription(c.env.DB, tenantId);
 
-      if (!existingSub) {
-        await manager.createSubscription(tid, planId || 'plan_starter');
-      } else {
-        await updateTenant(c.env.DB, tid, { status: 'active' });
+        if (!existingSub) {
+          await manager.createSubscription(tenantId, planId || 'plan_starter');
+        } else {
+          await updateTenant(c.env.DB, tenantId, { status: 'active' });
+        }
+
+        await createEmailNotification(
+          c.env.DB, tenantId, 'welcome',
+          'Payment Received',
+          'Your payment has been processed successfully. Thank you!'
+        );
+        break;
       }
 
-      await createEmailNotification(
-        c.env.DB, tid, 'welcome',
-        'Payment Received',
-        'Your payment has been processed successfully. Thank you!'
-      );
-      break;
+      case 'payment.failed': {
+        structuredLog('webhook_payment_failed', { tenant_id: tenantId });
+
+        await createEmailNotification(
+          c.env.DB, tenantId, 'payment_failed',
+          'Payment Failed',
+          'Your payment could not be processed. Please update your payment method.'
+        );
+        break;
+      }
+
+      case 'payment.canceled': {
+        structuredLog('webhook_payment_canceled', { tenant_id: tenantId });
+        await manager.cancelSubscription(tenantId);
+        break;
+      }
     }
-
-    case 'payment.failed': {
-      structuredLog('webhook_payment_failed', { tenant_id: tid });
-
-      await createEmailNotification(
-        c.env.DB, tid, 'payment_failed',
-        'Payment Failed',
-        'Your payment could not be processed. Please update your payment method.'
-      );
-      break;
-    }
-
-    case 'payment.canceled': {
-      structuredLog('webhook_payment_canceled', { tenant_id: tid });
-      await manager.cancelSubscription(tid);
-      break;
-    }
-
-    default:
-      structuredWarn('webhook_unknown_event', { type: payload.type });
+  } else {
+    structuredWarn('webhook_unknown_event', { type: payload.type });
   }
 
   return c.json<ApiResponse>({
