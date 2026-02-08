@@ -253,6 +253,18 @@ export interface SoulVersion {
   created_at: string;
 }
 
+// Telegram webhook update
+export interface TelegramUpdate {
+  update_id: number;
+  message?: {
+    message_id: number;
+    chat: { id: number; type: string };
+    from?: { id: number; first_name: string; username?: string };
+    text?: string;
+    date: number;
+  };
+}
+
 // Cron Log
 export interface CronLog {
   id: string;

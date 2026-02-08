@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/index.js';
+import type { Bindings, Variables, ApiResponse, AiTextResponse, TelegramUpdate } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
 import { DEFAULT_AI_MODEL, MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE, ERROR_CODES, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
@@ -30,18 +30,6 @@ async function runAiInference(
     structuredError('ai_inference_failed', error);
     return '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
-}
-
-// Telegram webhook types
-interface TelegramUpdate {
-  update_id: number;
-  message?: {
-    message_id: number;
-    chat: { id: number; type: string };
-    from?: { id: number; first_name: string; username?: string };
-    text?: string;
-    date: number;
-  };
 }
 
 // KakaoTalk skill webhook types

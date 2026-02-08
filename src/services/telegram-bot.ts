@@ -1,18 +1,7 @@
-import type { Bindings, AiTextResponse } from '../types/index.js';
+import type { Bindings, AiTextResponse, TelegramUpdate } from '../types/index.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { DEFAULT_AI_MODEL, AI_MAX_TOKENS_DEFAULT, TELEGRAM_API_BASE, API_TIMEOUT_STANDARD, DEFAULT_AI_SYSTEM_PROMPT, soulR2Key } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
-
-interface TelegramUpdate {
-  update_id: number;
-  message?: {
-    message_id: number;
-    chat: { id: number; type: string };
-    from?: { id: number; first_name: string; username?: string };
-    text?: string;
-    date: number;
-  };
-}
 
 interface TelegramSendResult {
   ok: boolean;
