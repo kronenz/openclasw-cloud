@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmailSender } from '../../../src/services/email-sender.js';
 import type { Bindings } from '../../../src/types/index.js';
 import { createMockEnv } from '../../helpers/mocks.js';

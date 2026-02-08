@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Bindings } from '../../src/types/index.js';
 import { app } from '../../src/index.js';
 import { createMockEnv, createMockExecutionContext } from '../helpers/mocks.js';
