@@ -17,6 +17,7 @@ export const CRON_JOB_TIMEOUT_MS = 300_000; // 5 minutes
 export const MS_PER_DAY = 86_400_000;
 
 // Subscription
+export const SUBSCRIPTION_PERIOD_DAYS = 30;
 export const GRACE_PERIOD_DAYS = 7;
 export const MAX_RECOVERY_ATTEMPTS = 3;
 

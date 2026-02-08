@@ -74,7 +74,6 @@ credentials/
 # Backup files
 *.bak
 *.backup
-*~
 
 # macOS
 .AppleDouble
@@ -85,7 +84,6 @@ desktop.ini
 $RECYCLE.BIN/
 
 # Linux
-*~
 .directory
 
 # Credentials

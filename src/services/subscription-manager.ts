@@ -6,7 +6,7 @@ import {
 } from '../db/queries-v2.js';
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
 import { createEmailNotification } from '../db/queries-v2.js';
-import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
+import { SUBSCRIPTION_PERIOD_DAYS, GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
 import { toDateString, generateSubscriptionId } from '../utils/id.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
@@ -56,7 +56,7 @@ export class SubscriptionManager {
     try {
       const now = new Date();
       const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() + 30); // 30 days from now
+      periodEnd.setDate(periodEnd.getDate() + SUBSCRIPTION_PERIOD_DAYS);
 
       const subscription: Omit<BillingSubscription, 'created_at' | 'updated_at'> = {
         id: generateSubscriptionId(),
