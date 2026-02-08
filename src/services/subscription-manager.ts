@@ -7,7 +7,7 @@ import {
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
 import { createEmailNotification } from '../db/queries-v2.js';
 import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
-import { toDateString } from '../utils/id.js';
+import { toDateString, generateSubscriptionId } from '../utils/id.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 
 export interface OverageInfo {
@@ -59,7 +59,7 @@ export class SubscriptionManager {
       periodEnd.setDate(periodEnd.getDate() + 30); // 30 days from now
 
       const subscription: Omit<BillingSubscription, 'created_at' | 'updated_at'> = {
-        id: crypto.randomUUID(),
+        id: generateSubscriptionId(),
         tenant_id: tenantId,
         plan_id: planId,
         status: 'active',

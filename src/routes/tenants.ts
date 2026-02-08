@@ -10,7 +10,7 @@ import {
   getTenantResources,
   createIncident,
 } from '../db/queries.js';
-import { generateTenantId, generateSubdomain, toDateString, nowISO } from '../utils/id.js';
+import { generateTenantId, generateSubdomain, generateIncidentId, toDateString, nowISO } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
@@ -101,7 +101,7 @@ tenants.post('/', withErrorHandler('tenant_create_failed', async (c) => {
         // Create incident for failed provisioning so operators are notified
         try {
           await createIncident(c.env.DB, {
-            id: crypto.randomUUID(),
+            id: generateIncidentId(),
             tenant_id: tenantId,
             severity: 'P1',
             status: 'open',
