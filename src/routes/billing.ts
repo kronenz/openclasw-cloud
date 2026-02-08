@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, BillingPlan, BillingSubscription } from '../types/index.js';
 import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/queries.js';
@@ -176,55 +177,22 @@ billing.get('/usage', withErrorHandler('billing_usage_get_failed', async (c) => 
   });
 }));
 
-// POST /webhook - handle payment webhook from Portone
-billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', async (c) => {
+// Verify webhook signature and parse payload
+async function verifyWebhookSignature(
+  c: Context<{ Bindings: Bindings; Variables: Variables }>,
+): Promise<PortoneWebhookPayload | Response> {
   const signature = c.req.header('X-Portone-Signature');
   const webhookSecret = c.env.PORTONE_WEBHOOK_SECRET;
 
-  let payload: PortoneWebhookPayload;
-
-  // Verify webhook signature
-  if (webhookSecret && signature) {
-    const body = await c.req.text();
-    const expectedSignature = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(webhookSecret + body)
-    );
-    const expectedHex = Array.from(new Uint8Array(expectedSignature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    // Use constant-time comparison to prevent timing attacks
-    const sigBytes = new TextEncoder().encode(signature);
-    const expBytes = new TextEncoder().encode(expectedHex);
-    if (sigBytes.length !== expBytes.length || !crypto.subtle.timingSafeEqual(sigBytes, expBytes)) {
-      structuredWarn('webhook_invalid_signature');
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Invalid signature',
-        code: ERROR_CODES.INVALID_SIGNATURE,
-      }, 401);
-    }
-
-    try {
-      payload = JSON.parse(body);
-    } catch (parseError) {
-      structuredError('webhook_invalid_json', parseError);
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Invalid JSON payload',
-        code: ERROR_CODES.INVALID_PAYLOAD,
-      }, 400);
-    }
-  } else if (!webhookSecret) {
-    // Webhook secret not configured - reject for security
+  if (!webhookSecret) {
     return c.json<ApiResponse>({
       success: false,
       error: 'Webhook verification not configured',
       code: ERROR_CODES.CONFIGURATION_ERROR,
     }, 503);
-  } else {
-    // Signature missing but secret is configured
+  }
+
+  if (!signature) {
     return c.json<ApiResponse>({
       success: false,
       error: 'Missing webhook signature',
@@ -232,6 +200,44 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
     }, 401);
   }
 
+  const body = await c.req.text();
+  const expectedSignature = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(webhookSecret + body)
+  );
+  const expectedHex = Array.from(new Uint8Array(expectedSignature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const sigBytes = new TextEncoder().encode(signature);
+  const expBytes = new TextEncoder().encode(expectedHex);
+  if (sigBytes.length !== expBytes.length || !crypto.subtle.timingSafeEqual(sigBytes, expBytes)) {
+    structuredWarn('webhook_invalid_signature');
+    return c.json<ApiResponse>({
+      success: false,
+      error: 'Invalid signature',
+      code: ERROR_CODES.INVALID_SIGNATURE,
+    }, 401);
+  }
+
+  try {
+    return JSON.parse(body) as PortoneWebhookPayload;
+  } catch (parseError) {
+    structuredError('webhook_invalid_json', parseError);
+    return c.json<ApiResponse>({
+      success: false,
+      error: 'Invalid JSON payload',
+      code: ERROR_CODES.INVALID_PAYLOAD,
+    }, 400);
+  }
+}
+
+// POST /webhook - handle payment webhook from Portone
+billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', async (c) => {
+  const result = await verifyWebhookSignature(c);
+  if (result instanceof Response) return result;
+
+  const payload = result;
   const manager = new SubscriptionManager(c.env);
 
   // Handle payment events
