@@ -50,6 +50,13 @@ export class PortOneClient {
     }
   }
 
+  private async requireOk(response: Response): Promise<void> {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`PortOne API error: ${response.status} ${errorText}`);
+    }
+  }
+
   /**
    * Create a checkout URL for one-time payment
    */
@@ -77,10 +84,7 @@ export class PortOneClient {
         }),
       }, API_TIMEOUT_STANDARD);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`PortOne API error: ${response.status} ${errorText}`);
-      }
+      await this.requireOk(response);
 
       const data = await response.json() as { checkout_url?: string };
 
@@ -117,10 +121,7 @@ export class PortOneClient {
         }),
       }, API_TIMEOUT_STANDARD);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`PortOne API error: ${response.status} ${errorText}`);
-      }
+      await this.requireOk(response);
 
       structuredLog('refund_processed', {
         payment_id: params.paymentId,
@@ -156,10 +157,7 @@ export class PortOneClient {
         }),
       }, API_TIMEOUT_STANDARD);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`PortOne API error: ${response.status} ${errorText}`);
-      }
+      await this.requireOk(response);
 
       const data = await response.json() as { billing_key?: string };
 
@@ -195,10 +193,7 @@ export class PortOneClient {
         }),
       }, API_TIMEOUT_STANDARD);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`PortOne API error: ${response.status} ${errorText}`);
-      }
+      await this.requireOk(response);
 
       structuredLog('recurring_payment_charged', {
         billing_key: params.billingKey,

@@ -11,6 +11,10 @@ import { withErrorHandler, validationError } from '../utils/error-handler.js';
 
 const billing = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+function getTenantIdFromContext(c: { req: { query: (k: string) => string | undefined }; get: (k: string) => string | undefined }): string {
+  return c.req.query('tenant_id') || c.get('tenantId') || '';
+}
+
 // Portone webhook payload type
 interface PortoneWebhookPayload {
   type: string;
@@ -38,7 +42,7 @@ billing.get('/plans', withErrorHandler('billing_plans_list_failed', async (c) =>
 
 // GET /subscription - get current subscription for tenant
 billing.get('/subscription', withErrorHandler('billing_subscription_get_failed', async (c) => {
-  const tenantId = c.req.query('tenant_id') || c.get('tenantId') || '';
+  const tenantId = getTenantIdFromContext(c);
 
   if (!tenantId) {
     return validationError(c, 'tenant_id is required');
@@ -62,7 +66,7 @@ billing.get('/subscription', withErrorHandler('billing_subscription_get_failed',
 
 // POST /subscription/upgrade - upgrade to a higher plan
 billing.post('/subscription/upgrade', withErrorHandler('billing_subscription_upgrade_failed', async (c) => {
-  const tenantId = c.req.query('tenant_id') || c.get('tenantId') || '';
+  const tenantId = getTenantIdFromContext(c);
 
   if (!tenantId) {
     return validationError(c, 'tenant_id is required');
@@ -86,7 +90,7 @@ billing.post('/subscription/upgrade', withErrorHandler('billing_subscription_upg
 
 // POST /subscription/cancel - cancel subscription
 billing.post('/subscription/cancel', withErrorHandler('billing_subscription_cancel_failed', async (c) => {
-  const tenantId = c.req.query('tenant_id') || c.get('tenantId') || '';
+  const tenantId = getTenantIdFromContext(c);
 
   if (!tenantId) {
     return validationError(c, 'tenant_id is required');
@@ -103,7 +107,7 @@ billing.post('/subscription/cancel', withErrorHandler('billing_subscription_canc
 
 // GET /invoices - list invoices (placeholder)
 billing.get('/invoices', withErrorHandler('billing_invoices_list_failed', async (c) => {
-  const tenantId = c.req.query('tenant_id') || c.get('tenantId') || '';
+  const tenantId = getTenantIdFromContext(c);
 
   if (!tenantId) {
     return validationError(c, 'tenant_id is required');
@@ -133,7 +137,7 @@ billing.get('/invoices', withErrorHandler('billing_invoices_list_failed', async 
 
 // GET /usage - get usage-based billing summary for current period
 billing.get('/usage', withErrorHandler('billing_usage_get_failed', async (c) => {
-  const tenantId = c.req.query('tenant_id') || c.get('tenantId') || '';
+  const tenantId = getTenantIdFromContext(c);
 
   if (!tenantId) {
     return validationError(c, 'tenant_id is required');
