@@ -1,7 +1,62 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import type { Bindings, ApiResponse } from '../types/index.js';
+import { TelegramBot } from '../services/telegram-bot.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
+
+// Telegram webhook types
+interface TelegramUpdate {
+  update_id: number;
+  message?: {
+    message_id: number;
+    chat: { id: number; type: string };
+    from?: { id: number; first_name: string; username?: string };
+    text?: string;
+    date: number;
+  };
+}
+
+// KakaoTalk skill webhook types
+interface KakaoTalkRequest {
+  userRequest: {
+    utterance: string;
+    user: {
+      id: string;
+      properties?: Record<string, unknown>;
+    };
+  };
+  bot?: { id: string };
+  action?: { name: string };
+}
+
+// Slack Events API types
+interface SlackEvent {
+  type?: string;
+  challenge?: string;
+  event?: {
+    type: string;
+    user?: string;
+    text?: string;
+    channel?: string;
+    ts?: string;
+  };
+}
+
+// Discord Interaction types
+interface DiscordInteraction {
+  type: number; // 1 = PING, 2 = APPLICATION_COMMAND, 3 = MESSAGE_COMPONENT
+  id?: string;
+  application_id?: string;
+  data?: {
+    name?: string;
+    content?: string;
+  };
+  channel_id?: string;
+  member?: {
+    user?: { id: string; username?: string };
+  };
+}
 
 // POST /messenger - receive webhook from messenger platforms
 webhooks.post('/messenger', async (c) => {
@@ -23,37 +78,24 @@ webhooks.post('/messenger', async (c) => {
     switch (platform) {
       case 'kakao':
       case 'kakaotalk':
-        // TODO: Handle KakaoTalk webhook
-        // - Parse message structure
-        // - Route to OpenClaw AI agent
-        // - Return response to user
-        console.log('KakaoTalk webhook:', body);
-        break;
+        return await handleKakaoTalk(c, body as KakaoTalkRequest);
 
       case 'telegram':
-        // TODO: Handle Telegram webhook
-        console.log('Telegram webhook:', body);
-        break;
+        return await handleTelegram(c, body as TelegramUpdate);
 
       case 'slack':
-        // TODO: Handle Slack webhook
-        console.log('Slack webhook:', body);
-        break;
+        return await handleSlack(c, body as SlackEvent);
 
       case 'discord':
-        // TODO: Handle Discord webhook
-        console.log('Discord webhook:', body);
-        break;
+        return await handleDiscord(c, body as DiscordInteraction);
 
       default:
         console.warn('Unknown messenger platform:', platform);
+        return c.json<ApiResponse>({
+          success: true,
+          data: { received: true },
+        });
     }
-
-    // Return 200 OK quickly (async processing should happen in background)
-    return c.json<ApiResponse>({
-      success: true,
-      data: { received: true },
-    });
   } catch (e) {
     console.error('Failed to process messenger webhook:', e);
 
@@ -64,5 +106,231 @@ webhooks.post('/messenger', async (c) => {
     });
   }
 });
+
+// KakaoTalk webhook handler
+async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTalkRequest) {
+  try {
+    // Validate request structure
+    if (!body.userRequest?.utterance) {
+      return c.json({
+        version: '2.0',
+        template: {
+          outputs: [{
+            simpleText: {
+              text: '메시지를 인식할 수 없습니다.',
+            },
+          }],
+        },
+      });
+    }
+
+    const userMessage = body.userRequest.utterance;
+    const userId = body.userRequest.user.id;
+
+    // Extract tenant ID from bot ID or use default
+    const tenantId = body.bot?.id || 'default';
+
+    // Get SOUL.md for this tenant
+    const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+    const systemPrompt = soulContent
+      ? await soulContent.text()
+      : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+
+    // Call AI Gateway
+    const aiResult = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      max_tokens: 1000,
+    });
+
+    const responseText = (aiResult as any).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
+
+    // Return KakaoTalk skill response format
+    return c.json({
+      version: '2.0',
+      template: {
+        outputs: [{
+          simpleText: {
+            text: responseText,
+          },
+        }],
+      },
+    });
+  } catch (error) {
+    console.error('KakaoTalk handler error:', error);
+    return c.json({
+      version: '2.0',
+      template: {
+        outputs: [{
+          simpleText: {
+            text: '죄송합니다. 일시적인 오류가 발생했습니다.',
+          },
+        }],
+      },
+    });
+  }
+}
+
+// Telegram webhook handler
+async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: TelegramUpdate) {
+  try {
+    // Validate Telegram update structure
+    if (!body.message?.text || !body.message?.chat?.id) {
+      return c.json<ApiResponse>({
+        success: true,
+        data: { received: true },
+      });
+    }
+
+    // Extract tenant ID from URL path or header
+    const tenantId = c.req.header('X-Tenant-ID') || 'default';
+
+    // Use TelegramBot service for processing
+    const telegramBot = new TelegramBot(c.env);
+
+    // Process update asynchronously (don't await to respond quickly)
+    c.executionCtx.waitUntil(telegramBot.handleUpdate(tenantId, body));
+
+    // Return 200 OK immediately
+    return c.json<ApiResponse>({
+      success: true,
+      data: { received: true },
+    });
+  } catch (error) {
+    console.error('Telegram handler error:', error);
+    return c.json<ApiResponse>({
+      success: true,
+      data: { received: true, error: String(error) },
+    });
+  }
+}
+
+// Slack webhook handler
+async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent) {
+  try {
+    // Handle URL verification challenge
+    if (body.type === 'url_verification' && body.challenge) {
+      return c.json({ challenge: body.challenge });
+    }
+
+    // Handle message events
+    if (body.event?.type === 'message' && body.event.text) {
+      const userMessage = body.event.text;
+      const userId = body.event.user;
+      const channelId = body.event.channel;
+
+      // Extract tenant ID from request
+      const tenantId = c.req.header('X-Tenant-ID') || 'default';
+
+      // Get SOUL.md for this tenant
+      const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const systemPrompt = soulContent
+        ? await soulContent.text()
+        : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+
+      // Call AI Gateway
+      const aiResult = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 1000,
+      });
+
+      const responseText = (aiResult as any).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
+
+      // Send response via Slack Web API (requires bot token in KV)
+      const slackBotToken = await c.env.CACHE.get(`slack:bot:${tenantId}`);
+      if (slackBotToken) {
+        c.executionCtx.waitUntil(
+          fetch('https://slack.com/api/chat.postMessage', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${slackBotToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              channel: channelId,
+              text: responseText,
+            }),
+          })
+        );
+      }
+    }
+
+    // Return 200 OK
+    return c.json<ApiResponse>({
+      success: true,
+      data: { received: true },
+    });
+  } catch (error) {
+    console.error('Slack handler error:', error);
+    return c.json<ApiResponse>({
+      success: true,
+      data: { received: true, error: String(error) },
+    });
+  }
+}
+
+// Discord webhook handler
+async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordInteraction) {
+  try {
+    // Handle PING verification (type 1)
+    if (body.type === 1) {
+      return c.json({ type: 1 }); // PONG
+    }
+
+    // Handle application commands or message components
+    if (body.type === 2 || body.type === 3) {
+      const userMessage = body.data?.content || body.data?.name || '';
+      const userId = body.member?.user?.id;
+      const channelId = body.channel_id;
+
+      // Extract tenant ID from request
+      const tenantId = c.req.header('X-Tenant-ID') || 'default';
+
+      // Get SOUL.md for this tenant
+      const soulContent = await c.env.STORAGE.get(`tenants/${tenantId}/SOUL.md`);
+      const systemPrompt = soulContent
+        ? await soulContent.text()
+        : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
+
+      // Call AI Gateway
+      const aiResult = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 1000,
+      });
+
+      const responseText = (aiResult as any).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
+
+      // Return Discord interaction response
+      return c.json({
+        type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
+        data: {
+          content: responseText,
+        },
+      });
+    }
+
+    // Unknown interaction type
+    return c.json<ApiResponse>({
+      success: true,
+      data: { received: true },
+    });
+  } catch (error) {
+    console.error('Discord handler error:', error);
+    return c.json({
+      type: 4,
+      data: {
+        content: '죄송합니다. 일시적인 오류가 발생했습니다.',
+      },
+    });
+  }
+}
 
 export { webhooks };

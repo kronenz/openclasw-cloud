@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import app from '../../../src/index.js';
+import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';

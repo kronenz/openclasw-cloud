@@ -101,10 +101,13 @@ export async function setupTestDb() {
       ('plan_enterprise', 'enterprise', 'Enterprise', 490000, 2000000, 50000000, '["haiku","sonnet","opus","flash"]', '{"support":"dedicated-slack","sla":"1h-response","custom_skills":true,"dedicated_resources":true}');
   `;
 
-  const statements = schema.split(';').filter(s => s.trim());
-  for (const statement of statements) {
-    await env.DB.exec(statement + ';');
-  }
+  const statements = schema
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(s => env.DB.prepare(s));
+
+  await env.DB.batch(statements);
 }
 
 // Create a test tenant

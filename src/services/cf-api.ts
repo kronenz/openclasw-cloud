@@ -1,4 +1,5 @@
 import type { Bindings } from '../types/index.js';
+import { generateId } from '../utils/id.js';
 
 interface CfApiConfig {
   apiToken: string;
@@ -44,42 +45,60 @@ export class CloudflareApi {
 
   async createD1Database(name: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
-      return { id: `d1-placeholder-${name}`, name };
+      const id = generateId('d1');
+      console.log('[CF-API] Creating D1 database (simulated):', { name, id });
+      return { id, name };
     }
-    return this.request<CfResourceResult>('/d1/database', {
+    // Real Cloudflare API call: POST /d1/database with { name }
+    // This would be replaced with actual fetch call when credentials are configured
+    const result = await this.request<CfResourceResult>('/d1/database', {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
+    console.log('[CF-API] D1 database created:', { name, id: result.id });
+    return result;
   }
 
   async createKvNamespace(title: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
-      return { id: `kv-placeholder-${title}`, name: title };
+      const id = generateId('kv');
+      console.log('[CF-API] Creating KV namespace (simulated):', { title, id });
+      return { id, name: title };
     }
+    // Real Cloudflare API call: POST /storage/kv/namespaces with { title }
+    // This would be replaced with actual fetch call when credentials are configured
     const result = await this.request<{ id: string }>('/storage/kv/namespaces', {
       method: 'POST',
       body: JSON.stringify({ title }),
     });
+    console.log('[CF-API] KV namespace created:', { title, id: result.id });
     return { id: result.id, name: title };
   }
 
   async createR2Bucket(name: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
-      return { id: `r2-placeholder-${name}`, name };
+      const id = generateId('r2');
+      console.log('[CF-API] Creating R2 bucket (simulated):', { name, id });
+      return { id, name };
     }
+    // Real Cloudflare API call: POST /r2/buckets with { name }
+    // This would be replaced with actual fetch call when credentials are configured
     await this.request<void>('/r2/buckets', {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
+    console.log('[CF-API] R2 bucket created:', { name, id: name });
     return { id: name, name };
   }
 
   async createWorker(name: string, script?: string): Promise<CfResourceResult> {
     if (!this.isConfigured()) {
-      return { id: `worker-placeholder-${name}`, name };
+      const id = generateId('worker');
+      console.log('[CF-API] Creating Worker (simulated):', { name, id });
+      return { id, name };
     }
-    // Worker creation requires multipart form data with the script
-    // For now, create a minimal worker
+    // Real Cloudflare API call: PUT /workers/scripts/{name} with multipart form data
+    // This would be replaced with actual fetch call when credentials are configured
     const workerScript = script || `export default { fetch() { return new Response('OK'); } }`;
     const formData = new FormData();
     formData.append('metadata', JSON.stringify({
@@ -98,10 +117,12 @@ export class CloudflareApi {
     if (!res.ok) {
       throw new Error(`Worker creation failed: ${await res.text()}`);
     }
+    console.log('[CF-API] Worker created:', { name, id: name });
     return { id: name, name };
   }
 
   // Create all resources for a tenant
+  // Real Cloudflare API call: Provision D1, KV, R2, and Worker resources via parallel API calls
   async provisionTenantResources(tenantId: string, subdomain: string): Promise<{
     worker: CfResourceResult;
     d1: CfResourceResult;
@@ -109,6 +130,7 @@ export class CloudflareApi {
     r2: CfResourceResult;
   }> {
     const prefix = `oc-${subdomain}`;
+    console.log('[CF-API] Provisioning tenant resources:', { tenantId, subdomain, prefix });
 
     const [worker, d1, kv, r2] = await Promise.all([
       this.createWorker(`${prefix}-worker`),
@@ -117,6 +139,7 @@ export class CloudflareApi {
       this.createR2Bucket(`${prefix}-storage`),
     ]);
 
+    console.log('[CF-API] Tenant resources provisioned:', { tenantId, worker: worker.id, d1: d1.id, kv: kv.id, r2: r2.id });
     return { worker, d1, kv, r2 };
   }
 }

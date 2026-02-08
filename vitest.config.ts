@@ -15,5 +15,16 @@ export default defineWorkersConfig({
         lines: 80,
       },
     },
+    poolOptions: {
+      workers: {
+        miniflare: {
+          compatibilityDate: '2024-01-01',
+          compatibilityFlags: ['nodejs_compat'],
+        },
+        wrangler: {
+          configPath: './infra/wrangler.toml',
+        },
+      },
+    },
   },
 });

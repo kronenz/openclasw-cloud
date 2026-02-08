@@ -64,6 +64,9 @@ app.notFound((c) => {
   }, 404);
 });
 
+// Export app for testing
+export { app };
+
 export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Bindings, ctx: ExecutionContext) {

@@ -63,8 +63,20 @@ tenants.post('/', async (c) => {
       metadata: data.metadata ? JSON.stringify(data.metadata) : null,
     });
 
-    // TODO: Trigger async provisioning pipeline
-    // This would call a Durable Object or Queue to start tenant provisioning
+    // Trigger async provisioning pipeline in background
+    const provisioner = new TenantProvisioner(c.env);
+    c.executionCtx.waitUntil(
+      provisioner.provision({
+        name: data.name,
+        plan: data.plan,
+        subdomain,
+        contact_email: data.contact_email,
+        contact_name: data.contact_name,
+        metadata: data.metadata,
+      }).catch((error) => {
+        console.error(`Provisioning failed for tenant ${tenantId}:`, error);
+      })
+    );
 
     return c.json<ApiResponse<Tenant>>({
       success: true,
