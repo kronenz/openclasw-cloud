@@ -92,19 +92,20 @@ describe('CORS Middleware', () => {
     expect(allowMethods).toContain('OPTIONS');
   });
 
-  it('allows custom headers including X-Platform-Type', async () => {
+  it('allows all custom headers in CORS config', async () => {
     const res = await app.request('/api/tenants', {
       method: 'OPTIONS',
       headers: {
         'Origin': 'https://openclaw.ai',
         'Access-Control-Request-Method': 'POST',
-        'Access-Control-Request-Headers': 'X-Platform-Type',
+        'Access-Control-Request-Headers': 'X-Platform-Type, X-Tenant-ID',
       },
     }, env);
     const allowHeaders = res.headers.get('Access-Control-Allow-Headers');
     expect(allowHeaders).toContain('Content-Type');
     expect(allowHeaders).toContain('Authorization');
     expect(allowHeaders).toContain('X-Platform-Type');
+    expect(allowHeaders).toContain('X-Tenant-ID');
   });
 
   it('denies origins with localhost as substring (e.g. evil-localhost.com)', async () => {
