@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateUsageTrend } from '../../../src/utils/analytics.js';
+import { calculateUsageTrend, aggregateTokenUsage } from '../../../src/utils/analytics.js';
 
 describe('calculateUsageTrend', () => {
   it('returns stable for empty array', () => {
@@ -115,5 +115,115 @@ describe('calculateUsageTrend', () => {
     // 500 > 200 * 1.2 (240), so increasing
     const values = [0, 0, 0, 0, 1000, 500, 500, 500, 500, 500];
     expect(calculateUsageTrend(values)).toBe('increasing');
+  });
+});
+
+describe('aggregateTokenUsage', () => {
+  it('returns 0 for empty array', () => {
+    expect(aggregateTokenUsage([])).toBe(0);
+  });
+
+  it('returns value for single record', () => {
+    const records = [{ total_tokens: 1000 }];
+    expect(aggregateTokenUsage(records)).toBe(1000);
+  });
+
+  it('aggregates last 7 days (default window)', () => {
+    const records = Array.from({ length: 14 }, (_, i) => ({
+      total_tokens: 100,
+    }));
+    // Last 7 days: 7 * 100 = 700
+    expect(aggregateTokenUsage(records)).toBe(700);
+  });
+
+  it('aggregates previous week (fromEnd=7)', () => {
+    const records = Array.from({ length: 14 }, (_, i) => ({
+      total_tokens: i < 7 ? 100 : 200,
+    }));
+    // Days 7-13 (fromEnd=7, windowSize=7): 7 * 100 = 700
+    expect(aggregateTokenUsage(records, 7)).toBe(700);
+  });
+
+  it('handles fromEnd larger than array length', () => {
+    const records = [
+      { total_tokens: 100 },
+      { total_tokens: 200 },
+      { total_tokens: 300 },
+    ];
+    // fromEnd=10, windowSize=7: should clamp to available records
+    expect(aggregateTokenUsage(records, 10)).toBe(0);
+  });
+
+  it('handles records with null total_tokens', () => {
+    const records = [
+      { total_tokens: 100 },
+      { total_tokens: null as any },
+      { total_tokens: 200 },
+      { total_tokens: undefined as any },
+      { total_tokens: 300 },
+    ];
+    // Should treat null/undefined as 0: 100 + 0 + 200 + 0 + 300 = 600
+    expect(aggregateTokenUsage(records)).toBe(600);
+  });
+
+  it('handles window of 1 day', () => {
+    const records = Array.from({ length: 10 }, (_, i) => ({
+      total_tokens: (i + 1) * 100,
+    }));
+    // Last 1 day: 1000 (the last record)
+    expect(aggregateTokenUsage(records, 0, 1)).toBe(1000);
+  });
+
+  it('handles window exactly matching array length', () => {
+    const records = [
+      { total_tokens: 100 },
+      { total_tokens: 200 },
+      { total_tokens: 300 },
+    ];
+    expect(aggregateTokenUsage(records, 0, 3)).toBe(600);
+  });
+
+  it('handles window larger than array length', () => {
+    const records = [
+      { total_tokens: 100 },
+      { total_tokens: 200 },
+    ];
+    // Window of 10 but only 2 records: should sum all 2
+    expect(aggregateTokenUsage(records, 0, 10)).toBe(300);
+  });
+
+  it('handles fromEnd=0 windowSize=3 for last 3 days', () => {
+    const records = Array.from({ length: 10 }, (_, i) => ({
+      total_tokens: (i + 1) * 100,
+    }));
+    // Last 3 days: 800 + 900 + 1000 = 2700
+    expect(aggregateTokenUsage(records, 0, 3)).toBe(2700);
+  });
+
+  it('handles middle window slice', () => {
+    const records = Array.from({ length: 20 }, (_, i) => ({
+      total_tokens: (i + 1) * 10,
+    }));
+    // fromEnd=10, windowSize=5: indices 5-9 (values 60,70,80,90,100)
+    // 60 + 70 + 80 + 90 + 100 = 400
+    expect(aggregateTokenUsage(records, 10, 5)).toBe(400);
+  });
+
+  it('returns 0 when fromEnd equals array length', () => {
+    const records = [
+      { total_tokens: 100 },
+      { total_tokens: 200 },
+      { total_tokens: 300 },
+    ];
+    // fromEnd=3: start from beginning, windowSize=7
+    // Since we skip the last 3, nothing is included
+    expect(aggregateTokenUsage(records, 3)).toBe(0);
+  });
+
+  it('handles all zero tokens', () => {
+    const records = Array.from({ length: 7 }, () => ({
+      total_tokens: 0,
+    }));
+    expect(aggregateTokenUsage(records)).toBe(0);
   });
 });
