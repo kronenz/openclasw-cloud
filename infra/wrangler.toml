@@ -11,6 +11,7 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "development"
 LOG_LEVEL = "info"
 AI_GATEWAY_ENDPOINT = "https://gateway.ai.cloudflare.com/v1"
+JWT_SECRET = "dev-only-secret-replace-in-production"
 
 # D1 데이터베이스 바인딩
 [[d1_databases]]

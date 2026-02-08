@@ -22,6 +22,7 @@ describe('Environment Validator Middleware', () => {
       DB: {},      // mock D1
       STORAGE: {}, // mock R2
       CACHE: {},   // mock KV
+      JWT_SECRET: 'test-secret',
     };
 
     const res = await app.request('/test', {}, env);
@@ -38,6 +39,7 @@ describe('Environment Validator Middleware', () => {
     const env = {
       STORAGE: {},
       CACHE: {},
+      JWT_SECRET: 'test-secret',
     };
 
     const res = await app.request('/test', {}, env);
@@ -56,6 +58,7 @@ describe('Environment Validator Middleware', () => {
     const env = {
       DB: {},
       CACHE: {},
+      JWT_SECRET: 'test-secret',
     };
 
     const res = await app.request('/test', {}, env);
@@ -73,6 +76,7 @@ describe('Environment Validator Middleware', () => {
     const env = {
       DB: {},
       STORAGE: {},
+      JWT_SECRET: 'test-secret',
     };
 
     const res = await app.request('/test', {}, env);
@@ -112,25 +116,47 @@ describe('Environment Validator Middleware', () => {
     expect(logData.error_message).toContain('Missing bindings');
   });
 
-  it('checks all three required bindings', async () => {
+  it('returns 503 when JWT_SECRET is missing', async () => {
     const app = new Hono();
     app.use('*', envValidatorMiddleware);
     app.get('/test', (c) => c.json({ ok: true }));
 
-    // Missing all three
+    const env = {
+      DB: {},
+      STORAGE: {},
+      CACHE: {},
+    };
+
+    const res = await app.request('/test', {}, env);
+    expect(res.status).toBe(503);
+    const body = await parseApiResponse(res);
+    expect(body.success).toBe(false);
+    expect(body.code).toBe('CONFIGURATION_ERROR');
+  });
+
+  it('checks all required bindings', async () => {
+    const app = new Hono();
+    app.use('*', envValidatorMiddleware);
+    app.get('/test', (c) => c.json({ ok: true }));
+
+    // Missing all
     const res1 = await app.request('/test', {}, {});
     expect(res1.status).toBe(503);
 
-    // Missing two
+    // Missing three
     const res2 = await app.request('/test', {}, { DB: {} });
     expect(res2.status).toBe(503);
 
-    // Missing one
+    // Missing two
     const res3 = await app.request('/test', {}, { DB: {}, STORAGE: {} });
     expect(res3.status).toBe(503);
 
-    // All present
+    // Missing one
     const res4 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {} });
-    expect(res4.status).toBe(200);
+    expect(res4.status).toBe(503);
+
+    // All present
+    const res5 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {}, JWT_SECRET: 'test' });
+    expect(res5.status).toBe(200);
   });
 });
