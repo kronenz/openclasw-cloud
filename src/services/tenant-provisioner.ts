@@ -10,7 +10,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateResourceId, generateSubdomain } from '../utils/id.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
-import { structuredLog, structuredError } from '../utils/log.js';
+import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
 interface AuthConfig {
   apiKey: string;
@@ -155,7 +155,7 @@ export class TenantProvisioner {
           completed_at: new Date().toISOString(),
         });
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
+        const errorMsg = formatErrorMessage(error);
         await updateProvisioningLog(this.env.DB, logId, {
           tenant_id: plan?.tenantId,
           status: 'failed',

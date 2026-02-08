@@ -5,6 +5,7 @@ import type { Bindings } from '../../../src/types/index.js';
 // Mock the structuredError utility
 vi.mock('../../../src/utils/log.js', () => ({
   structuredError: vi.fn(),
+  formatErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
 }));
 
 import { structuredError } from '../../../src/utils/log.js';

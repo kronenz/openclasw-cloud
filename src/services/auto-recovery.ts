@@ -10,7 +10,7 @@ import { createNotification } from '../db/queries-v2.js';
 import { generateIncidentId } from '../utils/id.js';
 import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
 import { SlackNotifier } from './slack-notifier.js';
-import { structuredLog, structuredError } from '../utils/log.js';
+import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
 interface RecoveryResult {
   success: boolean;
@@ -177,7 +177,7 @@ export class AutoRecovery {
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : String(error),
+        message: formatErrorMessage(error),
       };
     }
   }

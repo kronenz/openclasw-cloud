@@ -2,7 +2,7 @@ import type { Bindings, TenantHealth, Alert } from '../types/index.js';
 import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { SlackNotifier } from './slack-notifier.js';
-import { structuredLog } from '../utils/log.js';
+import { structuredLog, formatErrorMessage } from '../utils/log.js';
 
 interface HealthReport {
   timestamp: string;
@@ -58,7 +58,7 @@ export class HealthChecker {
 
     } catch (error) {
       status = 'unhealthy';
-      details.error = error instanceof Error ? error.message : String(error);
+      details.error = formatErrorMessage(error);
     }
 
     const health: TenantHealth = {

@@ -2,7 +2,7 @@ import type { Bindings, DailyUsage } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
-import { structuredLog, structuredError } from '../utils/log.js';
+import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { toDateString } from '../utils/id.js';
 import { MS_PER_DAY } from '../config/constants.js';
 
@@ -306,7 +306,7 @@ export class ReportGenerator {
     } catch (error) {
       await updateCronLog(this.env.DB, cronLog.id, {
         status: 'failed',
-        error_message: error instanceof Error ? error.message : String(error),
+        error_message: formatErrorMessage(error),
         completed_at: new Date().toISOString(),
       });
     }
@@ -376,7 +376,7 @@ export class ReportGenerator {
     } catch (error) {
       await updateCronLog(this.env.DB, cronLog.id, {
         status: 'failed',
-        error_message: error instanceof Error ? error.message : String(error),
+        error_message: formatErrorMessage(error),
         completed_at: new Date().toISOString(),
       });
     }

@@ -32,8 +32,12 @@ export function structuredError(event: string, error: unknown, data: Record<stri
     timestamp: new Date().toISOString(),
     level: 'error',
     event,
-    error_message: error instanceof Error ? error.message : String(error),
+    error_message: formatErrorMessage(error),
     ...data,
   };
   console.error(JSON.stringify(entry));
+}
+
+export function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

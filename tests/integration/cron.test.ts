@@ -7,6 +7,7 @@ vi.mock('../../src/utils/log.js', () => ({
   structuredError: vi.fn(),
   structuredLog: vi.fn(),
   structuredWarn: vi.fn(),
+  formatErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
 }));
 
 import { structuredError } from '../../src/utils/log.js';

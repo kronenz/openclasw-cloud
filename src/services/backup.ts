@@ -2,7 +2,7 @@ import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getTenant } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { BACKUP_RETENTION_DAYS } from '../config/constants.js';
-import { structuredLog, structuredError } from '../utils/log.js';
+import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
 interface BackupResult {
   success: boolean;
@@ -85,7 +85,7 @@ export class BackupService {
       return {
         success: false,
         tenant_id: tenantId,
-        message: error instanceof Error ? error.message : String(error),
+        message: formatErrorMessage(error),
       };
     }
   }
@@ -163,7 +163,7 @@ export class BackupService {
 
       return {
         success: false,
-        message: error instanceof Error ? error.message : String(error),
+        message: formatErrorMessage(error),
       };
     }
   }

@@ -13,7 +13,7 @@ import {
 import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
-import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
+import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
 
@@ -106,7 +106,7 @@ tenants.post('/', withErrorHandler('tenant_create_failed', async (c) => {
             severity: 'P1',
             status: 'open',
             title: `Provisioning failed for tenant ${tenantId}`,
-            description: error instanceof Error ? error.message : String(error),
+            description: formatErrorMessage(error),
             auto_recovery_attempts: 0,
             resolved_at: null,
           });

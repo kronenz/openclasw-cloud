@@ -7,6 +7,7 @@ import { MAX_RECOVERY_ATTEMPTS } from '../../../src/config/constants.js';
 vi.mock('../../../src/utils/log.js', () => ({
   structuredLog: vi.fn(),
   structuredError: vi.fn(),
+  formatErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
 }));
 
 function createMockEnv(slackWebhookUrl?: string): Bindings {

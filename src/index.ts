@@ -20,7 +20,7 @@ import { CustomerEngagement } from './services/customer-engagement.js';
 import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
-import { structuredError, structuredWarn } from './utils/log.js';
+import { structuredError, structuredWarn, formatErrorMessage } from './utils/log.js';
 import { CRON_JOB_TIMEOUT_MS } from './config/constants.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -122,7 +122,7 @@ export default {
           await updateCronLog(env.DB, logId, {
             status: 'failed',
             completed_at: new Date().toISOString(),
-            error_message: error instanceof Error ? error.message : String(error),
+            error_message: formatErrorMessage(error),
           });
         } catch (logError) {
           structuredWarn('cron_log_write_failed', { jobName, error: logError });

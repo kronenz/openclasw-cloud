@@ -13,6 +13,7 @@ vi.mock('../../../src/utils/log.js', () => ({
   structuredLog: vi.fn(),
   structuredWarn: vi.fn(),
   structuredError: vi.fn(),
+  formatErrorMessage: (error: unknown) => error instanceof Error ? error.message : String(error),
 }));
 
 import { fetchWithTimeout } from '../../../src/utils/fetch.js';
