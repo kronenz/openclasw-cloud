@@ -85,7 +85,12 @@ export async function verifyJWT(token: string, secret: string): Promise<Record<s
 
   const payloadBytes = base64UrlDecode(payloadEncoded);
   const payloadStr = new TextDecoder().decode(payloadBytes);
-  const payload = JSON.parse(payloadStr) as Record<string, unknown>;
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(payloadStr) as Record<string, unknown>;
+  } catch {
+    throw new Error('Invalid JWT payload');
+  }
 
   // Check expiration
   const now = Math.floor(Date.now() / 1000);

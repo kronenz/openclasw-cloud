@@ -384,6 +384,13 @@ describe('SubscriptionManager', () => {
       };
 
       vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage') && query.includes('date >= ?')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [mockUsage] }),
+            }),
+          } as any;
+        }
         if (query.includes('SELECT * FROM daily_usage')) {
           return {
             bind: vi.fn().mockReturnValue({
@@ -417,6 +424,13 @@ describe('SubscriptionManager', () => {
       };
 
       vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage') && query.includes('date >= ?')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [mockUsage] }),
+            }),
+          } as any;
+        }
         if (query.includes('SELECT * FROM daily_usage')) {
           return {
             bind: vi.fn().mockReturnValue({
@@ -440,6 +454,13 @@ describe('SubscriptionManager', () => {
 
     it('handles missing usage data', async () => {
       vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage') && query.includes('date >= ?')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
         if (query.includes('SELECT * FROM daily_usage')) {
           return {
             bind: vi.fn().mockReturnValue({

@@ -4,7 +4,7 @@ import {
   createBillingSubscription,
   updateBillingSubscription,
 } from '../db/queries-v2.js';
-import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans } from '../db/queries.js';
+import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
 import { toDateString } from '../utils/id.js';
@@ -257,7 +257,11 @@ export class SubscriptionManager {
       }
 
       const dailyUsage = usage?.total_tokens || 0;
-      const monthlyUsage = dailyUsage; // Simplified - should aggregate month's usage
+
+      // Aggregate current month's usage for monthly limit check
+      const monthStart = today.substring(0, 7) + '-01'; // YYYY-MM-01
+      const monthlyUsageRecords = await getTenantUsageSummary(this.env.DB, tenantId, monthStart, today);
+      const monthlyUsage = monthlyUsageRecords.reduce((sum, record) => sum + (record.total_tokens || 0), 0);
 
       const exceeded = dailyUsage > dailyLimit || monthlyUsage > monthlyLimit;
 
