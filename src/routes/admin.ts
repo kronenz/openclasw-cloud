@@ -27,6 +27,13 @@ interface TransactionRow {
   amount: number; status: string; current_period_start: string;
   current_period_end: string; payment_method: string; updated_at: string;
 }
+interface AdminTenantRow extends Tenant {
+  plan_name: string | null;
+  monthly_price: number | null;
+  subscription_status: string | null;
+  segment: string | null;
+  segment_score: number | null;
+}
 
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -160,7 +167,7 @@ admin.get('/tenants', withErrorHandler('admin_tenants_list_failed', async (c) =>
   bindings.push(limit, offset);
 
   const stmt = c.env.DB.prepare(query).bind(...bindings);
-  const result = await stmt.all();
+  const result = await stmt.all<AdminTenantRow>();
 
   return c.json({
     success: true,
