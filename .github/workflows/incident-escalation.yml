@@ -1,0 +1,124 @@
+name: Incident Escalation
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  escalate-incident:
+    if: contains(github.event.issue.labels.*.name, 'type/incident')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse severity and escalate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body || '';
+            const issueTitle = context.payload.issue.title;
+            const issueUrl = context.payload.issue.html_url;
+            const issueNumber = context.payload.issue.number;
+
+            // Parse severity
+            const severityMatch = issueBody.match(/###\s*심각도\s*\n\n(P[0-3])/i);
+            const severity = severityMatch ? severityMatch[1] : 'P3';
+
+            const isCritical = severity === 'P0' || severity === 'P1';
+
+            // Start incident timeline
+            const timestamp = new Date().toISOString();
+            const timelineComment = `📋 **인시던트 타임라인 시작**
+
+**시작 시각**: ${timestamp}
+**심각도**: ${severity}
+
+---
+
+## 타임라인
+- ${timestamp}: 인시던트 감지 및 이슈 생성
+${isCritical ? '- ⚠️ 긴급 에스컬레이션 활성화' : ''}
+
+_이 코멘트에 추가 업데이트를 기록해주세요._`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: timelineComment
+            });
+
+            // Add escalation comment for critical incidents
+            if (isCritical) {
+              const escalationComment = `🚨 **긴급 인시던트 에스컬레이션**
+
+심각도 **${severity}** 인시던트가 감지되었습니다.
+
+**즉시 조치 필요:**
+1. 영향 범위 파악
+2. 임시 완화 조치 실행
+3. 근본 원인 분석 시작
+4. 타임라인 업데이트
+
+@operator 즉시 확인 부탁드립니다.`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: escalationComment
+              });
+            }
+
+            // Set outputs for Slack step
+            core.setOutput('is_critical', isCritical);
+            core.setOutput('severity', severity);
+            core.setOutput('issue_title', issueTitle);
+            core.setOutput('issue_url', issueUrl);
+
+      - name: Send Slack notification
+        if: steps.parse.outputs.is_critical == 'true' && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 긴급 인시던트 알림",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚨 긴급 인시던트 발생"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*제목:*\n${{ steps.parse.outputs.issue_title }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*심각도:*\n${{ steps.parse.outputs.severity }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*링크:*\n<${{ steps.parse.outputs.issue_url }}|인시던트 보기>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *즉시 조치가 필요합니다.*"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

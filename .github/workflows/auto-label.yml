@@ -1,0 +1,83 @@
+name: Auto Label Issues
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-assign labels based on issue template
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body || '';
+            const labels = [];
+
+            // Parse team dropdown
+            const teamMatch = issueBody.match(/###\s*팀\s*\n\n([^\n]+)/i);
+            if (teamMatch && teamMatch[1] !== 'N/A') {
+              labels.push(`team/${teamMatch[1].trim()}`);
+            }
+
+            // Parse pipeline dropdown
+            const pipelineMatch = issueBody.match(/###\s*파이프라인\s*\n\n([^\n]+)/i);
+            if (pipelineMatch && pipelineMatch[1] !== 'N/A') {
+              labels.push(`pipeline/${pipelineMatch[1].trim()}`);
+            }
+
+            // Parse phase dropdown
+            const phaseMatch = issueBody.match(/###\s*Phase\s*\n\n([^\n]+)/i);
+            if (phaseMatch) {
+              const phase = phaseMatch[1].trim();
+              if (phase.includes('Phase 1')) {
+                labels.push('phase/1-foundation');
+              } else if (phase.includes('Phase 2')) {
+                labels.push('phase/2-growth');
+              } else if (phase.includes('Phase 3')) {
+                labels.push('phase/3-scale');
+              }
+            }
+
+            // Parse priority dropdown
+            const priorityMatch = issueBody.match(/###\s*우선순위\s*\n\n(P[0-3])/i);
+            if (priorityMatch) {
+              const priority = priorityMatch[1];
+              const priorityMap = {
+                'P0': 'priority/P0-critical',
+                'P1': 'priority/P1-high',
+                'P2': 'priority/P2-medium',
+                'P3': 'priority/P3-low'
+              };
+              labels.push(priorityMap[priority]);
+            }
+
+            // Parse change category dropdown
+            const changeMatch = issueBody.match(/###\s*변경\s*카테고리\s*\n\n([^\n]+)/i);
+            if (changeMatch) {
+              const change = changeMatch[1].trim();
+              if (change.includes('Minor')) {
+                labels.push('change/minor');
+              } else if (change.includes('Major')) {
+                labels.push('change/major');
+              } else if (change.includes('Critical')) {
+                labels.push('change/critical');
+              }
+            }
+
+            // Add labels if any were found
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: labels
+              });
+
+              console.log(`Added labels: ${labels.join(', ')}`);
+            }

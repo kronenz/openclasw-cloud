@@ -1,0 +1,175 @@
+name: "RFC 제안"
+description: "조직 구조, 파이프라인, 역할 변경 제안 (evolution.md 연동)"
+title: "[RFC-XXX] "
+labels: ["type/rfc", "status/needs-triage"]
+body:
+  - type: input
+    id: rfc-number
+    attributes:
+      label: RFC 번호
+      description: RFC 번호를 입력하세요 (예. RFC-001)
+      placeholder: "RFC-XXX"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: change-category
+    attributes:
+      label: 변경 카테고리
+      description: evolution.md 기준 변경 등급을 선택하세요
+      options:
+        - Minor - 기존 흐름 유지, 도구/자동화 개선
+        - Major - 파이프라인/팀 역할 변경, 리소스 추가
+        - Critical - 구조 전면 개편, 고객 영향
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-teams
+    attributes:
+      label: 영향 팀
+      description: 이 RFC가 영향을 미치는 팀을 모두 선택하세요 (복수 선택 가능)
+      multiple: true
+      options:
+        - sales
+        - onboarding
+        - persona
+        - integration
+        - skill-dev
+        - platform
+        - operations
+        - customer-success
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 배경
+      description: 왜 이 변경이 필요한가요? 현재 어떤 문제가 있나요?
+      placeholder: |
+        현재 상황:
+
+        문제점:
+
+        변경 필요성:
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안 내용
+      description: 구체적으로 무엇을 어떻게 변경할 것인가요?
+      placeholder: |
+        변경 개요:
+
+        세부 내용:
+
+        기술적 접근:
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: 기대 효과
+      description: 이 변경으로 얻을 수 있는 효과를 정량적/정성적으로 설명해주세요
+      placeholder: |
+        ## 정량적 효과
+        - 처리 시간 X% 단축
+        - 비용 Y% 절감
+        - 오류율 Z% 감소
+
+        ## 정성적 효과
+        - 운영 효율성 향상
+        - 고객 경험 개선
+        - 팀 생산성 증대
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: 리스크
+      description: 이 변경으로 발생할 수 있는 리스크와 완화 방안을 설명해주세요
+      placeholder: |
+        ## 예상 리스크
+        1. 리스크 A
+           - 영향:
+           - 완화 방안:
+
+        2. 리스크 B
+           - 영향:
+           - 완화 방안:
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-plan
+    attributes:
+      label: 구현 계획
+      description: 단계별 구현 계획을 작성해주세요
+      placeholder: |
+        1. 1단계 (일정: )
+           - 작업 내용:
+           - 담당 팀:
+
+        2. 2단계 (일정: )
+           - 작업 내용:
+           - 담당 팀:
+
+        3. 3단계 (일정: )
+           - 작업 내용:
+           - 담당 팀:
+    validations:
+      required: true
+
+  - type: textarea
+    id: success-metrics
+    attributes:
+      label: 성공 메트릭
+      description: 이 RFC의 성공 여부를 어떻게 측정할 것인가요?
+      placeholder: |
+        ## 핵심 지표
+        - 지표 1: 목표값
+        - 지표 2: 목표값
+        - 지표 3: 목표값
+
+        ## 측정 방법
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback-plan
+    attributes:
+      label: 롤백 계획
+      description: 문제 발생 시 어떻게 원상복구할 것인가요?
+      placeholder: |
+        ## 롤백 조건
+        - 조건 1
+        - 조건 2
+
+        ## 롤백 절차
+        1.
+        2.
+        3.
+
+        ## 데이터 백업 계획
+        -
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact-assessment
+    attributes:
+      label: 영향 평가 체크리스트
+      description: 해당하는 항목을 모두 체크해주세요
+      options:
+        - label: 기존 파이프라인 호환성 확인 완료
+        - label: Cloudflare 리소스 추가 필요
+        - label: 외부 API 의존성 추가
+        - label: 팀 역할/책임 변경 포함
+        - label: 고객 경험에 직접적 영향
+        - label: 서비스 중단(다운타임) 필요

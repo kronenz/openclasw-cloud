@@ -1,0 +1,97 @@
+name: RFC Lifecycle Automation
+
+on:
+  issues:
+    types: [labeled, closed]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  manage-rfc-lifecycle:
+    if: contains(github.event.issue.labels.*.name, 'type/rfc')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Handle RFC state transitions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = context.payload.issue.number;
+            const labels = context.payload.issue.labels.map(l => l.name);
+            const isClosed = context.payload.issue.state === 'closed';
+
+            // Handle label events
+            if (context.payload.action === 'labeled') {
+              const newLabel = context.payload.label.name;
+
+              // Rule 1: Major/Critical change requires human review
+              if (newLabel === 'change/major' || newLabel === 'change/critical') {
+                if (!labels.includes('status/needs-human')) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: ['status/needs-human']
+                  });
+
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `⚠️ 이 RFC는 ${newLabel === 'change/major' ? 'Major' : 'Critical'} 변경으로 분류되어 사람의 검토가 필요합니다.\n\n@operator 승인 검토 부탁드립니다.`
+                  });
+
+                  console.log('Added status/needs-human label for major/critical change');
+                }
+              }
+
+              // Rule 2: Approved RFC removes needs-human
+              if (newLabel === 'status/approved') {
+                if (labels.includes('status/needs-human')) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    name: 'status/needs-human'
+                  });
+
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: '✅ RFC가 승인되었습니다. 구현을 진행할 수 있습니다.'
+                  });
+
+                  console.log('Removed status/needs-human label after approval');
+                }
+              }
+            }
+
+            // Handle issue close event
+            if (context.payload.action === 'closed' && isClosed) {
+              const completionComment = `🎉 **RFC 완료**
+
+이 RFC가 종료되었습니다.
+
+**다음 단계:**
+1. 구현이 완료되었다면 \`evolution.md\`를 업데이트해주세요
+2. 주요 결정사항과 변경사항을 문서화해주세요
+3. 관련 이슈들을 연결하여 추적 가능하도록 해주세요
+
+**evolution.md 업데이트 체크리스트:**
+- [ ] RFC 번호와 제목 기록
+- [ ] 최종 결정사항 요약
+- [ ] 영향받은 컴포넌트/시스템 목록
+- [ ] 구현 완료 날짜
+- [ ] 관련 이슈/PR 링크`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: completionComment
+              });
+
+              console.log('Added RFC completion reminder');
+            }

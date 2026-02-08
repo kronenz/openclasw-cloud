@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "RFC Discussion"
+    url: "https://github.com/kronenz/openclasw-cloud/discussions/categories/rfc"
+    about: "구조 변경 토론은 Discussions의 RFC 카테고리를 이용해 주세요"
+  - name: "일반 질문"
+    url: "https://github.com/kronenz/openclasw-cloud/discussions/categories/q-a"
+    about: "일반 질문은 Q&A 카테고리를 이용해 주세요"

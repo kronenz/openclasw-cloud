@@ -74,6 +74,61 @@ openclasw-cloud/
 - 스킬 개발 → executor → code-reviewer → qa-tester
 - 장애 대응 → debugger → build-fixer → qa-tester
 
+## GitHub 프로젝트 관리
+
+### 작업 중심: GitHub Issues
+- 모든 작업은 GitHub Issue로 생성하고 추적한다
+- Issue 생성 시 반드시 Issue Template 사용 (빈 이슈 생성 금지)
+- 사용 가능한 템플릿: 일반 작업, 버그 리포트, RFC 제안, Human Gate 요청, 인시던트, 기능 요청, 스킬 개발 요청
+
+### Label 체계 (42개)
+AI Agent는 Issue 생성/수정 시 아래 접두사 규칙을 따른다:
+- `team/*` (8개): 담당 팀 (sales, onboarding, persona, integration, skill-dev, platform, operations, customer-success)
+- `pipeline/*` (8개): 관련 파이프라인
+- `priority/*` (4개): P0-critical ~ P3-low (SLA 기반)
+- `type/*` (8개): feature, bug, rfc, human-gate, task, incident, improvement, docs
+- `phase/*` (3개): 1-foundation, 2-growth, 3-scale
+- `status/*` (6개): needs-triage, blocked, needs-human, in-review, approved, rejected
+- `change/*` (4개): minor, major, critical, emergency
+- `automation/*` (3개): full, semi, manual
+
+### Projects v2 보드
+| 보드 | 용도 |
+|------|------|
+| OC Master Board | 전체 조직 진척도 (Table + Board + Roadmap) |
+| OC Pipeline Tracker | 파이프라인별 칸반 |
+| OC Sprint Board | 현재 스프린트 작업 |
+| OC Human Gate Queue | Operator 승인 대기 |
+
+### AI Agent Issue 작업 규칙
+1. **작업 시작**: 해당 Issue의 Labels에서 `team/*`을 확인하여 자신의 팀 소속 확인
+2. **매뉴얼 참조**: `org/manuals/` 에서 관련 매뉴얼을 참조하여 절차대로 수행
+3. **진행 기록**: Issue에 코멘트로 진행 상황 기록
+4. **Human Gate**: Operator 승인이 필요한 경우 `[Human Gate]` Issue를 별도 생성하고, 원래 Issue에 `status/needs-human` 라벨 부착
+5. **완료 처리**: 작업 완료 시 Issue 닫기 + 결과 코멘트
+
+### Human Gate 프로세스
+```
+Agent가 Human Gate 조건 감지
+  → [Human Gate] Issue 생성 (human-gate.yml 템플릿)
+  → 원래 Issue에 status/needs-human 라벨
+  → GitHub Actions가 Slack/카톡 알림 발송
+  → Operator가 승인/거부 결정
+  → status/approved 또는 status/rejected 라벨
+  → Agent가 결과에 따라 작업 재개 또는 중단
+```
+
+### Milestones
+- `[Phase 1] Foundation` (2026-06-30): 1~50명, 핵심 자동화
+- `[Phase 2] Growth` (2026-12-31): 50~200명, 셀프서비스
+- `[Phase 3] Scale` (2027-06-30): 200명+, 마켓플레이스
+
+### 운영 사이클
+- **일일**: Human Gate Queue 확인, P0/P1 점검
+- **주간**: 월요일 Sprint Planning, 금요일 Sprint Report (자동)
+- **월간**: Phase 진척도 리뷰, RFC 검토
+- **분기**: Phase 전환 판단, 조직 구조 점검
+
 ## Evolution Protocol
 
 이 프로젝트의 구조는 **진화 가능(evolvable)** 해야 합니다.

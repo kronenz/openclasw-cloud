@@ -1,0 +1,103 @@
+name: Human Gate Alert
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  alert-human-gate:
+    if: |
+      contains(github.event.label.name, 'status/needs-human') ||
+      contains(github.event.label.name, 'type/human-gate')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse urgency and send alerts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body || '';
+            const issueTitle = context.payload.issue.title;
+            const issueUrl = context.payload.issue.html_url;
+            const issueNumber = context.payload.issue.number;
+
+            // Parse urgency from body
+            const urgencyMatch = issueBody.match(/###\s*긴급도\s*\n\n([^\n]+)/i);
+            const urgency = urgencyMatch ? urgencyMatch[1].trim() : 'Unknown';
+
+            // Parse priority
+            const priorityMatch = issueBody.match(/###\s*우선순위\s*\n\n(P[0-3])/i);
+            const priority = priorityMatch ? priorityMatch[1] : '';
+
+            // Determine if critical
+            const isCritical = urgency.includes('즉시') || priority === 'P0';
+
+            // Add operator mention comment
+            const comment = `🚨 **Human Gate 활성화**
+
+이 이슈는 사람의 판단이 필요합니다.
+
+- **긴급도**: ${urgency}
+- **우선순위**: ${priority || 'N/A'}
+${isCritical ? '\n⚠️ **즉시 처리 필요**' : ''}
+
+@operator 검토 부탁드립니다.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: comment
+            });
+
+            // Store urgency info for Slack step
+            core.setOutput('is_critical', isCritical);
+            core.setOutput('urgency', urgency);
+            core.setOutput('priority', priority);
+            core.setOutput('issue_title', issueTitle);
+            core.setOutput('issue_url', issueUrl);
+
+      - name: Send Slack notification for critical issues
+        if: steps.parse.outputs.is_critical == 'true' && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 긴급 Human Gate 알림",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🚨 긴급 Human Gate 활성화"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*이슈:*\n${{ steps.parse.outputs.issue_title }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*긴급도:*\n${{ steps.parse.outputs.urgency }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*우선순위:*\n${{ steps.parse.outputs.priority }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*링크:*\n<${{ steps.parse.outputs.issue_url }}|이슈 보기>"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

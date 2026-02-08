@@ -1,0 +1,184 @@
+name: Sprint Report
+
+on:
+  schedule:
+    # Every Friday at 09:00 UTC (18:00 KST)
+    - cron: '0 9 * * 5'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  generate-sprint-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate weekly sprint report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Calculate date range (last 14 days)
+            const now = new Date();
+            const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+            // Fetch all issues from the last 14 days
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              since: twoWeeksAgo.toISOString(),
+              per_page: 100
+            });
+
+            // Initialize statistics
+            const stats = {
+              total: 0,
+              closed: 0,
+              open: 0,
+              humanGate: 0,
+              byTeam: {},
+              byPipeline: {},
+              byPriority: {}
+            };
+
+            // Process issues
+            issues.forEach(issue => {
+              // Skip pull requests
+              if (issue.pull_request) return;
+
+              stats.total++;
+              if (issue.state === 'closed') {
+                stats.closed++;
+              } else {
+                stats.open++;
+              }
+
+              const labels = issue.labels.map(l => l.name);
+
+              // Count human gates
+              if (labels.some(l => l.includes('status/needs-human') || l.includes('type/human-gate'))) {
+                stats.humanGate++;
+              }
+
+              // Count by team
+              labels.forEach(label => {
+                if (label.startsWith('team/')) {
+                  const team = label.replace('team/', '');
+                  stats.byTeam[team] = stats.byTeam[team] || { total: 0, closed: 0, open: 0 };
+                  stats.byTeam[team].total++;
+                  if (issue.state === 'closed') {
+                    stats.byTeam[team].closed++;
+                  } else {
+                    stats.byTeam[team].open++;
+                  }
+                }
+
+                // Count by pipeline
+                if (label.startsWith('pipeline/')) {
+                  const pipeline = label.replace('pipeline/', '');
+                  stats.byPipeline[pipeline] = stats.byPipeline[pipeline] || { total: 0, closed: 0, open: 0 };
+                  stats.byPipeline[pipeline].total++;
+                  if (issue.state === 'closed') {
+                    stats.byPipeline[pipeline].closed++;
+                  } else {
+                    stats.byPipeline[pipeline].open++;
+                  }
+                }
+
+                // Count by priority
+                if (label.startsWith('priority/')) {
+                  const priority = label.replace('priority/', '');
+                  stats.byPriority[priority] = stats.byPriority[priority] || { total: 0, closed: 0, open: 0 };
+                  stats.byPriority[priority].total++;
+                  if (issue.state === 'closed') {
+                    stats.byPriority[priority].closed++;
+                  } else {
+                    stats.byPriority[priority].open++;
+                  }
+                }
+              });
+            });
+
+            // Calculate completion rate
+            const completionRate = stats.total > 0
+              ? Math.round((stats.closed / stats.total) * 100)
+              : 0;
+
+            // Generate report markdown
+            let report = `# 주간 스프린트 리포트
+
+**기간**: ${twoWeeksAgo.toISOString().split('T')[0]} ~ ${now.toISOString().split('T')[0]}
+
+## 전체 요약
+
+- **전체 이슈**: ${stats.total}
+- **완료**: ${stats.closed} (${completionRate}%)
+- **진행중**: ${stats.open}
+- **Human Gate**: ${stats.humanGate}
+
+`;
+
+            // Team statistics
+            if (Object.keys(stats.byTeam).length > 0) {
+              report += `## 팀별 통계\n\n`;
+              report += `| 팀 | 전체 | 완료 | 진행중 | 완료율 |\n`;
+              report += `|---|---|---|---|---|\n`;
+
+              Object.entries(stats.byTeam)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .forEach(([team, data]) => {
+                  const rate = data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0;
+                  report += `| ${team} | ${data.total} | ${data.closed} | ${data.open} | ${rate}% |\n`;
+                });
+
+              report += `\n`;
+            }
+
+            // Pipeline statistics
+            if (Object.keys(stats.byPipeline).length > 0) {
+              report += `## 파이프라인별 통계\n\n`;
+              report += `| 파이프라인 | 전체 | 완료 | 진행중 | 완료율 |\n`;
+              report += `|---|---|---|---|---|\n`;
+
+              Object.entries(stats.byPipeline)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .forEach(([pipeline, data]) => {
+                  const rate = data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0;
+                  report += `| ${pipeline} | ${data.total} | ${data.closed} | ${data.open} | ${rate}% |\n`;
+                });
+
+              report += `\n`;
+            }
+
+            // Priority statistics
+            if (Object.keys(stats.byPriority).length > 0) {
+              report += `## 우선순위별 통계\n\n`;
+              report += `| 우선순위 | 전체 | 완료 | 진행중 | 완료율 |\n`;
+              report += `|---|---|---|---|---|\n`;
+
+              const priorityOrder = ['P0-critical', 'P1-high', 'P2-medium', 'P3-low'];
+              priorityOrder.forEach(priority => {
+                const data = stats.byPriority[priority];
+                if (data) {
+                  const rate = data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0;
+                  report += `| ${priority} | ${data.total} | ${data.closed} | ${data.open} | ${rate}% |\n`;
+                }
+              });
+
+              report += `\n`;
+            }
+
+            report += `---\n\n`;
+            report += `*자동 생성됨: ${now.toISOString()}*\n`;
+
+            // Create issue with report
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `주간 스프린트 리포트 - ${now.toISOString().split('T')[0]}`,
+              body: report,
+              labels: ['type/docs']
+            });
+
+            console.log('Sprint report created successfully');
