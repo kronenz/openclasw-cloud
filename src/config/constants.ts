@@ -71,3 +71,11 @@ export const RESEND_API_URL = 'https://api.resend.com/emails';
 export const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';
 export const CLOUDFLARE_API_BASE = 'https://api.cloudflare.com/client/v4/accounts';
 export const PORTONE_API_BASE = 'https://api.portone.io/v2';
+
+// Enum constants for Zod schemas
+export const TENANT_PLANS = ['starter', 'growth', 'enterprise'] as const;
+export const TENANT_STATUSES = ['provisioning', 'active', 'suspended', 'deleted'] as const;
+export const BILLING_PLAN_IDS = ['plan_starter', 'plan_growth', 'plan_enterprise'] as const;
+export const INCIDENT_STATUSES = ['open', 'investigating', 'resolved', 'closed'] as const;
+export const TENANT_SEGMENTS = ['champion', 'at_risk', 'potential_upsell', 'need_attention', 'happy_inactive', 'new'] as const;
+export const ADMIN_TENANT_STATUSES = ['active', 'provisioning', 'suspended', 'deactivated'] as const;

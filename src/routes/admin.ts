@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
+import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, TENANT_SEGMENTS } from '../config/constants.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
@@ -12,7 +13,7 @@ const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 const listTenantsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.enum(['active', 'provisioning', 'suspended', 'deactivated']).optional(),
+  status: z.enum([...ADMIN_TENANT_STATUSES]).optional(),
   search: z.string().max(200).optional(),
 });
 
@@ -23,11 +24,11 @@ const suspendTenantBodySchema = z.object({
 const listIncidentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  status: z.enum(['open', 'investigating', 'resolved', 'closed']).optional(),
+  status: z.enum([...INCIDENT_STATUSES]).optional(),
 });
 
 const listSegmentsQuerySchema = z.object({
-  segment: z.enum(['champion', 'at_risk', 'potential_upsell', 'need_attention', 'happy_inactive', 'new']).optional(),
+  segment: z.enum([...TENANT_SEGMENTS]).optional(),
 });
 
 // GET / - Platform dashboard summary

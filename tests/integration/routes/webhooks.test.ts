@@ -629,4 +629,105 @@ describe('Webhook Routes', () => {
       });
     });
   });
+
+  describe('Malformed payload handling', () => {
+    it('handles kakaotalk with empty userRequest', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/webhooks/messenger', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'X-Platform-Type': 'kakaotalk',
+        },
+        body: JSON.stringify({
+          userRequest: {},
+        }),
+      }, env);
+      // Should return kakao format without crashing
+      expect(res.status).toBe(200);
+      const body = await res.json() as any;
+      expect(body.version).toBe('2.0');
+      expect(body.template.outputs).toHaveLength(1);
+    });
+
+    it('handles telegram with partial message object', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/webhooks/messenger', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'X-Platform-Type': 'telegram',
+          'X-Tenant-ID': 'tn_test-tenant-1',
+        },
+        body: JSON.stringify({
+          update_id: 123,
+          message: { message_id: 1 }, // missing text and chat
+        }),
+      }, env);
+      expect(res.status).toBe(200);
+      const body = await res.json() as any;
+      expect(body.success).toBe(true);
+      expect(body.data.received).toBe(true);
+    });
+
+    it('handles slack with non-message event', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/webhooks/messenger', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'X-Platform-Type': 'slack',
+          'X-Tenant-ID': 'tn_test-tenant-1',
+        },
+        body: JSON.stringify({
+          type: 'event_callback',
+          event: { type: 'app_mention', text: null },
+        }),
+      }, env);
+      expect(res.status).toBe(200);
+      const body = await res.json() as any;
+      expect(body.success).toBe(true);
+      expect(body.data.received).toBe(true);
+    });
+
+    it('handles discord with unknown interaction type', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/webhooks/messenger', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'X-Platform-Type': 'discord',
+          'X-Tenant-ID': 'tn_test-tenant-1',
+        },
+        body: JSON.stringify({
+          type: 99, // Unknown type
+        }),
+      }, env);
+      expect(res.status).toBe(200);
+      const body = await res.json() as any;
+      expect(body.success).toBe(true);
+      expect(body.data.received).toBe(true);
+    });
+
+    it('handles unknown platform type gracefully', async () => {
+      const headers = await getAuthHeader();
+      const res = await app.request('/api/webhooks/messenger', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+          'X-Platform-Type': 'whatsapp',
+        },
+        body: JSON.stringify({ data: 'test' }),
+      }, env);
+      expect(res.status).toBe(200);
+      const body = await res.json() as any;
+      expect(body.success).toBe(true);
+      expect(body.data.received).toBe(true);
+    });
+  });
 });

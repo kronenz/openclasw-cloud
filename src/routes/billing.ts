@@ -5,6 +5,7 @@ import { listBillingPlans, getSubscription, getTenantUsageSummary } from '../db/
 import { updateTenant } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';
+import { BILLING_PLAN_IDS } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 
@@ -22,7 +23,7 @@ interface PortoneWebhookPayload {
 
 // Validation schemas
 const upgradePlanSchema = z.object({
-  new_plan_id: z.enum(['plan_starter', 'plan_growth', 'plan_enterprise']),
+  new_plan_id: z.enum([...BILLING_PLAN_IDS]),
 });
 
 // GET /plans - list all billing plans

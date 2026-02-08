@@ -12,7 +12,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
-import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
+import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES, TENANT_PLANS, TENANT_STATUSES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError, formatErrorMessage } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { tenantScope } from '../middleware/tenant-scope.js';
@@ -22,7 +22,7 @@ const tenants = new Hono<{ Bindings: Bindings }>();
 // Validation schemas
 const createTenantSchema = z.object({
   name: z.string().min(1).max(100),
-  plan: z.enum(['starter', 'growth', 'enterprise']).optional().default('starter'),
+  plan: z.enum([...TENANT_PLANS]).optional().default('starter'),
   contact_email: z.string().email(),
   contact_name: z.string().max(100).optional(),
   subdomain: z.string().max(63)
@@ -37,8 +37,8 @@ const createTenantSchema = z.object({
 
 const updateTenantSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  plan: z.enum(['starter', 'growth', 'enterprise']).optional(),
-  status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
+  plan: z.enum([...TENANT_PLANS]).optional(),
+  status: z.enum([...TENANT_STATUSES]).optional(),
   contact_email: z.string().email().optional(),
   subdomain: z.string().max(63)
     .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/, 'Subdomain must be lowercase alphanumeric with hyphens')
@@ -53,7 +53,7 @@ const updateTenantSchema = z.object({
 const listTenantsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
-  status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
+  status: z.enum([...TENANT_STATUSES]).optional(),
 });
 
 const usageQuerySchema = z.object({
