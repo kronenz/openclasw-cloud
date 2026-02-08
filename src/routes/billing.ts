@@ -238,34 +238,31 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
 
   const payload = result;
   const manager = new SubscriptionManager(c.env);
+  const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
+
+  // All payment events require a tenant ID
+  if (payload.type?.startsWith('payment.') && !tenantId) {
+    structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: payload.type });
+    return c.json<ApiResponse>({ success: true, data: { received: true } });
+  }
 
   // Handle payment events
   switch (payload.type) {
     case 'payment.paid': {
-      const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
       const planId = payload.metadata?.plan_id || payload.plan_id;
-
       structuredLog('webhook_payment_paid', { tenant_id: tenantId, plan_id: planId });
 
-      if (!tenantId) {
-        structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.paid' });
-        break;
-      }
-
       // Create or activate subscription
-      const existingSub = await getSubscription(c.env.DB, tenantId);
+      const existingSub = await getSubscription(c.env.DB, tenantId!);
 
       if (!existingSub) {
-        // Create new subscription
-        await manager.createSubscription(tenantId, planId || 'plan_starter');
+        await manager.createSubscription(tenantId!, planId || 'plan_starter');
       } else {
-        // Reactivate if suspended
-        await updateTenant(c.env.DB, tenantId, { status: 'active' });
+        await updateTenant(c.env.DB, tenantId!, { status: 'active' });
       }
 
-      // Send welcome notification
       await createEmailNotification(
-        c.env.DB, tenantId, 'welcome',
+        c.env.DB, tenantId!, 'welcome',
         'Payment Received',
         'Your payment has been processed successfully. Thank you!'
       );
@@ -273,18 +270,10 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
     }
 
     case 'payment.failed': {
-      const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
-
       structuredLog('webhook_payment_failed', { tenant_id: tenantId });
 
-      if (!tenantId) {
-        structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.failed' });
-        break;
-      }
-
-      // Send payment failed notification
       await createEmailNotification(
-        c.env.DB, tenantId, 'payment_failed',
+        c.env.DB, tenantId!, 'payment_failed',
         'Payment Failed',
         'Your payment could not be processed. Please update your payment method.'
       );
@@ -292,17 +281,8 @@ billing.post('/webhook', withErrorHandler('billing_webhook_process_failed', asyn
     }
 
     case 'payment.canceled': {
-      const tenantId = payload.metadata?.tenant_id || payload.tenant_id;
-
       structuredLog('webhook_payment_canceled', { tenant_id: tenantId });
-
-      if (!tenantId) {
-        structuredError('webhook_missing_tenant_id', new Error('Missing tenant_id'), { event: 'payment.canceled' });
-        break;
-      }
-
-      // Cancel subscription with grace period
-      await manager.cancelSubscription(tenantId);
+      await manager.cancelSubscription(tenantId!);
       break;
     }
 
