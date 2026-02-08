@@ -1,6 +1,7 @@
 import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getTenant } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
+import { BACKUP_RETENTION_DAYS } from '../config/constants.js';
 
 interface BackupResult {
   success: boolean;
@@ -197,7 +198,7 @@ export class BackupService {
   }
 
   // Remove backups older than retention period
-  async cleanupOldBackups(retentionDays: number = 30): Promise<{ deleted: number; errors: number }> {
+  async cleanupOldBackups(retentionDays: number = BACKUP_RETENTION_DAYS): Promise<{ deleted: number; errors: number }> {
     console.log(JSON.stringify({
       event: 'cleanup_start',
       retention_days: retentionDays,

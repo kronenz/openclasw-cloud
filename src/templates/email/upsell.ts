@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/html.js';
+
 interface UpsellEmailParams {
   tenantName: string;
   contactName: string;
@@ -16,6 +18,12 @@ export function generateUpsellEmail(params: UpsellEmailParams): {
   html: string;
   text: string;
 } {
+  // Escape user-provided data for HTML output
+  const safeName = escapeHtml(params.contactName);
+  const safeTenant = escapeHtml(params.tenantName);
+  const safeCurrentPlan = escapeHtml(params.currentPlan);
+  const safeNextPlan = escapeHtml(params.nextPlan);
+
   const subject = `[OpenClaw] ${params.tenantName} 플랜 업그레이드 안내`;
 
   const html = `
@@ -29,9 +37,9 @@ export function generateUpsellEmail(params: UpsellEmailParams): {
 
   <h2 style="color: #1e293b;">더 많은 AI 비서 활용을 위한 업그레이드 안내</h2>
 
-  <p>안녕하세요, <strong>${params.contactName}</strong>님.</p>
+  <p>안녕하세요, <strong>${safeName}</strong>님.</p>
 
-  <p><strong>${params.tenantName}</strong>의 AI 비서 사용량이 현재 플랜 한도의 <strong style="color: #dc2626;">${params.usagePercent.toFixed(0)}%</strong>에 도달했습니다.</p>
+  <p><strong>${safeTenant}</strong>의 AI 비서 사용량이 현재 플랜 한도의 <strong style="color: #dc2626;">${params.usagePercent.toFixed(0)}%</strong>에 도달했습니다.</p>
 
   <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0;">
     <p style="margin: 0; font-weight: bold; color: #991b1b;">현재 사용량</p>
@@ -39,12 +47,12 @@ export function generateUpsellEmail(params: UpsellEmailParams): {
       <div style="background: ${params.usagePercent >= 90 ? '#dc2626' : '#f59e0b'}; height: 100%; width: ${Math.min(params.usagePercent, 100)}%; border-radius: 4px;"></div>
     </div>
     <p style="margin: 0; font-size: 14px; color: #64748b;">
-      ${params.currentTokens.toLocaleString()} / ${params.currentLimit.toLocaleString()} 토큰 (${params.currentPlan})
+      ${params.currentTokens.toLocaleString()} / ${params.currentLimit.toLocaleString()} 토큰 (${safeCurrentPlan})
     </p>
   </div>
 
   <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0;">
-    <p style="margin: 0 0 10px; font-weight: bold; color: #166534;">${params.nextPlan} 플랜으로 업그레이드하면</p>
+    <p style="margin: 0 0 10px; font-weight: bold; color: #166534;">${safeNextPlan} 플랜으로 업그레이드하면</p>
     <ul style="margin: 0; padding-left: 20px; color: #15803d;">
       <li>토큰 한도 ${params.nextPlanLimit.toLocaleString()}으로 확대</li>
       <li>더 높은 품질의 AI 모델 사용 가능</li>

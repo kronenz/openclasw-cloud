@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/html.js';
+
 interface ReEngagementEmailParams {
   tenantName: string;
   contactName: string;
@@ -10,6 +12,10 @@ export function generateReEngagementEmail(params: ReEngagementEmailParams): {
   html: string;
   text: string;
 } {
+  // Escape user-provided data for HTML output
+  const safeName = escapeHtml(params.contactName);
+  const safeTenant = escapeHtml(params.tenantName);
+
   const subject = `[OpenClaw] ${params.contactName}님, ${params.tenantName} AI 비서가 기다리고 있어요`;
 
   const html = `
@@ -23,9 +29,9 @@ export function generateReEngagementEmail(params: ReEngagementEmailParams): {
 
   <h2 style="color: #1e293b;">AI 비서를 다시 활용해 보세요!</h2>
 
-  <p>안녕하세요, <strong>${params.contactName}</strong>님.</p>
+  <p>안녕하세요, <strong>${safeName}</strong>님.</p>
 
-  <p>최근 <strong>${params.inactiveDays}일간</strong> <strong>${params.tenantName}</strong>의 AI 비서 이용이 없었습니다.</p>
+  <p>최근 <strong>${params.inactiveDays}일간</strong> <strong>${safeTenant}</strong>의 AI 비서 이용이 없었습니다.</p>
 
   <p>AI 비서가 도움을 드릴 수 있는 다양한 기능이 있습니다:</p>
 

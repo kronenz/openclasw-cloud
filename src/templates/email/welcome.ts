@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/html.js';
+
 export interface WelcomeEmailData {
   tenantName: string;
   contactName: string;
@@ -12,6 +14,13 @@ export function generateWelcomeEmail(data: WelcomeEmailData): {
   html: string;
   text: string
 } {
+  // Escape user-provided data for HTML output
+  const safeName = escapeHtml(data.contactName);
+  const safeTenant = escapeHtml(data.tenantName);
+  const safePlan = escapeHtml(data.plan);
+  const safeSubdomain = escapeHtml(data.subdomain);
+  const safeApiKey = escapeHtml(data.apiKey);
+
   const subject = `[OpenClaw] ${data.tenantName} 서비스 설정이 완료되었습니다`;
 
   const html = `
@@ -42,22 +51,22 @@ export function generateWelcomeEmail(data: WelcomeEmailData): {
     </div>
 
     <div class="content">
-      <p>안녕하세요, ${data.contactName}님!</p>
+      <p>안녕하세요, ${safeName}님!</p>
 
-      <p><strong>${data.tenantName}</strong>의 AI 비서 서비스 설정이 완료되었습니다. 이제 카카오톡, 텔레그램, 슬랙, 디스코드를 통해 고객과 소통하실 수 있습니다.</p>
+      <p><strong>${safeTenant}</strong>의 AI 비서 서비스 설정이 완료되었습니다. 이제 카카오톡, 텔레그램, 슬랙, 디스코드를 통해 고객과 소통하실 수 있습니다.</p>
 
       <div class="info-box">
         <h3 style="margin-top: 0;">📋 계정 정보</h3>
         <ul style="list-style: none; padding: 0;">
-          <li><strong>조직명:</strong> ${data.tenantName}</li>
-          <li><strong>플랜:</strong> ${data.plan}</li>
-          <li><strong>서브도메인:</strong> ${data.subdomain}.openclaw.ai</li>
+          <li><strong>조직명:</strong> ${safeTenant}</li>
+          <li><strong>플랜:</strong> ${safePlan}</li>
+          <li><strong>서브도메인:</strong> ${safeSubdomain}.openclaw.ai</li>
         </ul>
       </div>
 
       <div class="warning">
         <strong>⚠️ 중요: API Key (안전하게 보관하세요)</strong>
-        <div class="api-key">${data.apiKey}</div>
+        <div class="api-key">${safeApiKey}</div>
         <p style="margin: 10px 0 0 0; font-size: 13px;">이 키는 재발급이 불가능하니 안전한 곳에 보관해주세요. 외부에 노출되지 않도록 주의하세요.</p>
       </div>
 
