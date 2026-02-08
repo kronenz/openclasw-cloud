@@ -6,6 +6,7 @@ import {
 } from '../db/queries-v2.js';
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
+import { GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT } from '../config/constants.js';
 
 export interface OverageInfo {
   exceeded: boolean;
@@ -79,7 +80,7 @@ export class SubscriptionManager {
 
       const now = new Date();
       const gracePeriodEnd = new Date(now);
-      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7); // 7-day grace period
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + GRACE_PERIOD_DAYS);
 
       await updateBillingSubscription(this.env.DB, subscription.id, {
         status: 'canceled',
@@ -252,8 +253,8 @@ export class SubscriptionManager {
 
       // Get subscription and plan limits from billing_plans table
       const subscription = await getSubscription(this.env.DB, tenantId);
-      let dailyLimit = 100000; // Default: 100K tokens
-      let monthlyLimit = 3000000; // Default: 3M tokens
+      let dailyLimit = DEFAULT_DAILY_TOKEN_LIMIT;
+      let monthlyLimit = DEFAULT_MONTHLY_TOKEN_LIMIT;
 
       if (subscription) {
         try {

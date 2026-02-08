@@ -12,7 +12,7 @@ import {
 } from '../db/queries.js';
 import { generateTenantId, generateSubdomain } from '../utils/id.js';
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
-import { RESERVED_SUBDOMAINS } from '../config/constants.js';
+import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
 
 const tenants = new Hono<{ Bindings: Bindings }>();
 
@@ -27,7 +27,7 @@ const createTenantSchema = z.object({
     .refine((val) => !RESERVED_SUBDOMAINS.has(val), { message: 'This subdomain is reserved' })
     .optional(),
   metadata: z.record(z.unknown()).optional().refine(
-    (val) => !val || JSON.stringify(val).length <= 10240,
+    (val) => !val || JSON.stringify(val).length <= MAX_METADATA_SIZE_BYTES,
     { message: 'Metadata must be 10KB or less' }
   ),
 });
@@ -42,7 +42,7 @@ const updateTenantSchema = z.object({
     .refine((val) => !RESERVED_SUBDOMAINS.has(val), { message: 'This subdomain is reserved' })
     .optional(),
   metadata: z.record(z.unknown()).optional().refine(
-    (val) => !val || JSON.stringify(val).length <= 10240,
+    (val) => !val || JSON.stringify(val).length <= MAX_METADATA_SIZE_BYTES,
     { message: 'Metadata must be 10KB or less' }
   ),
 });

@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import type { Bindings, Variables } from '../types/index.js';
+import { RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_MS } from '../config/constants.js';
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -7,8 +8,8 @@ interface RateLimitConfig {
 }
 
 const DEFAULT_CONFIG: RateLimitConfig = {
-  maxRequests: 100,
-  windowMs: 60_000, // 1 minute
+  maxRequests: RATE_LIMIT_MAX_REQUESTS,
+  windowMs: RATE_LIMIT_WINDOW_MS,
 };
 
 export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {

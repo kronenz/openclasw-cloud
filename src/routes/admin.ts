@@ -44,10 +44,10 @@ admin.get('/', async (c) => {
       AND created_at >= datetime('now', '-30 days')
     `);
     const uptimeData = await uptimeStmt.first();
-    const criticalCount = (uptimeData?.critical_incidents as number) || 0;
+    const criticalCount = Number(uptimeData?.critical_incidents) || 0;
     const uptime = Math.max(0, 100 - (criticalCount * 0.1));
 
-    const mrr = (revenue?.mrr as number) || 0;
+    const mrr = Number(revenue?.mrr) || 0;
 
     return c.json<ApiResponse>({
       success: true,
@@ -77,8 +77,10 @@ admin.get('/', async (c) => {
 admin.get('/tenants', async (c) => {
   try {
     const status = c.req.query('status');
-    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '100', 10), 500));
-    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
+    const rawLimit = parseInt(c.req.query('limit') || '100', 10);
+    const limit = Number.isNaN(rawLimit) ? 100 : Math.min(Math.max(1, rawLimit), 500);
+    const rawOffset = parseInt(c.req.query('offset') || '0', 10);
+    const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
 
     // Get tenants with subscription and segment info
     let query = `
@@ -392,16 +394,16 @@ admin.get('/billing/summary', async (c) => {
     `);
     const churnData = await churnStmt.first();
 
-    const totalCustomers = summary?.paying_customers as number || 0;
+    const totalCustomers = Number(summary?.paying_customers) || 0;
     const churnRate = totalCustomers > 0
-      ? ((churnData?.churned as number || 0) / totalCustomers * 100).toFixed(2)
+      ? ((Number(churnData?.churned) || 0) / totalCustomers * 100).toFixed(2)
       : '0.00';
 
     return c.json<ApiResponse>({
       success: true,
       data: {
         mrr: summary?.mrr || 0,
-        arr: (summary?.mrr as number || 0) * 12,
+        arr: (Number(summary?.mrr) || 0) * 12,
         paying_customers: totalCustomers,
         arpu: summary?.arpu || 0,
         churn_rate: churnRate,
@@ -421,8 +423,10 @@ admin.get('/billing/summary', async (c) => {
 // GET /billing/transactions - Recent billing transactions
 admin.get('/billing/transactions', async (c) => {
   try {
-    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '50', 10), 500));
-    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
+    const rawLimit = parseInt(c.req.query('limit') || '50', 10);
+    const limit = Number.isNaN(rawLimit) ? 50 : Math.min(Math.max(1, rawLimit), 500);
+    const rawOffset = parseInt(c.req.query('offset') || '0', 10);
+    const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
 
     const transactionsStmt = c.env.DB.prepare(`
       SELECT

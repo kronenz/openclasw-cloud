@@ -8,6 +8,7 @@ import {
 } from '../db/queries.js';
 import { createNotification } from '../db/queries-v2.js';
 import { generateIncidentId } from '../utils/id.js';
+import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
 
 interface RecoveryResult {
   success: boolean;
@@ -57,7 +58,7 @@ export class AutoRecovery {
       }
 
       // Check if we've exhausted recovery attempts
-      if (incident.auto_recovery_attempts >= 3) {
+      if (incident.auto_recovery_attempts >= MAX_RECOVERY_ATTEMPTS) {
         await this.escalateToOperator(tenantId, incident.id, health);
         return;
       }

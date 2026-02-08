@@ -4,6 +4,7 @@ import type { Bindings, ApiResponse, AiTextResponse } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
+import { MAX_MESSAGE_LENGTH } from '../config/constants.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
 
@@ -126,7 +127,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
       });
     }
 
-    const userMessage = body.userRequest.utterance.slice(0, 4000);
+    const userMessage = body.userRequest.utterance.slice(0, MAX_MESSAGE_LENGTH);
 
     // Extract tenant ID from bot ID or use default
     const tenantId = body.bot?.id || 'default';
@@ -247,7 +248,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
 
     // Handle message events
     if (body.event?.type === 'message' && body.event.text) {
-      const userMessage = body.event.text.slice(0, 4000);
+      const userMessage = body.event.text.slice(0, MAX_MESSAGE_LENGTH);
       const channelId = body.event.channel;
 
       // Extract tenant ID from request
@@ -329,7 +330,7 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
 
     // Handle application commands or message components
     if (body.type === 2 || body.type === 3) {
-      const userMessage = (body.data?.content || body.data?.name || '').slice(0, 4000);
+      const userMessage = (body.data?.content || body.data?.name || '').slice(0, MAX_MESSAGE_LENGTH);
 
       // Extract tenant ID from request
       const tenantId = c.req.header('X-Tenant-ID') || 'default';

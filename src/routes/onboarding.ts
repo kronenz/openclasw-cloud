@@ -8,6 +8,7 @@ import {
   listSoulVersions,
 } from '../db/queries-v2.js';
 import { SoulGenerator } from '../services/soul-generator.js';
+import { MAX_SOUL_CONTENT_LENGTH } from '../config/constants.js';
 
 const onboarding = new Hono<{ Bindings: Bindings }>();
 
@@ -22,7 +23,7 @@ const surveySchema = z.object({
 });
 
 const soulUpdateSchema = z.object({
-  content: z.string().min(1).max(50000),
+  content: z.string().min(1).max(MAX_SOUL_CONTENT_LENGTH),
 });
 
 // POST /:tenantId/survey - Submit onboarding survey
