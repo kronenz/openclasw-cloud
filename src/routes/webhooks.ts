@@ -142,8 +142,17 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Varia
 
     const userMessage = body.userRequest.utterance.slice(0, MAX_MESSAGE_LENGTH);
 
-    // Extract tenant ID from bot ID or use default
-    const tenantId = body.bot?.id || 'default';
+    // Extract tenant ID from bot ID
+    const tenantId = body.bot?.id;
+    if (!tenantId) {
+      structuredWarn('kakaotalk_missing_tenant_id', { body });
+      return c.json({
+        version: '2.0',
+        template: {
+          outputs: [{ simpleText: { text: '서비스 설정이 필요합니다. 관리자에게 문의하세요.' } }],
+        },
+      });
+    }
 
     // Validate tenant
     const tenant = await getTenant(c.env.DB, tenantId);
@@ -205,7 +214,15 @@ async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variab
     }
 
     // Extract tenant ID from URL path or header
-    const tenantId = c.req.header('X-Tenant-ID') || 'default';
+    const tenantId = c.req.header('X-Tenant-ID');
+    if (!tenantId) {
+      structuredWarn('telegram_missing_tenant_id', {});
+      return c.json<ApiResponse>({
+        success: false,
+        error: 'Missing X-Tenant-ID header',
+        code: 'MISSING_TENANT_ID',
+      }, 400);
+    }
 
     // Validate tenant
     const tenant = await getTenant(c.env.DB, tenantId);
@@ -251,7 +268,15 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
       const channelId = body.event.channel;
 
       // Extract tenant ID from request
-      const tenantId = c.req.header('X-Tenant-ID') || 'default';
+      const tenantId = c.req.header('X-Tenant-ID');
+      if (!tenantId) {
+        structuredWarn('slack_missing_tenant_id', {});
+        return c.json<ApiResponse>({
+          success: false,
+          error: 'Missing X-Tenant-ID header',
+          code: 'MISSING_TENANT_ID',
+        }, 400);
+      }
 
       // Validate tenant
       const tenant = await getTenant(c.env.DB, tenantId);
@@ -318,7 +343,15 @@ async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variabl
       const userMessage = (body.data?.content || body.data?.name || '').slice(0, MAX_MESSAGE_LENGTH);
 
       // Extract tenant ID from request
-      const tenantId = c.req.header('X-Tenant-ID') || 'default';
+      const tenantId = c.req.header('X-Tenant-ID');
+      if (!tenantId) {
+        structuredWarn('discord_missing_tenant_id', {});
+        return c.json<ApiResponse>({
+          success: false,
+          error: 'Missing X-Tenant-ID header',
+          code: 'MISSING_TENANT_ID',
+        }, 400);
+      }
 
       // Validate tenant
       const tenant = await getTenant(c.env.DB, tenantId);

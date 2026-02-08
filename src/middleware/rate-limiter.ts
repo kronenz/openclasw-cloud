@@ -25,7 +25,8 @@ export const rateLimiterMiddleware = createMiddleware<{ Bindings: Bindings; Vari
     const key = `ratelimit:${tenantId}:${windowKey}`;
 
     const currentStr = await c.env.CACHE.get(key);
-    const current = currentStr ? parseInt(currentStr, 10) : 0;
+    const parsed = currentStr ? parseInt(currentStr, 10) : 0;
+    const current = Number.isNaN(parsed) ? 0 : parsed;
 
     if (current >= config.maxRequests) {
       return c.json({

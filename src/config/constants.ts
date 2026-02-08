@@ -2,6 +2,9 @@
 export const RATE_LIMIT_MAX_REQUESTS = 100;
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 
+// Cron job timeout (milliseconds)
+export const CRON_JOB_TIMEOUT_MS = 300_000; // 5 minutes
+
 // Time constants
 export const MS_PER_DAY = 86_400_000;
 

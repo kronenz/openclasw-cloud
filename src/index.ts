@@ -19,7 +19,8 @@ import { CustomerEngagement } from './services/customer-engagement.js';
 import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
-import { structuredError } from './utils/log.js';
+import { structuredError, structuredWarn } from './utils/log.js';
+import { CRON_JOB_TIMEOUT_MS } from './config/constants.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -96,19 +97,22 @@ export default {
           details: null,
           started_at: new Date().toISOString(),
         });
-      } catch {
-        // If logging fails, still run the job
+      } catch (logError) {
+        structuredWarn('cron_log_write_failed', { jobName, error: logError });
       }
 
       try {
-        await fn();
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Cron job '${jobName}' timed out after ${CRON_JOB_TIMEOUT_MS}ms`)), CRON_JOB_TIMEOUT_MS)
+        );
+        await Promise.race([fn(), timeoutPromise]);
         try {
           await updateCronLog(env.DB, logId, {
             status: 'completed',
             completed_at: new Date().toISOString(),
           });
-        } catch {
-          // Logging failure is not critical
+        } catch (logError) {
+          structuredWarn('cron_log_write_failed', { jobName, error: logError });
         }
       } catch (error) {
         structuredError('cron_job_failed', error, { jobName });
@@ -118,8 +122,8 @@ export default {
             completed_at: new Date().toISOString(),
             error_message: error instanceof Error ? error.message : String(error),
           });
-        } catch {
-          // Logging failure is not critical
+        } catch (logError) {
+          structuredWarn('cron_log_write_failed', { jobName, error: logError });
         }
       }
     }
