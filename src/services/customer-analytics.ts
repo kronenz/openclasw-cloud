@@ -1,4 +1,4 @@
-import type { Bindings, BillingSubscription, DailyUsage, Tenant } from '../types/index.js';
+import type { Bindings, BillingSubscription, DailyUsage, Tenant, TenantSegment } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
@@ -96,7 +96,8 @@ export class CustomerAnalytics {
     for (const tenant of tenants) {
       const segment = await this.classifyTenant(tenant);
       await upsertTenantSegment(this.env.DB, segment);
-      summary[segment.segment]++;
+      const seg = segment.segment as keyof Omit<SegmentSummary, 'total'>;
+      summary[seg]++;
     }
 
     structuredLog('tenant_segmentation_completed', { summary });
@@ -172,7 +173,7 @@ export class CustomerAnalytics {
   }
 
   // Classify a tenant into a segment
-  private async classifyTenant(tenant: Tenant) {
+  private async classifyTenant(tenant: Tenant): Promise<TenantSegment> {
     const analysis = await this.analyzeTenant(tenant.id);
     const subscription = await getSubscription(this.env.DB, tenant.id);
     const plans = await listBillingPlans(this.env.DB);
