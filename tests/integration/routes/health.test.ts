@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
