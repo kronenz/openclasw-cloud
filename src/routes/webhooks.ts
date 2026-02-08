@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { Bindings, ApiResponse, AiTextResponse } from '../types/index.js';
+import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
 import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
+import { withErrorHandler } from '../utils/error-handler.js';
 
 const webhooks = new Hono<{ Bindings: Bindings }>();
 
@@ -64,54 +65,44 @@ interface DiscordInteraction {
 }
 
 // POST /messenger - receive webhook from messenger platforms
-webhooks.post('/messenger', async (c) => {
-  try {
-    // Parse platform type from header or body
-    const platformHeader = c.req.header('X-Platform-Type');
-    const body = await c.req.json();
-    const platform = platformHeader || body.platform || 'unknown';
+webhooks.post('/messenger', withErrorHandler('messenger_webhook_failed', async (c) => {
+  // Parse platform type from header or body
+  const platformHeader = c.req.header('X-Platform-Type');
+  const body = await c.req.json();
+  const platform = platformHeader || body.platform || 'unknown';
 
-    // Log webhook receipt
-    structuredLog('messenger_webhook_received', {
-      platform,
-      body,
-    });
+  // Log webhook receipt
+  structuredLog('messenger_webhook_received', {
+    platform,
+    body,
+  });
 
-    // Route to appropriate handler based on platform
-    switch (platform) {
-      case 'kakao':
-      case 'kakaotalk':
-        return await handleKakaoTalk(c, body as KakaoTalkRequest);
+  // Route to appropriate handler based on platform
+  switch (platform) {
+    case 'kakao':
+    case 'kakaotalk':
+      return await handleKakaoTalk(c, body as KakaoTalkRequest);
 
-      case 'telegram':
-        return await handleTelegram(c, body as TelegramUpdate);
+    case 'telegram':
+      return await handleTelegram(c, body as TelegramUpdate);
 
-      case 'slack':
-        return await handleSlack(c, body as SlackEvent);
+    case 'slack':
+      return await handleSlack(c, body as SlackEvent);
 
-      case 'discord':
-        return await handleDiscord(c, body as DiscordInteraction);
+    case 'discord':
+      return await handleDiscord(c, body as DiscordInteraction);
 
-      default:
-        structuredWarn('unknown_messenger_platform', { platform });
-        return c.json<ApiResponse>({
-          success: true,
-          data: { received: true },
-        });
-    }
-  } catch (e) {
-    structuredError('messenger_webhook_failed', e);
-
-    // Still return 200 to avoid webhook retries
-    return c.json<ApiResponse>({
-      success: true,
-      data: { received: true },
-    });
+    default:
+      structuredWarn('unknown_messenger_platform', { platform });
+      return c.json<ApiResponse>({
+        success: true,
+        data: { received: true },
+      });
   }
-});
+}));
 
 // KakaoTalk webhook handler
-async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTalkRequest) {
+async function handleKakaoTalk(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: KakaoTalkRequest) {
   try {
     // Validate request structure
     if (!body.userRequest?.utterance) {
@@ -196,7 +187,7 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
 }
 
 // Telegram webhook handler
-async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: TelegramUpdate) {
+async function handleTelegram(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: TelegramUpdate) {
   try {
     // Validate Telegram update structure
     if (!body.message?.text || !body.message?.chat?.id) {
@@ -240,7 +231,7 @@ async function handleTelegram(c: Context<{ Bindings: Bindings }>, body: Telegram
 }
 
 // Slack webhook handler
-async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent) {
+async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: SlackEvent) {
   try {
     // Handle URL verification challenge
     if (body.type === 'url_verification' && body.challenge) {
@@ -323,7 +314,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
 }
 
 // Discord webhook handler
-async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordInteraction) {
+async function handleDiscord(c: Context<{ Bindings: Bindings; Variables: Variables }>, body: DiscordInteraction) {
   try {
     // Handle PING verification (type 1)
     if (body.type === 1) {

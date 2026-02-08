@@ -14,6 +14,7 @@ import { generateTenantId, generateSubdomain, toDateString } from '../utils/id.j
 import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
+import { withErrorHandler, validationError } from '../utils/error-handler.js';
 
 const tenants = new Hono<{ Bindings: Bindings }>();
 
@@ -60,312 +61,231 @@ const usageQuerySchema = z.object({
 });
 
 // POST / - create tenant
-tenants.post('/', async (c) => {
-  try {
-    const body = await c.req.json();
-    const parsed = createTenantSchema.safeParse(body);
+tenants.post('/', withErrorHandler('tenant_create_failed', async (c) => {
+  const body = await c.req.json();
+  const parsed = createTenantSchema.safeParse(body);
 
-    if (!parsed.success) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.errors,
-      }, 400);
-    }
-
-    const data = parsed.data;
-    const tenantId = generateTenantId();
-    const subdomain = data.subdomain || generateSubdomain(data.name);
-
-    const tenant = await createTenant(c.env.DB, {
-      id: tenantId,
-      name: data.name,
-      plan: data.plan,
-      status: 'provisioning',
-      subdomain,
-      contact_email: data.contact_email,
-      contact_name: data.contact_name || null,
-      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-    });
-
-    // Trigger async provisioning pipeline in background
-    const provisioner = new TenantProvisioner(c.env);
-    try {
-      c.executionCtx.waitUntil(
-        provisioner.provision({
-          name: data.name,
-          plan: data.plan,
-          subdomain,
-          contact_email: data.contact_email,
-          contact_name: data.contact_name,
-          metadata: data.metadata,
-        }).catch(async (error) => {
-          structuredError('provisioning_failed', error, { tenantId });
-          // Create incident for failed provisioning so operators are notified
-          try {
-            await createIncident(c.env.DB, {
-              id: crypto.randomUUID(),
-              tenant_id: tenantId,
-              severity: 'P1',
-              status: 'open',
-              title: `Provisioning failed for tenant ${tenantId}`,
-              description: error instanceof Error ? error.message : String(error),
-              auto_recovery_attempts: 0,
-              resolved_at: null,
-            });
-          } catch (incidentError) {
-            structuredError('incident_creation_failed', incidentError);
-          }
-        })
-      );
-    } catch (e) {
-      // In test environment, executionCtx is not available
-      // Provisioning will be handled separately or mocked
-      structuredWarn('provisioning_no_execution_context');
-    }
-
-    return c.json<ApiResponse<Tenant>>({
-      success: true,
-      data: tenant,
-    }, 201);
-  } catch (e) {
-    structuredError('tenant_create_failed', e);
-    return c.json<ApiResponse>({
-      success: false,
-      error: 'Failed to create tenant',
-      code: 'TENANT_CREATE_FAILED',
-    }, 500);
+  if (!parsed.success) {
+    return validationError(c, 'Validation failed', parsed.error.errors);
   }
-});
+
+  const data = parsed.data;
+  const tenantId = generateTenantId();
+  const subdomain = data.subdomain || generateSubdomain(data.name);
+
+  const tenant = await createTenant(c.env.DB, {
+    id: tenantId,
+    name: data.name,
+    plan: data.plan,
+    status: 'provisioning',
+    subdomain,
+    contact_email: data.contact_email,
+    contact_name: data.contact_name || null,
+    metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+  });
+
+  // Trigger async provisioning pipeline in background
+  const provisioner = new TenantProvisioner(c.env);
+  try {
+    c.executionCtx.waitUntil(
+      provisioner.provision({
+        name: data.name,
+        plan: data.plan,
+        subdomain,
+        contact_email: data.contact_email,
+        contact_name: data.contact_name,
+        metadata: data.metadata,
+      }).catch(async (error) => {
+        structuredError('provisioning_failed', error, { tenantId });
+        // Create incident for failed provisioning so operators are notified
+        try {
+          await createIncident(c.env.DB, {
+            id: crypto.randomUUID(),
+            tenant_id: tenantId,
+            severity: 'P1',
+            status: 'open',
+            title: `Provisioning failed for tenant ${tenantId}`,
+            description: error instanceof Error ? error.message : String(error),
+            auto_recovery_attempts: 0,
+            resolved_at: null,
+          });
+        } catch (incidentError) {
+          structuredError('incident_creation_failed', incidentError);
+        }
+      })
+    );
+  } catch (e) {
+    // In test environment, executionCtx is not available
+    // Provisioning will be handled separately or mocked
+    structuredWarn('provisioning_no_execution_context');
+  }
+
+  return c.json<ApiResponse<Tenant>>({
+    success: true,
+    data: tenant,
+  }, 201);
+}));
 
 // GET / - list tenants
-tenants.get('/', async (c) => {
-  try {
-    const queryParams = {
-      limit: c.req.query('limit'),
-      offset: c.req.query('offset'),
-      status: c.req.query('status'),
-    };
+tenants.get('/', withErrorHandler('tenants_list_failed', async (c) => {
+  const queryParams = {
+    limit: c.req.query('limit'),
+    offset: c.req.query('offset'),
+    status: c.req.query('status'),
+  };
 
-    const parsed = listTenantsQuerySchema.safeParse(queryParams);
+  const parsed = listTenantsQuerySchema.safeParse(queryParams);
 
-    if (!parsed.success) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: parsed.error.message,
-        code: 'VALIDATION_ERROR',
-      }, 400);
-    }
-
-    const { limit, offset, status } = parsed.data;
-
-    const tenantList = await listTenants(c.env.DB, {
-      status: status || undefined,
-      limit,
-      offset,
-    });
-
-    return c.json<ApiResponse<Tenant[]>>({
-      success: true,
-      data: tenantList,
-    });
-  } catch (e) {
-    structuredError('tenant_list_failed', e);
-    return c.json<ApiResponse>({
-      success: false,
-      error: 'Failed to list tenants',
-      code: 'TENANT_LIST_FAILED',
-    }, 500);
+  if (!parsed.success) {
+    return validationError(c, parsed.error.message);
   }
-});
+
+  const { limit, offset, status } = parsed.data;
+
+  const tenantList = await listTenants(c.env.DB, {
+    status: status || undefined,
+    limit,
+    offset,
+  });
+
+  return c.json<ApiResponse<Tenant[]>>({
+    success: true,
+    data: tenantList,
+  });
+}));
 
 // GET /:id - get tenant by ID
-tenants.get('/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const tenant = await getTenant(c.env.DB, id);
+tenants.get('/:id', withErrorHandler('tenant_get_failed', async (c) => {
+  const id = c.req.param('id');
+  const tenant = await getTenant(c.env.DB, id);
 
-    if (!tenant) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Tenant not found',
-        code: 'TENANT_NOT_FOUND',
-      }, 404);
-    }
-
-    return c.json<ApiResponse<Tenant>>({
-      success: true,
-      data: tenant,
-    });
-  } catch (e) {
-    structuredError('tenant_get_failed', e);
+  if (!tenant) {
     return c.json<ApiResponse>({
       success: false,
-      error: 'Failed to get tenant',
-      code: 'TENANT_GET_FAILED',
-    }, 500);
+      error: 'Tenant not found',
+      code: 'TENANT_NOT_FOUND',
+    }, 404);
   }
-});
+
+  return c.json<ApiResponse<Tenant>>({
+    success: true,
+    data: tenant,
+  });
+}));
 
 // PUT /:id - update tenant
-tenants.put('/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const body = await c.req.json();
-    const parsed = updateTenantSchema.safeParse(body);
+tenants.put('/:id', withErrorHandler('tenant_update_failed', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const parsed = updateTenantSchema.safeParse(body);
 
-    if (!parsed.success) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.errors,
-      }, 400);
-    }
+  if (!parsed.success) {
+    return validationError(c, 'Validation failed', parsed.error.errors);
+  }
 
-    const data = parsed.data;
-    const updates: Record<string, unknown> = {};
+  const data = parsed.data;
+  const updates: Record<string, unknown> = {};
 
-    if (data.name !== undefined) updates.name = data.name;
-    if (data.plan !== undefined) updates.plan = data.plan;
-    if (data.status !== undefined) updates.status = data.status;
-    if (data.contact_email !== undefined) updates.contact_email = data.contact_email;
-    if (data.subdomain !== undefined) updates.subdomain = data.subdomain;
-    if (data.metadata !== undefined) updates.metadata = JSON.stringify(data.metadata);
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.plan !== undefined) updates.plan = data.plan;
+  if (data.status !== undefined) updates.status = data.status;
+  if (data.contact_email !== undefined) updates.contact_email = data.contact_email;
+  if (data.subdomain !== undefined) updates.subdomain = data.subdomain;
+  if (data.metadata !== undefined) updates.metadata = JSON.stringify(data.metadata);
 
-    const tenant = await updateTenant(c.env.DB, id, updates);
+  const tenant = await updateTenant(c.env.DB, id, updates);
 
-    if (!tenant) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Tenant not found',
-        code: 'TENANT_NOT_FOUND',
-      }, 404);
-    }
-
-    return c.json<ApiResponse<Tenant>>({
-      success: true,
-      data: tenant,
-    });
-  } catch (e) {
-    structuredError('tenant_update_failed', e);
+  if (!tenant) {
     return c.json<ApiResponse>({
       success: false,
-      error: 'Failed to update tenant',
-      code: 'TENANT_UPDATE_FAILED',
-    }, 500);
+      error: 'Tenant not found',
+      code: 'TENANT_NOT_FOUND',
+    }, 404);
   }
-});
+
+  return c.json<ApiResponse<Tenant>>({
+    success: true,
+    data: tenant,
+  });
+}));
 
 // DELETE /:id - soft delete tenant
-tenants.delete('/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const tenant = await updateTenant(c.env.DB, id, { status: 'deleted' });
+tenants.delete('/:id', withErrorHandler('tenant_delete_failed', async (c) => {
+  const id = c.req.param('id');
+  const tenant = await updateTenant(c.env.DB, id, { status: 'deleted' });
 
-    if (!tenant) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Tenant not found',
-        code: 'TENANT_NOT_FOUND',
-      }, 404);
-    }
-
-    return c.json<ApiResponse<Tenant>>({
-      success: true,
-      data: tenant,
-    });
-  } catch (e) {
-    structuredError('tenant_delete_failed', e);
+  if (!tenant) {
     return c.json<ApiResponse>({
       success: false,
-      error: 'Failed to delete tenant',
-      code: 'TENANT_DELETE_FAILED',
-    }, 500);
+      error: 'Tenant not found',
+      code: 'TENANT_NOT_FOUND',
+    }, 404);
   }
-});
+
+  return c.json<ApiResponse<Tenant>>({
+    success: true,
+    data: tenant,
+  });
+}));
 
 // GET /:id/usage - get usage for tenant
-tenants.get('/:id/usage', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const queryParams = {
-      start_date: c.req.query('start_date'),
-      end_date: c.req.query('end_date'),
-    };
+tenants.get('/:id/usage', withErrorHandler('tenant_usage_get_failed', async (c) => {
+  const id = c.req.param('id');
+  const queryParams = {
+    start_date: c.req.query('start_date'),
+    end_date: c.req.query('end_date'),
+  };
 
-    const parsed = usageQuerySchema.safeParse(queryParams);
+  const parsed = usageQuerySchema.safeParse(queryParams);
 
-    if (!parsed.success) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: parsed.error.message,
-        code: 'VALIDATION_ERROR',
-      }, 400);
-    }
-
-    const startDate = parsed.data.start_date || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-    const endDate = parsed.data.end_date || toDateString();
-
-    const usage = await getTenantUsageSummary(c.env.DB, id, startDate, endDate);
-
-    return c.json<ApiResponse>({
-      success: true,
-      data: {
-        tenant_id: id,
-        start_date: startDate,
-        end_date: endDate,
-        usage,
-      },
-    });
-  } catch (e) {
-    structuredError('tenant_usage_get_failed', e);
-    return c.json<ApiResponse>({
-      success: false,
-      error: 'Failed to get tenant usage',
-      code: 'USAGE_GET_FAILED',
-    }, 500);
+  if (!parsed.success) {
+    return validationError(c, parsed.error.message);
   }
-});
+
+  const startDate = parsed.data.start_date || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const endDate = parsed.data.end_date || toDateString();
+
+  const usage = await getTenantUsageSummary(c.env.DB, id, startDate, endDate);
+
+  return c.json<ApiResponse>({
+    success: true,
+    data: {
+      tenant_id: id,
+      start_date: startDate,
+      end_date: endDate,
+      usage,
+    },
+  });
+}));
 
 // GET /:id/health - tenant health check
-tenants.get('/:id/health', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const tenant = await getTenant(c.env.DB, id);
+tenants.get('/:id/health', withErrorHandler('tenant_health_check_failed', async (c) => {
+  const id = c.req.param('id');
+  const tenant = await getTenant(c.env.DB, id);
 
-    if (!tenant) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Tenant not found',
-        code: 'TENANT_NOT_FOUND',
-      }, 404);
-    }
-
-    const resources = await getTenantResources(c.env.DB, id);
-
-    // Basic health check based on tenant status and resources
-    const status = tenant.status === 'active' && resources.length > 0 ? 'healthy' : 'degraded';
-
-    return c.json<ApiResponse>({
-      success: true,
-      data: {
-        tenant_id: id,
-        status,
-        tenant_status: tenant.status,
-        resources_count: resources.length,
-        last_checked: new Date().toISOString(),
-      },
-    });
-  } catch (e) {
-    structuredError('tenant_health_check_failed', e);
+  if (!tenant) {
     return c.json<ApiResponse>({
       success: false,
-      error: 'Failed to check tenant health',
-      code: 'HEALTH_CHECK_FAILED',
-    }, 500);
+      error: 'Tenant not found',
+      code: 'TENANT_NOT_FOUND',
+    }, 404);
   }
-});
+
+  const resources = await getTenantResources(c.env.DB, id);
+
+  // Basic health check based on tenant status and resources
+  const status = tenant.status === 'active' && resources.length > 0 ? 'healthy' : 'degraded';
+
+  return c.json<ApiResponse>({
+    success: true,
+    data: {
+      tenant_id: id,
+      status,
+      tenant_status: tenant.status,
+      resources_count: resources.length,
+      last_checked: new Date().toISOString(),
+    },
+  });
+}));
 
 export { tenants };
