@@ -36,6 +36,25 @@ interface PlatformReport {
   bottom_tenants: { id: string; name: string; tokens: number; cost: number }[];
 }
 
+// Extract top models from daily usage model_breakdown JSON
+function aggregateTopModels(usage: DailyUsage[], limit = 5): { model: string; tokens: number; cost: number }[] {
+  const modelTotals: Record<string, { tokens: number; cost: number }> = {};
+  for (const day of usage) {
+    if (day.model_breakdown) {
+      const breakdown = safeJsonParse<ModelBreakdownData>(day.model_breakdown, {});
+      for (const [model, data] of Object.entries(breakdown)) {
+        if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
+        modelTotals[model].tokens += data.tokens || 0;
+        modelTotals[model].cost += data.cost || 0;
+      }
+    }
+  }
+  return Object.entries(modelTotals)
+    .map(([model, data]) => ({ model, ...data }))
+    .sort((a, b) => b.tokens - a.tokens)
+    .slice(0, limit);
+}
+
 export class ReportGenerator {
   constructor(private env: Bindings) {}
 
@@ -52,22 +71,7 @@ export class ReportGenerator {
     const totalRequests = usage.reduce((sum, d) => sum + d.total_requests, 0);
     const activeDays = usage.filter(d => d.total_tokens > 0).length;
 
-    // Extract top models from model_breakdown
-    const modelTotals: Record<string, { tokens: number; cost: number }> = {};
-    for (const day of usage) {
-      if (day.model_breakdown) {
-        const breakdown = safeJsonParse<ModelBreakdownData>(day.model_breakdown, {});
-        for (const [model, data] of Object.entries(breakdown)) {
-          if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-          modelTotals[model].tokens += data.tokens || 0;
-          modelTotals[model].cost += data.cost || 0;
-        }
-      }
-    }
-    const topModels = Object.entries(modelTotals)
-      .map(([model, data]) => ({ model, ...data }))
-      .sort((a, b) => b.tokens - a.tokens)
-      .slice(0, 5);
+    const topModels = aggregateTopModels(usage);
 
     // Determine trend using shared utility
     const tokenValues = usage.map(d => d.total_tokens);
@@ -99,22 +103,7 @@ export class ReportGenerator {
     const totalRequests = usage.reduce((sum, d) => sum + d.total_requests, 0);
     const activeDays = usage.filter(d => d.total_tokens > 0).length;
 
-    // Model breakdown
-    const modelTotals: Record<string, { tokens: number; cost: number }> = {};
-    for (const day of usage) {
-      if (day.model_breakdown) {
-        const breakdown = safeJsonParse<ModelBreakdownData>(day.model_breakdown, {});
-        for (const [model, data] of Object.entries(breakdown)) {
-          if (!modelTotals[model]) modelTotals[model] = { tokens: 0, cost: 0 };
-          modelTotals[model].tokens += data.tokens || 0;
-          modelTotals[model].cost += data.cost || 0;
-        }
-      }
-    }
-    const topModels = Object.entries(modelTotals)
-      .map(([model, data]) => ({ model, ...data }))
-      .sort((a, b) => b.tokens - a.tokens)
-      .slice(0, 5);
+    const topModels = aggregateTopModels(usage);
 
     // Weekly breakdown
     const weeklyBreakdown: { week: number; tokens: number; cost: number; requests: number }[] = [];
