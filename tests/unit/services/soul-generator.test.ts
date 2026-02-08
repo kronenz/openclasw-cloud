@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SoulGenerator } from '../../../src/services/soul-generator.js';
 import type { Bindings, OnboardingSurvey, SoulVersion } from '../../../src/types/index.js';
+import { AI_MAX_TOKENS_SOUL } from '../../../src/config/constants.js';
 
 function createMockEnv(): Bindings {
   return {
@@ -238,6 +239,30 @@ describe('SoulGenerator', () => {
 
       expect(content).toContain('## 추가 지시사항');
       expect(content).toContain('Always verify customer identity');
+    });
+
+    it('uses correct max_tokens (AI_MAX_TOKENS_SOUL) when calling AI', async () => {
+      const survey: OnboardingSurvey = {
+        id: 'survey_1',
+        tenant_id: 'tn_test123',
+        industry: 'cafe',
+        business_description: 'Test cafe',
+        preferred_tone: 'friendly',
+        preferred_language: 'ko',
+        target_services: null,
+        custom_instructions: null,
+        completed_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
+
+      await generator.generate('tn_test123', survey);
+
+      expect(env.AI.run).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          max_tokens: AI_MAX_TOKENS_SOUL,
+        })
+      );
     });
   });
 

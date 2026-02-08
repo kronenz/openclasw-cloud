@@ -1,6 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CloudflareApi } from '../../../src/services/cf-api.js';
 import type { Bindings } from '../../../src/types/index.js';
+
+// Mock the fetchWithTimeout utility
+vi.mock('../../../src/utils/fetch.js', () => ({
+  fetchWithTimeout: vi.fn(),
+  DEFAULT_FETCH_TIMEOUT_MS: 10_000,
+}));
+
+import { fetchWithTimeout } from '../../../src/utils/fetch.js';
 
 function createMockEnv(withCredentials = false): Bindings {
   const env: any = {
@@ -24,15 +32,8 @@ function createMockEnv(withCredentials = false): Bindings {
 }
 
 describe('CloudflareApi', () => {
-  let originalFetch: typeof global.fetch;
-
   beforeEach(() => {
-    originalFetch = global.fetch;
     vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
   });
 
   describe('createD1Database', () => {
@@ -50,21 +51,20 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: { id: 'd1_real_123', name: 'test-db' },
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await api.createD1Database('test-db');
 
       expect(result.id).toBe('d1_real_123');
       expect(result.name).toBe('test-db');
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         'https://api.cloudflare.com/client/v4/accounts/test-account-id/d1/database',
         expect.objectContaining({
           method: 'POST',
@@ -73,7 +73,8 @@ describe('CloudflareApi', () => {
             'Content-Type': 'application/json',
           }),
           body: JSON.stringify({ name: 'test-db' }),
-        })
+        }),
+        30_000
       );
     });
 
@@ -81,14 +82,13 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: false,
           errors: [{ code: 10000, message: 'Authentication error' }],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await expect(api.createD1Database('test-db')).rejects.toThrow('CF API error');
     });
@@ -109,26 +109,26 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: { id: 'kv_real_456' },
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await api.createKvNamespace('test-kv');
 
       expect(result.id).toBe('kv_real_456');
       expect(result.name).toBe('test-kv');
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         'https://api.cloudflare.com/client/v4/accounts/test-account-id/storage/kv/namespaces',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ title: 'test-kv' }),
-        })
+        }),
+        30_000
       );
     });
 
@@ -136,14 +136,13 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: false,
           errors: [{ code: 10001, message: 'Invalid namespace name' }],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await expect(api.createKvNamespace('invalid name!')).rejects.toThrow();
     });
@@ -164,26 +163,26 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: undefined,
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await api.createR2Bucket('test-bucket');
 
       expect(result.id).toBe('test-bucket');
       expect(result.name).toBe('test-bucket');
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         'https://api.cloudflare.com/client/v4/accounts/test-account-id/r2/buckets',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({ name: 'test-bucket' }),
-        })
+        }),
+        30_000
       );
     });
 
@@ -191,14 +190,13 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: false,
           errors: [{ code: 10002, message: 'Bucket already exists' }],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await expect(api.createR2Bucket('existing-bucket')).rejects.toThrow();
     });
@@ -219,28 +217,28 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ success: true }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await api.createWorker('test-worker');
 
       expect(result.id).toBe('test-worker');
       expect(result.name).toBe('test-worker');
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         'https://api.cloudflare.com/client/v4/accounts/test-account-id/workers/scripts/test-worker',
         expect.objectContaining({
           method: 'PUT',
           headers: expect.objectContaining({
             'Authorization': 'Bearer test-cf-token-12345',
           }),
-        })
+        }),
+        30_000
       );
 
       // Verify FormData was used
-      const callBody = fetchMock.mock.calls[0][1].body;
+      const callBody = vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body;
       expect(callBody).toBeInstanceOf(FormData);
     });
 
@@ -250,16 +248,15 @@ describe('CloudflareApi', () => {
 
       const customScript = 'export default { fetch(req) { return new Response("Custom"); } }';
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ success: true }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await api.createWorker('test-worker', customScript);
 
-      expect(fetchMock).toHaveBeenCalled();
-      const callBody = fetchMock.mock.calls[0][1].body;
+      expect(fetchWithTimeout).toHaveBeenCalled();
+      const callBody = vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body;
       expect(callBody).toBeInstanceOf(FormData);
     });
 
@@ -267,11 +264,10 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: false,
         text: async () => 'Script syntax error',
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await expect(api.createWorker('invalid-worker')).rejects.toThrow(
         'Worker creation failed'
@@ -305,7 +301,7 @@ describe('CloudflareApi', () => {
       let r2Called = false;
       let workerCalled = false;
 
-      const fetchMock = vi.fn().mockImplementation((url: string, options: any) => {
+      vi.mocked(fetchWithTimeout).mockImplementation((url: string, options: any) => {
         if (url.includes('/d1/database')) {
           d1Called = true;
           return Promise.resolve({
@@ -315,7 +311,7 @@ describe('CloudflareApi', () => {
               result: { id: 'd1_real', name: 'oc-testcafe-db' },
               errors: [],
             }),
-          });
+          } as any);
         }
         if (url.includes('/storage/kv/namespaces')) {
           kvCalled = true;
@@ -326,7 +322,7 @@ describe('CloudflareApi', () => {
               result: { id: 'kv_real' },
               errors: [],
             }),
-          });
+          } as any);
         }
         if (url.includes('/r2/buckets')) {
           r2Called = true;
@@ -337,18 +333,17 @@ describe('CloudflareApi', () => {
               result: undefined,
               errors: [],
             }),
-          });
+          } as any);
         }
         if (url.includes('/workers/scripts/')) {
           workerCalled = true;
           return Promise.resolve({
             ok: true,
             json: async () => ({ success: true }),
-          });
+          } as any);
         }
         return Promise.reject(new Error('Unexpected URL: ' + url));
       });
-      global.fetch = fetchMock;
 
       const result = await api.provisionTenantResources('tn_test123', 'testcafe');
 
@@ -367,7 +362,7 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockImplementation((url: string) => {
+      vi.mocked(fetchWithTimeout).mockImplementation((url: string) => {
         if (url.includes('/d1/database')) {
           return Promise.resolve({
             ok: true,
@@ -375,14 +370,13 @@ describe('CloudflareApi', () => {
               success: false,
               errors: [{ code: 10000, message: 'D1 creation failed' }],
             }),
-          });
+          } as any);
         }
         return Promise.resolve({
           ok: true,
           json: async () => ({ success: true, result: {}, errors: [] }),
-        });
+        } as any);
       });
-      global.fetch = fetchMock;
 
       await expect(
         api.provisionTenantResources('tn_test123', 'testcafe')
@@ -407,29 +401,25 @@ describe('CloudflareApi', () => {
       const envWithCreds = createMockEnv(true);
       const apiWithCreds = new CloudflareApi(envWithCreds);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: { id: 'd1_real', name: 'test' },
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await apiWithCreds.createD1Database('test');
-      expect(fetchMock).toHaveBeenCalled();
+      expect(fetchWithTimeout).toHaveBeenCalled();
     });
 
     it('correctly detects when credentials are missing', async () => {
       const envNoCreds = createMockEnv(false);
       const apiNoCreds = new CloudflareApi(envNoCreds);
 
-      const fetchMock = vi.fn();
-      global.fetch = fetchMock;
-
       const result = await apiNoCreds.createD1Database('test');
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchWithTimeout).not.toHaveBeenCalled();
       expect(result.id).toMatch(/^d1_/);
     });
 
@@ -437,21 +427,21 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: { id: 'kv_123' },
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await api.createKvNamespace('test');
 
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         expect.stringContaining('accounts/test-account-id'),
-        expect.any(Object)
+        expect.any(Object),
+        30_000
       );
     });
 
@@ -459,25 +449,25 @@ describe('CloudflareApi', () => {
       const env = createMockEnv(true);
       const api = new CloudflareApi(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
           result: {},
           errors: [],
         }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await api.createR2Bucket('test');
 
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
             'Authorization': 'Bearer test-cf-token-12345',
           }),
-        })
+        }),
+        30_000
       );
     });
   });

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackupService } from '../../../src/services/backup.js';
 import type { Bindings, Tenant } from '../../../src/types/index.js';
+import { BACKUP_RETENTION_DAYS } from '../../../src/config/constants.js';
 
 function createMockEnv(): Bindings {
   return {
@@ -469,6 +470,35 @@ describe('BackupService', () => {
 
       expect(result.deleted).toBe(0);
       expect(result.errors).toBe(1);
+    });
+
+    it('uses BACKUP_RETENTION_DAYS constant as default', async () => {
+      const now = new Date();
+      const oldDate = new Date(now.getTime() - (BACKUP_RETENTION_DAYS + 5) * 86400000); // older than retention
+      const recentDate = new Date(now.getTime() - (BACKUP_RETENTION_DAYS - 5) * 86400000); // within retention
+
+      const mockObjects = [
+        {
+          key: 'backups/tn_old/SOUL.md',
+          uploaded: oldDate.toISOString(),
+        },
+        {
+          key: 'backups/tn_recent/SOUL.md',
+          uploaded: recentDate.toISOString(),
+        },
+      ];
+
+      vi.spyOn(env.STORAGE, 'list').mockResolvedValue({
+        objects: mockObjects,
+        truncated: false,
+      } as any);
+
+      // Call without explicit retention days - should use BACKUP_RETENTION_DAYS
+      const result = await backupService.cleanupOldBackups();
+
+      expect(result.deleted).toBe(1);
+      expect(env.STORAGE.delete).toHaveBeenCalledWith('backups/tn_old/SOUL.md');
+      expect(env.STORAGE.delete).not.toHaveBeenCalledWith('backups/tn_recent/SOUL.md');
     });
   });
 });

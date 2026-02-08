@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EmailSender } from '../../../src/services/email-sender.js';
 import type { Bindings } from '../../../src/types/index.js';
 
+// Mock the fetchWithTimeout utility
+vi.mock('../../../src/utils/fetch.js', () => ({
+  fetchWithTimeout: vi.fn(),
+  DEFAULT_FETCH_TIMEOUT_MS: 10_000,
+}));
+
+// Mock the structuredLog utility
+vi.mock('../../../src/utils/log.js', () => ({
+  structuredLog: vi.fn(),
+  structuredWarn: vi.fn(),
+  structuredError: vi.fn(),
+}));
+
+import { fetchWithTimeout } from '../../../src/utils/fetch.js';
+import { structuredLog } from '../../../src/utils/log.js';
+
 function createMockEnv(resendApiKey?: string): Bindings {
   const env: any = {
     DB: {} as any,
@@ -23,15 +39,15 @@ function createMockEnv(resendApiKey?: string): Bindings {
 }
 
 describe('EmailSender', () => {
-  let originalFetch: typeof global.fetch;
+  let consoleErrorSpy: any;
 
   beforeEach(() => {
-    originalFetch = global.fetch;
     vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    consoleErrorSpy.mockRestore();
   });
 
   describe('sendWelcomeEmail', () => {
@@ -39,11 +55,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_123' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await sender.sendWelcomeEmail({
         tenantName: 'Test Cafe',
@@ -55,7 +70,7 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).toHaveBeenCalledWith(
+      expect(fetchWithTimeout).toHaveBeenCalledWith(
         'https://api.resend.com/emails',
         expect.objectContaining({
           method: 'POST',
@@ -65,8 +80,12 @@ describe('EmailSender', () => {
           }),
         })
       );
+      expect(structuredLog).toHaveBeenCalledWith('email_sent', {
+        to: 'john@example.com',
+        subject: expect.stringContaining('Test Cafe'),
+      });
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.from).toBe('OpenClaw <noreply@openclaw.ai>');
       expect(callBody.to).toEqual(['john@example.com']);
       expect(callBody.subject).toContain('Test Cafe');
@@ -78,11 +97,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_123' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await sender.sendWelcomeEmail({
         tenantName: 'Test Cafe',
@@ -93,7 +111,7 @@ describe('EmailSender', () => {
         apiKey: 'test_api_key_12345',
       });
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.html).toContain('test_api_key_12345');
       expect(callBody.html).toContain('https://testcafe.openclaw.ai/dashboard');
       expect(callBody.text).toContain('test_api_key_12345');
@@ -104,9 +122,6 @@ describe('EmailSender', () => {
       const env = createMockEnv();
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn();
-      global.fetch = fetchMock;
-
       const result = await sender.sendWelcomeEmail({
         tenantName: 'Test Cafe',
         contactName: 'John Doe',
@@ -117,18 +132,22 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchWithTimeout).not.toHaveBeenCalled();
+      expect(structuredLog).toHaveBeenCalledWith('email_send_skipped', {
+        reason: 'RESEND_API_KEY not configured',
+        to: 'john@example.com',
+        subject: expect.stringContaining('Test Cafe'),
+      });
     });
 
     it('returns false when Resend API returns error', async () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: false,
         text: async () => 'Invalid API key',
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await sender.sendWelcomeEmail({
         tenantName: 'Test Cafe',
@@ -140,14 +159,15 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send failed:', 'Invalid API key');
     });
 
     it('handles network errors gracefully', async () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockRejectedValue(new Error('Network error'));
-      global.fetch = fetchMock;
+      const error = new Error('Network error');
+      vi.mocked(fetchWithTimeout).mockRejectedValue(error);
 
       const result = await sender.sendWelcomeEmail({
         tenantName: 'Test Cafe',
@@ -159,6 +179,7 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send error:', error);
     });
   });
 
@@ -167,11 +188,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_456' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await sender.sendPaymentFailedEmail({
         contactEmail: 'jane@example.com',
@@ -180,9 +200,9 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).toHaveBeenCalled();
+      expect(fetchWithTimeout).toHaveBeenCalled();
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.to).toEqual(['jane@example.com']);
       expect(callBody.subject).toContain('Jane Store');
       expect(callBody.subject).toContain('결제 실패');
@@ -194,11 +214,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_456' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await sender.sendPaymentFailedEmail({
         contactEmail: 'jane@example.com',
@@ -206,7 +225,7 @@ describe('EmailSender', () => {
         tenantName: 'Jane Store',
       });
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.html).toContain('7일');
       expect(callBody.html).toContain('일시 중지');
     });
@@ -215,9 +234,6 @@ describe('EmailSender', () => {
       const env = createMockEnv();
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn();
-      global.fetch = fetchMock;
-
       const result = await sender.sendPaymentFailedEmail({
         contactEmail: 'jane@example.com',
         contactName: 'Jane Smith',
@@ -225,7 +241,12 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchWithTimeout).not.toHaveBeenCalled();
+      expect(structuredLog).toHaveBeenCalledWith('email_send_skipped', {
+        reason: 'RESEND_API_KEY not configured',
+        to: 'jane@example.com',
+        subject: expect.stringContaining('Jane Store'),
+      });
     });
   });
 
@@ -234,11 +255,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_789' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await sender.sendReEngagementEmail({
         contactEmail: 'bob@example.com',
@@ -248,9 +268,9 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).toHaveBeenCalled();
+      expect(fetchWithTimeout).toHaveBeenCalled();
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.to).toEqual(['bob@example.com']);
       expect(callBody.subject).toContain('Bob Wilson');
       expect(callBody.subject).toContain('Bob Shop');
@@ -263,11 +283,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: true,
         json: async () => ({ id: 'email_789' }),
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       await sender.sendReEngagementEmail({
         contactEmail: 'bob@example.com',
@@ -276,7 +295,7 @@ describe('EmailSender', () => {
         inactiveDays: 30,
       });
 
-      const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const callBody = JSON.parse(vi.mocked(fetchWithTimeout).mock.calls[0][1]?.body as string);
       expect(callBody.html).toContain('고객 문의 자동 응대');
       expect(callBody.html).toContain('예약 및 일정 관리');
       expect(callBody.html).toContain('자주 묻는 질문');
@@ -286,11 +305,10 @@ describe('EmailSender', () => {
       const env = createMockEnv('test-resend-key');
       const sender = new EmailSender(env);
 
-      const fetchMock = vi.fn().mockResolvedValue({
+      vi.mocked(fetchWithTimeout).mockResolvedValue({
         ok: false,
         text: async () => 'Rate limit exceeded',
-      });
-      global.fetch = fetchMock;
+      } as any);
 
       const result = await sender.sendReEngagementEmail({
         contactEmail: 'bob@example.com',
@@ -300,14 +318,12 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Email send failed:', 'Rate limit exceeded');
     });
 
     it('skips sending when API key is not configured', async () => {
       const env = createMockEnv();
       const sender = new EmailSender(env);
-
-      const fetchMock = vi.fn();
-      global.fetch = fetchMock;
 
       const result = await sender.sendReEngagementEmail({
         contactEmail: 'bob@example.com',
@@ -317,7 +333,12 @@ describe('EmailSender', () => {
       });
 
       expect(result).toBe(true);
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(fetchWithTimeout).not.toHaveBeenCalled();
+      expect(structuredLog).toHaveBeenCalledWith('email_send_skipped', {
+        reason: 'RESEND_API_KEY not configured',
+        to: 'bob@example.com',
+        subject: expect.stringContaining('Bob Shop'),
+      });
     });
   });
 });
