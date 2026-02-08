@@ -1,7 +1,7 @@
 import { escapeHtml } from '../../utils/html.js';
 import { OPENCLAW_DOMAIN, DOCS_BASE_URL } from '../../config/constants.js';
 
-export interface WelcomeEmailData {
+interface WelcomeEmailData {
   tenantName: string;
   contactName: string;
   subdomain: string;
