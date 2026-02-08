@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "wrangler dev --config infra/wrangler.toml",
     "build": "wrangler deploy --config infra/wrangler.toml --dry-run --outdir dist",
