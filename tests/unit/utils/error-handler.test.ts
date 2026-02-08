@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { withErrorHandler, validationError } from '../../../src/utils/error-handler.js';
-import type { ApiResponse } from '../../../src/types/index.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 // Mock the log utility
 vi.mock('../../../src/utils/log.js', () => ({
@@ -27,7 +27,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data).toBe('ok');
     });
@@ -40,7 +40,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(500);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Internal server error');
       expect(body.code).toBe('INTERNAL_ERROR');
@@ -69,7 +69,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/string-error');
       expect(res.status).toBe(500);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.code).toBe('INTERNAL_ERROR');
       expect(structuredError).toHaveBeenCalledWith('string_event', 'String error');
     });
@@ -83,7 +83,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('http://localhost/test');
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.url).toBe('http://localhost/test');
     });
 
@@ -127,7 +127,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Invalid input');
       expect(body.code).toBe('VALIDATION_ERROR');
@@ -143,7 +143,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Validation failed');
       expect(body.code).toBe('VALIDATION_ERROR');
@@ -158,7 +158,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Missing required field');
       expect(body.code).toBe('VALIDATION_ERROR');
@@ -181,7 +181,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.details).toEqual(complexDetails);
     });
 
@@ -195,7 +195,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.details).toEqual(arrayDetails);
     });
 
@@ -211,7 +211,7 @@ describe('Error Handler Utilities', () => {
 
       const res = await app.request('/test');
       expect(res.status).toBe(400);
-      const body = await res.json() as ApiResponse;
+      const body = await parseApiResponse(res);
       expect(body.code).toBe('VALIDATION_ERROR');
       // Should not call structuredError since no exception was thrown
       expect(structuredError).not.toHaveBeenCalled();
@@ -270,13 +270,13 @@ describe('Error Handler Utilities', () => {
       }));
 
       const validationRes = await app.request('/validation');
-      const validationBody = await validationRes.json() as ApiResponse;
+      const validationBody = await parseApiResponse(validationRes);
       expect(validationBody).toHaveProperty('success', false);
       expect(validationBody).toHaveProperty('error');
       expect(validationBody).toHaveProperty('code');
 
       const exceptionRes = await app.request('/exception');
-      const exceptionBody = await exceptionRes.json() as ApiResponse;
+      const exceptionBody = await parseApiResponse(exceptionRes);
       expect(exceptionBody).toHaveProperty('success', false);
       expect(exceptionBody).toHaveProperty('error');
       expect(exceptionBody).toHaveProperty('code');

@@ -1,29 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SubscriptionManager } from '../../../src/services/subscription-manager.js';
 import type { Bindings, Tenant, BillingSubscription, DailyUsage } from '../../../src/types/index.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('SubscriptionManager', () => {
   let env: Bindings;

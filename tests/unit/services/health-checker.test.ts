@@ -1,36 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HealthChecker } from '../../../src/services/health-checker.js';
 import type { Bindings } from '../../../src/types/index.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({ count: 5 }),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {
-      head: vi.fn().mockResolvedValue({ key: 'test' }),
-      put: vi.fn().mockResolvedValue(undefined),
-    } as any,
-    CACHE: {
-      get: vi.fn().mockResolvedValue(null),
-      put: vi.fn().mockResolvedValue(undefined),
-    } as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-    SLACK_WEBHOOK_URL: undefined,
-  };
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('HealthChecker', () => {
   let env: Bindings;

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CloudflareApi } from '../../../src/services/cf-api.js';
 import type { Bindings } from '../../../src/types/index.js';
+import { createMockEnv } from '../../helpers/mocks.js';
 
 // Mock the fetchWithTimeout utility
 vi.mock('../../../src/utils/fetch.js', () => ({
@@ -10,27 +11,6 @@ vi.mock('../../../src/utils/fetch.js', () => ({
 
 import { fetchWithTimeout } from '../../../src/utils/fetch.js';
 
-function createMockEnv(withCredentials = false): Bindings {
-  const env: any = {
-    DB: {} as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-
-  if (withCredentials) {
-    env.CF_API_TOKEN = 'test-cf-token-12345';
-    env.CF_ACCOUNT_ID = 'test-account-id';
-  }
-
-  return env;
-}
-
 describe('CloudflareApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +18,7 @@ describe('CloudflareApi', () => {
 
   describe('createD1Database', () => {
     it('returns simulated resource when credentials not configured', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.createD1Database('test-db');
@@ -48,7 +28,7 @@ describe('CloudflareApi', () => {
     });
 
     it('calls Cloudflare API when credentials configured', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -79,7 +59,7 @@ describe('CloudflareApi', () => {
     });
 
     it('throws error when API returns failure', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -96,7 +76,7 @@ describe('CloudflareApi', () => {
 
   describe('createKvNamespace', () => {
     it('returns simulated resource when credentials not configured', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.createKvNamespace('test-kv');
@@ -106,7 +86,7 @@ describe('CloudflareApi', () => {
     });
 
     it('calls Cloudflare API when credentials configured', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -133,7 +113,7 @@ describe('CloudflareApi', () => {
     });
 
     it('handles API errors', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -150,7 +130,7 @@ describe('CloudflareApi', () => {
 
   describe('createR2Bucket', () => {
     it('returns simulated resource when credentials not configured', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.createR2Bucket('test-bucket');
@@ -160,7 +140,7 @@ describe('CloudflareApi', () => {
     });
 
     it('calls Cloudflare API when credentials configured', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -187,7 +167,7 @@ describe('CloudflareApi', () => {
     });
 
     it('throws error on API failure', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -204,7 +184,7 @@ describe('CloudflareApi', () => {
 
   describe('createWorker', () => {
     it('returns simulated resource when credentials not configured', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.createWorker('test-worker');
@@ -214,7 +194,7 @@ describe('CloudflareApi', () => {
     });
 
     it('creates worker with default script when not provided', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -243,7 +223,7 @@ describe('CloudflareApi', () => {
     });
 
     it('creates worker with custom script', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       const customScript = 'export default { fetch(req) { return new Response("Custom"); } }';
@@ -261,7 +241,7 @@ describe('CloudflareApi', () => {
     });
 
     it('throws error when worker creation fails', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -277,7 +257,7 @@ describe('CloudflareApi', () => {
 
   describe('provisionTenantResources', () => {
     it('provisions all resources in parallel (simulated mode)', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.provisionTenantResources('tn_test123', 'testcafe');
@@ -293,7 +273,7 @@ describe('CloudflareApi', () => {
     });
 
     it('provisions all resources via Cloudflare API when configured', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       let d1Called = false;
@@ -359,7 +339,7 @@ describe('CloudflareApi', () => {
     });
 
     it('handles partial provisioning failures', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockImplementation((url: string) => {
@@ -384,7 +364,7 @@ describe('CloudflareApi', () => {
     });
 
     it('uses correct resource naming convention', async () => {
-      const env = createMockEnv(false);
+      const env = createMockEnv();
       const api = new CloudflareApi(env);
 
       const result = await api.provisionTenantResources('tn_abc', 'mycafe');
@@ -398,7 +378,7 @@ describe('CloudflareApi', () => {
 
   describe('API configuration', () => {
     it('correctly detects when credentials are configured', async () => {
-      const envWithCreds = createMockEnv(true);
+      const envWithCreds = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const apiWithCreds = new CloudflareApi(envWithCreds);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -415,7 +395,7 @@ describe('CloudflareApi', () => {
     });
 
     it('correctly detects when credentials are missing', async () => {
-      const envNoCreds = createMockEnv(false);
+      const envNoCreds = createMockEnv();
       const apiNoCreds = new CloudflareApi(envNoCreds);
 
       const result = await apiNoCreds.createD1Database('test');
@@ -424,7 +404,7 @@ describe('CloudflareApi', () => {
     });
 
     it('uses correct account ID in API requests', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({
@@ -446,7 +426,7 @@ describe('CloudflareApi', () => {
     });
 
     it('includes authorization header in all API requests', async () => {
-      const env = createMockEnv(true);
+      const env = createMockEnv({ CF_API_TOKEN: 'test-cf-token-12345', CF_ACCOUNT_ID: 'test-account-id' });
       const api = new CloudflareApi(env);
 
       vi.mocked(fetchWithTimeout).mockResolvedValue({

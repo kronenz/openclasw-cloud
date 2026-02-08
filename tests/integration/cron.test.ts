@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Bindings } from '../../src/types/index.js';
 import { app } from '../../src/index.js';
+import { createMockEnv, createMockExecutionContext } from '../helpers/mocks.js';
 
 // Mock the structuredError utility
 vi.mock('../../src/utils/log.js', () => ({
@@ -11,51 +12,6 @@ vi.mock('../../src/utils/log.js', () => ({
 }));
 
 import { structuredError } from '../../src/utils/log.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-        run: vi.fn().mockResolvedValue({ success: true }),
-      }),
-    } as any,
-    STORAGE: {
-      get: vi.fn().mockResolvedValue(null),
-      put: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
-      list: vi.fn().mockResolvedValue({ objects: [], truncated: false }),
-    } as any,
-    CACHE: {
-      get: vi.fn().mockResolvedValue(null),
-      put: vi.fn().mockResolvedValue(undefined),
-    } as any,
-    SESSIONS: {} as any,
-    AI: {
-      run: vi.fn().mockResolvedValue({ response: 'test' }),
-    } as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret-key-for-testing',
-  };
-}
-
-function createMockExecutionContext(): ExecutionContext {
-  const waitUntilPromises: Promise<any>[] = [];
-
-  return {
-    waitUntil: vi.fn((promise: Promise<any>) => {
-      waitUntilPromises.push(promise);
-    }),
-    passThroughOnException: vi.fn(),
-  } as any;
-}
 
 describe('Cron Handler Integration', () => {
   let env: Bindings;

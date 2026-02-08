@@ -1,31 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CostController } from '../../../src/services/cost-controller.js';
 import type { Bindings } from '../../../src/types/index.js';
-
-function createMockEnv(): Bindings {
-  const env: any = {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-
-  return env;
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('CostController', () => {
   let env: Bindings;

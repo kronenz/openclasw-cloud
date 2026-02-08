@@ -2,34 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackupService } from '../../../src/services/backup.js';
 import type { Bindings, Tenant } from '../../../src/types/index.js';
 import { BACKUP_RETENTION_DAYS } from '../../../src/config/constants.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {
-      get: vi.fn().mockResolvedValue(null),
-      put: vi.fn().mockResolvedValue(undefined),
-      delete: vi.fn().mockResolvedValue(undefined),
-      list: vi.fn().mockResolvedValue({ objects: [], truncated: false }),
-    } as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-  };
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('BackupService', () => {
   let env: Bindings;

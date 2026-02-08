@@ -1,37 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CustomerEngagement } from '../../../src/services/customer-engagement.js';
 import type { Bindings, Tenant, DailyUsage, BillingSubscription, BillingPlan } from '../../../src/types/index.js';
-
-function createMockEnv(): Bindings {
-  return {
-    DB: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-          all: vi.fn().mockResolvedValue({ results: [] }),
-          run: vi.fn().mockResolvedValue({}),
-        }),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      }),
-    } as any,
-    STORAGE: {} as any,
-    CACHE: {} as any,
-    SESSIONS: {} as any,
-    AI: {} as any,
-    ENVIRONMENT: 'test',
-    LOG_LEVEL: 'debug',
-    AI_GATEWAY_ENDPOINT: 'https://test.ai.cloudflare.com',
-    JWT_SECRET: 'test-secret',
-    SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test',
-  };
-}
+import { createMockEnv } from '../../helpers/mocks.js';
 
 describe('CustomerEngagement', () => {
   let env: Bindings;
   let engagement: CustomerEngagement;
 
   beforeEach(() => {
-    env = createMockEnv();
+    env = createMockEnv({ SLACK_WEBHOOK_URL: 'https://hooks.slack.com/test' });
     engagement = new CustomerEngagement(env);
   });
 
