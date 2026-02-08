@@ -1,4 +1,4 @@
-import type { Bindings, DailyUsage, Tenant } from '../types/index.js';
+import type { Bindings, BillingSubscription, DailyUsage, Tenant } from '../types/index.js';
 import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
@@ -137,7 +137,7 @@ export class CustomerAnalytics {
   // Identify risk factors based on tenant analysis
   private identifyRiskFactors(
     analysis: TenantAnalysis,
-    subscription: any,
+    _subscription: BillingSubscription | null,
     daysSinceLastActive: number
   ): string[] {
     const riskFactors: string[] = [];
