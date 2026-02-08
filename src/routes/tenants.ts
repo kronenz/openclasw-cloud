@@ -15,6 +15,7 @@ import { TenantProvisioner } from '../services/tenant-provisioner.js';
 import { RESERVED_SUBDOMAINS, MAX_METADATA_SIZE_BYTES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
+import { tenantScope } from '../middleware/tenant-scope.js';
 
 const tenants = new Hono<{ Bindings: Bindings }>();
 
@@ -155,7 +156,7 @@ tenants.get('/', withErrorHandler('tenants_list_failed', async (c) => {
 }));
 
 // GET /:id - get tenant by ID
-tenants.get('/:id', withErrorHandler('tenant_get_failed', async (c) => {
+tenants.get('/:id', tenantScope, withErrorHandler('tenant_get_failed', async (c) => {
   const id = c.req.param('id');
   const tenant = await getTenant(c.env.DB, id);
 
@@ -174,7 +175,7 @@ tenants.get('/:id', withErrorHandler('tenant_get_failed', async (c) => {
 }));
 
 // PUT /:id - update tenant
-tenants.put('/:id', withErrorHandler('tenant_update_failed', async (c) => {
+tenants.put('/:id', tenantScope, withErrorHandler('tenant_update_failed', async (c) => {
   const id = c.req.param('id');
   const body = await c.req.json();
   const parsed = updateTenantSchema.safeParse(body);
@@ -210,7 +211,7 @@ tenants.put('/:id', withErrorHandler('tenant_update_failed', async (c) => {
 }));
 
 // DELETE /:id - soft delete tenant
-tenants.delete('/:id', withErrorHandler('tenant_delete_failed', async (c) => {
+tenants.delete('/:id', tenantScope, withErrorHandler('tenant_delete_failed', async (c) => {
   const id = c.req.param('id');
   const tenant = await updateTenant(c.env.DB, id, { status: 'deleted' });
 
@@ -229,7 +230,7 @@ tenants.delete('/:id', withErrorHandler('tenant_delete_failed', async (c) => {
 }));
 
 // GET /:id/usage - get usage for tenant
-tenants.get('/:id/usage', withErrorHandler('tenant_usage_get_failed', async (c) => {
+tenants.get('/:id/usage', tenantScope, withErrorHandler('tenant_usage_get_failed', async (c) => {
   const id = c.req.param('id');
   const queryParams = {
     start_date: c.req.query('start_date'),
@@ -259,7 +260,7 @@ tenants.get('/:id/usage', withErrorHandler('tenant_usage_get_failed', async (c) 
 }));
 
 // GET /:id/health - tenant health check
-tenants.get('/:id/health', withErrorHandler('tenant_health_check_failed', async (c) => {
+tenants.get('/:id/health', tenantScope, withErrorHandler('tenant_health_check_failed', async (c) => {
   const id = c.req.param('id');
   const tenant = await getTenant(c.env.DB, id);
 

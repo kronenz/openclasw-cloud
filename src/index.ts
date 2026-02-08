@@ -24,7 +24,21 @@ import { structuredError } from './utils/log.js';
 const app = new Hono<{ Bindings: Bindings }>();
 
 // Global middleware
-app.use('*', cors());
+app.use('*', cors({
+  origin: (origin) => {
+    // Allow requests with no origin (non-browser, like curl/Postman)
+    if (!origin) return origin;
+    // In development, allow localhost
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
+    // Allow openclaw.ai subdomains
+    if (origin.endsWith('.openclaw.ai') || origin === 'https://openclaw.ai') return origin;
+    // Deny all other origins
+    return null;
+  },
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Platform-Type'],
+}));
 app.use('*', securityMiddleware);
 app.use('*', loggerMiddleware);
 app.use('/api/*', authMiddleware);

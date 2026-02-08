@@ -15,6 +15,7 @@ import {
   CACHE_TTL_SOUL_MD,
 } from '../config/constants.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
+import { tenantScope } from '../middleware/tenant-scope.js';
 
 const onboarding = new Hono<{ Bindings: Bindings }>();
 
@@ -33,7 +34,7 @@ const soulUpdateSchema = z.object({
 });
 
 // POST /:tenantId/survey - Submit onboarding survey
-onboarding.post('/:tenantId/survey', withErrorHandler('survey_create_failed', async (c) => {
+onboarding.post('/:tenantId/survey', tenantScope, withErrorHandler('survey_create_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const body = await c.req.json();
   const parsed = surveySchema.safeParse(body);
@@ -67,7 +68,7 @@ onboarding.post('/:tenantId/survey', withErrorHandler('survey_create_failed', as
 }));
 
 // GET /:tenantId/survey - Get survey for tenant
-onboarding.get('/:tenantId/survey', withErrorHandler('survey_get_failed', async (c) => {
+onboarding.get('/:tenantId/survey', tenantScope, withErrorHandler('survey_get_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const survey = await getSurvey(c.env.DB, tenantId);
 
@@ -86,7 +87,7 @@ onboarding.get('/:tenantId/survey', withErrorHandler('survey_get_failed', async 
 }));
 
 // POST /:tenantId/soul/generate - Generate SOUL.md using AI
-onboarding.post('/:tenantId/soul/generate', withErrorHandler('soul_generate_failed', async (c) => {
+onboarding.post('/:tenantId/soul/generate', tenantScope, withErrorHandler('soul_generate_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const survey = await getSurvey(c.env.DB, tenantId);
 
@@ -113,7 +114,7 @@ onboarding.post('/:tenantId/soul/generate', withErrorHandler('soul_generate_fail
 }));
 
 // GET /:tenantId/soul - Get current active SOUL.md
-onboarding.get('/:tenantId/soul', withErrorHandler('soul_get_failed', async (c) => {
+onboarding.get('/:tenantId/soul', tenantScope, withErrorHandler('soul_get_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const soul = await getActiveSoul(c.env.DB, tenantId);
 
@@ -149,7 +150,7 @@ onboarding.get('/:tenantId/soul', withErrorHandler('soul_get_failed', async (c) 
 }));
 
 // GET /:tenantId/soul/versions - List all SOUL.md versions
-onboarding.get('/:tenantId/soul/versions', withErrorHandler('soul_versions_list_failed', async (c) => {
+onboarding.get('/:tenantId/soul/versions', tenantScope, withErrorHandler('soul_versions_list_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const versions = await listSoulVersions(c.env.DB, tenantId);
 
@@ -160,7 +161,7 @@ onboarding.get('/:tenantId/soul/versions', withErrorHandler('soul_versions_list_
 }));
 
 // PUT /:tenantId/soul - Manually update SOUL.md
-onboarding.put('/:tenantId/soul', withErrorHandler('soul_update_failed', async (c) => {
+onboarding.put('/:tenantId/soul', tenantScope, withErrorHandler('soul_update_failed', async (c) => {
   const tenantId = c.req.param('tenantId');
   const body = await c.req.json();
   const parsed = soulUpdateSchema.safeParse(body);
