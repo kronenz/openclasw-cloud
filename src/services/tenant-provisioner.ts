@@ -9,7 +9,7 @@ import {
   getTenantResources
 } from '../db/queries.js';
 import { generateTenantId, generateResourceId, generateSubdomain, nowISO } from '../utils/id.js';
-import { soulR2Key } from '../config/constants.js';
+import { soulR2Key, API_KEY_EXPIRY_SECONDS } from '../config/constants.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 
@@ -69,11 +69,11 @@ export class TenantProvisioner {
   // Step 4: Setup auth - generate API key and JWT
   async setupAuth(tenantId: string): Promise<AuthConfig> {
     const apiKey = generateApiKey();
-    const jwt = await createJWT({ sub: tenantId, role: 'admin' }, this.env.JWT_SECRET, 86400 * 365);
+    const jwt = await createJWT({ sub: tenantId, role: 'admin' }, this.env.JWT_SECRET, API_KEY_EXPIRY_SECONDS);
     const webhookSecret = generateApiKey();
 
     // Store API key hash in KV for fast lookup
-    await this.env.CACHE.put(`apikey:${apiKey}`, tenantId, { expirationTtl: 86400 * 365 });
+    await this.env.CACHE.put(`apikey:${apiKey}`, tenantId, { expirationTtl: API_KEY_EXPIRY_SECONDS });
 
     return { apiKey, jwt, webhookSecret };
   }

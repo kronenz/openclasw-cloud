@@ -61,6 +61,7 @@ export const CACHE_TTL_HEALTH_STATUS = 300;  // 5 minutes
 
 // JWT defaults (seconds)
 export const JWT_DEFAULT_EXPIRY_SECONDS = 3600;  // 1 hour
+export const API_KEY_EXPIRY_SECONDS = 86_400 * 365;  // 1 year
 
 // HSTS max-age (seconds)
 export const HSTS_MAX_AGE_SECONDS = 31536000;  // 1 year
