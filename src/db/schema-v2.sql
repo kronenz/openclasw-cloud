@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS onboarding_surveys (
   tenant_id TEXT NOT NULL REFERENCES tenants(id),
   industry TEXT NOT NULL,
   business_description TEXT,
-  preferred_tone TEXT DEFAULT 'polite',
-  preferred_language TEXT DEFAULT 'ko',
+  preferred_tone TEXT NOT NULL DEFAULT 'polite',
+  preferred_language TEXT NOT NULL DEFAULT 'ko',
   target_services TEXT,
   custom_instructions TEXT,
   completed_at TEXT,
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   tenant_id TEXT NOT NULL REFERENCES tenants(id),
   channel TEXT NOT NULL,
   type TEXT NOT NULL,
-  status TEXT DEFAULT 'pending',
-  content TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  content TEXT NOT NULL,
   sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -48,8 +48,8 @@ CREATE TABLE IF NOT EXISTS soul_versions (
   tenant_id TEXT NOT NULL REFERENCES tenants(id),
   version INTEGER NOT NULL DEFAULT 1,
   content TEXT NOT NULL,
-  generated_by TEXT DEFAULT 'template',
-  is_active INTEGER DEFAULT 1,
+  generated_by TEXT NOT NULL DEFAULT 'template',
+  is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
