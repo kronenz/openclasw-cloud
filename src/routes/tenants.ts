@@ -48,6 +48,17 @@ const updateTenantSchema = z.object({
   ),
 });
 
+const listTenantsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+  status: z.enum(['provisioning', 'active', 'suspended', 'deleted']).optional(),
+});
+
+const usageQuerySchema = z.object({
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
+});
+
 // POST / - create tenant
 tenants.post('/', async (c) => {
   try {
@@ -131,9 +142,23 @@ tenants.post('/', async (c) => {
 // GET / - list tenants
 tenants.get('/', async (c) => {
   try {
-    const status = c.req.query('status');
-    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '50', 10), 100));
-    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
+    const queryParams = {
+      limit: c.req.query('limit'),
+      offset: c.req.query('offset'),
+      status: c.req.query('status'),
+    };
+
+    const parsed = listTenantsQuerySchema.safeParse(queryParams);
+
+    if (!parsed.success) {
+      return c.json<ApiResponse>({
+        success: false,
+        error: parsed.error.message,
+        code: 'VALIDATION_ERROR',
+      }, 400);
+    }
+
+    const { limit, offset, status } = parsed.data;
 
     const tenantList = await listTenants(c.env.DB, {
       status: status || undefined,
@@ -265,28 +290,23 @@ tenants.delete('/:id', async (c) => {
 tenants.get('/:id/usage', async (c) => {
   try {
     const id = c.req.param('id');
-    const startDateParam = c.req.query('start_date');
-    const endDateParam = c.req.query('end_date');
+    const queryParams = {
+      start_date: c.req.query('start_date'),
+      end_date: c.req.query('end_date'),
+    };
 
-    // Validate date format
-    if (startDateParam && !/^\d{4}-\d{2}-\d{2}$/.test(startDateParam)) {
+    const parsed = usageQuerySchema.safeParse(queryParams);
+
+    if (!parsed.success) {
       return c.json<ApiResponse>({
         success: false,
-        error: 'Invalid date format. Use YYYY-MM-DD',
+        error: parsed.error.message,
         code: 'VALIDATION_ERROR',
       }, 400);
     }
 
-    if (endDateParam && !/^\d{4}-\d{2}-\d{2}$/.test(endDateParam)) {
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Invalid date format. Use YYYY-MM-DD',
-        code: 'VALIDATION_ERROR',
-      }, 400);
-    }
-
-    const startDate = startDateParam || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-    const endDate = endDateParam || toDateString();
+    const startDate = parsed.data.start_date || toDateString(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    const endDate = parsed.data.end_date || toDateString();
 
     const usage = await getTenantUsageSummary(c.env.DB, id, startDate, endDate);
 
