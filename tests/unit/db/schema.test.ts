@@ -45,6 +45,8 @@ describe('Database Schema', () => {
     expect(content).toContain('idx_tenants_subdomain');
     expect(content).toContain('idx_usage_logs_tenant_id_created_at');
     expect(content).toContain('idx_billing_subscriptions_tenant_id');
+    expect(content).toContain('idx_billing_subscriptions_status');
+    expect(content).toContain('idx_incidents_tenant_id');
   });
 
   it('schema-v2.sql has required indexes', () => {
@@ -85,5 +87,6 @@ describe('Database Schema', () => {
     expect(content).toContain('idx_cron_logs_status');
     expect(content).toContain('idx_soul_versions_tenant_active');
     expect(content).toContain('idx_notifications_type');
+    expect(content).toContain('idx_tenant_segments_segment');
   });
 });
