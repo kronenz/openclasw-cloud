@@ -8,7 +8,7 @@ export default defineWorkersConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/types/**', 'src/templates/**'],
+      exclude: ['src/types/**'],
       reporter: ['text', 'json-summary'],
     },
     poolOptions: {
