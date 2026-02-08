@@ -8,6 +8,26 @@ import { structuredLog } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
 import { nowISO } from '../utils/id.js';
 
+// D1 query result types
+interface StatusCount { status: string; count: number }
+interface RevenueRow { mrr: number; active_subscriptions: number }
+interface CriticalCountRow { critical_incidents: number }
+interface TenantDetailRow { resources: string; subscription: string; segment: string; monthly_cost: number }
+interface PlatformMetricsRow {
+  active_tenants: number; total_tenants: number;
+  monthly_tokens: number; monthly_cost: number; monthly_requests: number;
+  avg_daily_cost: number; open_incidents: number; critical_incidents: number;
+}
+interface ModelBreakdownRow { model: string; total_tokens: number; total_cost: number; request_count: number }
+interface SegmentRow { segment: string; count: number; avg_score: number }
+interface BillingSummaryRow { mrr: number; paying_customers: number; arpu: number }
+interface ChurnRow { churned: number }
+interface TransactionRow {
+  id: string; tenant_id: string; tenant_name: string; plan_name: string;
+  amount: number; status: string; current_period_start: string;
+  current_period_end: string; payment_method: string; updated_at: string;
+}
+
 const admin = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Validation schemas
@@ -40,7 +60,7 @@ admin.get('/', withErrorHandler('dashboard_summary_failed', async (c) => {
     FROM tenants
     GROUP BY status
   `);
-  const tenantCounts = await tenantCountStmt.all();
+  const tenantCounts = await tenantCountStmt.all<StatusCount>();
 
   // Get total revenue (MRR)
   const revenueStmt = c.env.DB.prepare(`
@@ -51,7 +71,7 @@ admin.get('/', withErrorHandler('dashboard_summary_failed', async (c) => {
     JOIN billing_plans bp ON bs.plan_id = bp.id
     WHERE bs.status = 'active'
   `);
-  const revenue = await revenueStmt.first();
+  const revenue = await revenueStmt.first<RevenueRow>();
 
   // Get incident count by status
   const incidentStmt = c.env.DB.prepare(`
@@ -60,7 +80,7 @@ admin.get('/', withErrorHandler('dashboard_summary_failed', async (c) => {
     WHERE created_at >= datetime('now', '-7 days')
     GROUP BY status
   `);
-  const incidents = await incidentStmt.all();
+  const incidents = await incidentStmt.all<StatusCount>();
 
   // Calculate uptime (based on P0/P1 incidents)
   const uptimeStmt = c.env.DB.prepare(`
@@ -69,7 +89,7 @@ admin.get('/', withErrorHandler('dashboard_summary_failed', async (c) => {
     WHERE severity IN ('P0', 'P1')
     AND created_at >= datetime('now', '-30 days')
   `);
-  const uptimeData = await uptimeStmt.first();
+  const uptimeData = await uptimeStmt.first<CriticalCountRow>();
   const criticalCount = Number(uptimeData?.critical_incidents) || 0;
   const uptime = Math.max(0, 100 - (criticalCount * 0.1));
 
@@ -199,15 +219,15 @@ admin.get('/tenants/:id', withErrorHandler('admin_tenant_details_failed', async 
       AND date >= date('now', '-30 days')) as monthly_cost
   `).bind(id, id, id, id);
 
-  const details = await detailsStmt.first();
+  const details = await detailsStmt.first<TenantDetailRow>();
 
   return c.json<ApiResponse>({
     success: true,
     data: {
       ...tenant,
-      resources: safeJsonParse(details?.resources as string | undefined, []),
-      subscription: safeJsonParse(details?.subscription as string | undefined, null),
-      segment: safeJsonParse(details?.segment as string | undefined, null),
+      resources: safeJsonParse(details?.resources, []),
+      subscription: safeJsonParse(details?.subscription, null),
+      segment: safeJsonParse(details?.segment, null),
       monthly_cost: details?.monthly_cost || 0,
     },
   });
@@ -285,7 +305,7 @@ admin.get('/metrics', withErrorHandler('admin_metrics_failed', async (c) => {
       (SELECT COUNT(*) FROM incidents WHERE severity IN ('P0', 'P1') AND status = 'open') as critical_incidents
   `);
 
-  const metrics = await metricsStmt.first();
+  const metrics = await metricsStmt.first<PlatformMetricsRow>();
 
   // Get model breakdown
   const modelBreakdownStmt = c.env.DB.prepare(`
@@ -298,7 +318,7 @@ admin.get('/metrics', withErrorHandler('admin_metrics_failed', async (c) => {
     GROUP BY model
     ORDER BY total_cost DESC
   `);
-  const modelBreakdown = await modelBreakdownStmt.all();
+  const modelBreakdown = await modelBreakdownStmt.all<ModelBreakdownRow>();
 
   return c.json<ApiResponse>({
     success: true,
@@ -371,7 +391,7 @@ admin.get('/segments', withErrorHandler('admin_segments_failed', async (c) => {
   query += ` GROUP BY segment ORDER BY count DESC`;
 
   const stmt = c.env.DB.prepare(query).bind(...bindings);
-  const segments = await stmt.all();
+  const segments = await stmt.all<SegmentRow>();
 
   return c.json<ApiResponse>({
     success: true,
@@ -390,7 +410,7 @@ admin.get('/billing/summary', withErrorHandler('admin_billing_summary_failed', a
     JOIN billing_plans bp ON bs.plan_id = bp.id
     WHERE bs.status = 'active'
   `);
-  const summary = await summaryStmt.first();
+  const summary = await summaryStmt.first<BillingSummaryRow>();
 
   // Calculate churn (tenants that canceled in last 30 days)
   const churnStmt = c.env.DB.prepare(`
@@ -399,7 +419,7 @@ admin.get('/billing/summary', withErrorHandler('admin_billing_summary_failed', a
     WHERE status = 'canceled'
     AND updated_at >= datetime('now', '-30 days')
   `);
-  const churnData = await churnStmt.first();
+  const churnData = await churnStmt.first<ChurnRow>();
 
   const totalCustomers = Number(summary?.paying_customers) || 0;
   const churnRate = totalCustomers > 0
@@ -454,7 +474,7 @@ admin.get('/billing/transactions', withErrorHandler('admin_billing_transactions_
     LIMIT ? OFFSET ?
   `).bind(limit, offset);
 
-  const transactions = await transactionsStmt.all();
+  const transactions = await transactionsStmt.all<TransactionRow>();
 
   return c.json({
     success: true,
