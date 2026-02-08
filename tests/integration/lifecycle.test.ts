@@ -3,6 +3,7 @@ import { app } from '../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../setup.js';
 import { createJWT } from '../../src/utils/crypto.js';
+import { parseApiResponse } from '../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -56,7 +57,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.name).toBe('Lifecycle Test Corp');
       expect(body.data.status).toBe('provisioning');
@@ -73,7 +74,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.status).toBe('provisioning');
       expect(body.data.id).toBe(createdTenantId);
@@ -96,7 +97,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.industry).toBe('technology');
       expect(body.data.tenant_id).toBe(createdTenantId);
@@ -114,7 +115,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.status).toBe('active');
     }
@@ -149,7 +150,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template).toBeDefined();
       expect(body.template.outputs).toHaveLength(1);
@@ -187,7 +188,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
 
       // Verify KakaoTalk SkillResponse v2.0 format
       expect(body.version).toBe('2.0');
@@ -211,7 +212,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
 
@@ -229,7 +230,7 @@ describe('Tenant Lifecycle Integration', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.industry).toBe('technology');
       expect(body.data.preferred_tone).toBe('friendly');

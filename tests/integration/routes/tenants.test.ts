@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb, createTestTenant } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -32,7 +33,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.name).toBe('New Tenant');
       expect(body.data.status).toBe('provisioning');
@@ -48,7 +49,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -77,7 +78,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -94,7 +95,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -112,7 +113,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -130,7 +131,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -144,7 +145,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
     });
@@ -156,7 +157,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -168,7 +169,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -183,7 +184,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.id).toBe('tn_test-tenant-1');
     });
@@ -209,7 +210,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.data.name).toBe('Updated Corp');
     });
 
@@ -223,7 +224,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -239,7 +240,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.data.status).toBe('deleted');
     });
   });
@@ -253,7 +254,7 @@ describe('Tenant Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });

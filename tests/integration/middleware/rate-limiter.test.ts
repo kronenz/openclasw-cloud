@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars!';
 
@@ -92,7 +93,7 @@ describe('Rate Limiter Middleware', () => {
     }, env);
 
     expect(res.status).toBe(429);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Rate limit exceeded',

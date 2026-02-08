@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { Hono } from 'hono';
 import { envValidatorMiddleware } from '../../../src/middleware/env-validator.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 describe('Environment Validator Middleware', () => {
   beforeAll(() => {
@@ -21,7 +22,7 @@ describe('Environment Validator Middleware', () => {
 
     const res = await app.request('/test', {}, env);
     expect(res.status).toBe(200);
-    const body = await res.json() as any;
+    const body = await parseApiResponse(res);
     expect(body.ok).toBe(true);
   });
 
@@ -37,7 +38,7 @@ describe('Environment Validator Middleware', () => {
 
     const res = await app.request('/test', {}, env);
     expect(res.status).toBe(503);
-    const body = await res.json() as any;
+    const body = await parseApiResponse(res);
     expect(body.success).toBe(false);
     expect(body.code).toBe('CONFIGURATION_ERROR');
     expect(body.error).toBe('Service configuration error');
@@ -55,7 +56,7 @@ describe('Environment Validator Middleware', () => {
 
     const res = await app.request('/test', {}, env);
     expect(res.status).toBe(503);
-    const body = await res.json() as any;
+    const body = await parseApiResponse(res);
     expect(body.success).toBe(false);
     expect(body.code).toBe('CONFIGURATION_ERROR');
   });
@@ -72,7 +73,7 @@ describe('Environment Validator Middleware', () => {
 
     const res = await app.request('/test', {}, env);
     expect(res.status).toBe(503);
-    const body = await res.json() as any;
+    const body = await parseApiResponse(res);
     expect(body.success).toBe(false);
     expect(body.code).toBe('CONFIGURATION_ERROR');
   });
@@ -84,7 +85,7 @@ describe('Environment Validator Middleware', () => {
 
     const res = await app.request('/test', {}, {});
     expect(res.status).toBe(503);
-    const body = await res.json() as any;
+    const body = await parseApiResponse(res);
     expect(body.success).toBe(false);
     expect(body.code).toBe('CONFIGURATION_ERROR');
   });

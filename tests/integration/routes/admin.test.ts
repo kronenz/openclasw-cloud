@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb, createTestTenant } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -80,7 +81,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
       expect(body.data.tenants).toBeDefined();
@@ -98,7 +99,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(parseFloat(body.data.uptime)).toBeGreaterThanOrEqual(0);
       expect(parseFloat(body.data.uptime)).toBeLessThanOrEqual(100);
     });
@@ -114,7 +115,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThanOrEqual(3);
@@ -131,7 +132,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants?status=active', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       body.data.forEach((tenant: any) => {
@@ -144,7 +145,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants?limit=2', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.meta.limit).toBe(2);
       expect(body.data.length).toBeLessThanOrEqual(2);
@@ -155,7 +156,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants?limit=1&page=2', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.meta.page).toBe(2);
       expect(body.meta.offset).toBe(1);
@@ -166,7 +167,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants?limit=1000', { headers }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
     });
 
@@ -180,7 +181,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       const tenant = body.data.find((t: any) => t.id === tenantId);
       expect(tenant).toBeDefined();
     });
@@ -195,7 +196,7 @@ describe('Admin Routes', () => {
       const res = await app.request(`/api/admin/tenants/${tenantId}`, { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.id).toBe(tenantId);
       expect(body.data.name).toBe('Details Test Corp');
@@ -208,7 +209,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/tenants/tn_nonexistent', { headers }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('TENANT_NOT_FOUND');
     });
@@ -226,7 +227,7 @@ describe('Admin Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.status).toBe('suspended');
       expect(body.data.id).toBe(tenantId);
@@ -240,7 +241,7 @@ describe('Admin Routes', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('TENANT_NOT_FOUND');
     });
@@ -258,7 +259,7 @@ describe('Admin Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.status).toBe('active');
       expect(body.data.id).toBe(tenantId);
@@ -272,7 +273,7 @@ describe('Admin Routes', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('TENANT_NOT_FOUND');
     });
@@ -287,7 +288,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/metrics', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.overview).toBeDefined();
       expect(body.data.model_breakdown).toBeDefined();
@@ -300,7 +301,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/metrics', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.data.model_breakdown).toBeDefined();
       expect(Array.isArray(body.data.model_breakdown)).toBe(true);
     });
@@ -315,7 +316,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/incidents', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThanOrEqual(2);
@@ -329,7 +330,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/incidents?status=open', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       body.data.forEach((incident: any) => {
         expect(incident.status).toBe('open');
@@ -344,7 +345,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/incidents?severity=P0', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       body.data.forEach((incident: any) => {
         expect(incident.severity).toBe('P0');
@@ -361,7 +362,7 @@ describe('Admin Routes', () => {
       const res = await app.request(`/api/admin/incidents?tenant_id=${tenantId}`, { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       body.data.forEach((incident: any) => {
         expect(incident.tenant_id).toBe(tenantId);
@@ -379,7 +380,7 @@ describe('Admin Routes', () => {
       const res = await app.request(`/api/admin/incidents?status=open&severity=P0&tenant_id=${tenantId}`, { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       body.data.forEach((incident: any) => {
         expect(incident.tenant_id).toBe(tenantId);
@@ -405,7 +406,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/segments', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBeGreaterThan(0);
@@ -432,7 +433,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/summary', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.mrr).toBeGreaterThan(0);
       expect(body.data.arr).toBe(body.data.mrr * 12);
@@ -447,7 +448,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/summary', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(parseFloat(body.data.churn_rate)).toBeGreaterThanOrEqual(0);
       expect(parseFloat(body.data.churn_rate)).toBeLessThanOrEqual(100);
     });
@@ -462,7 +463,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/transactions', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.meta).toBeDefined();
@@ -475,7 +476,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/transactions?limit=10', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.meta.limit).toBe(10);
     });
 
@@ -484,7 +485,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/transactions?limit=1000', { headers }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
     });
 
@@ -493,7 +494,7 @@ describe('Admin Routes', () => {
       const res = await app.request('/api/admin/billing/transactions?limit=5&page=2', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.meta.page).toBe(2);
       expect(body.meta.offset).toBe(5);
     });

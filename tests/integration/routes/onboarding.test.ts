@@ -8,6 +8,7 @@ import {
   MAX_CUSTOM_INSTRUCTIONS_LENGTH,
   MAX_SOUL_CONTENT_LENGTH,
 } from '../../../src/config/constants.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -92,7 +93,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.id).toBeDefined();
       expect(body.data.tenant_id).toBe(tenantId);
@@ -115,7 +116,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.industry).toBe('office');
       expect(body.data.preferred_tone).toBe('polite');
@@ -134,7 +135,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
       expect(body.details).toBeDefined();
@@ -152,7 +153,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -174,7 +175,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -196,7 +197,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -229,7 +230,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(201);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.target_services).toBeDefined();
     });
@@ -250,7 +251,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.tenant_id).toBe(tenantId);
       expect(body.data.industry).toBe('office');
@@ -267,7 +268,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('SURVEY_NOT_FOUND');
     });
@@ -285,7 +286,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.industry).toBe('office');
     });
@@ -319,7 +320,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.content).toBeDefined();
       expect(typeof body.data.content).toBe('string');
@@ -337,7 +338,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('SURVEY_NOT_FOUND');
       expect(body.error).toContain('complete the onboarding survey first');
@@ -372,7 +373,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.content).toBe(soulContent);
     });
@@ -393,7 +394,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.content).toBe(mockContent);
     });
@@ -410,7 +411,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(404);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('SOUL_NOT_FOUND');
     });
@@ -448,7 +449,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBe(2);
@@ -465,7 +466,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.data.length).toBe(0);
@@ -497,7 +498,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.content).toBe(newContent);
     });
@@ -514,7 +515,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -531,7 +532,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -550,7 +551,7 @@ describe('Onboarding Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });

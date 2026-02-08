@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars!';
 
@@ -26,7 +27,7 @@ describe('Admin Auth Middleware', () => {
     it('rejects requests without Authorization header', async () => {
       const res = await app.request('/api/admin/tenants', {}, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_REQUIRED');
       expect(body.error).toBe('Missing authorization');
@@ -37,7 +38,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: 'InvalidFormat token123' },
       }, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_REQUIRED');
     });
@@ -48,7 +49,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: token },
       }, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_REQUIRED');
     });
@@ -58,7 +59,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: 'Bearer invalid-jwt-token' },
       }, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_INVALID');
       expect(body.error).toBe('Invalid token');
@@ -70,7 +71,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_INVALID');
     });
@@ -81,7 +82,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env);
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_INVALID');
     });
@@ -94,7 +95,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env);
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
       expect(body.error).toBe('Admin access required');
@@ -106,7 +107,7 @@ describe('Admin Auth Middleware', () => {
         headers,
       }, env);
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
       expect(body.error).toBe('Admin access required');
@@ -118,7 +119,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env);
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
     });
@@ -129,7 +130,7 @@ describe('Admin Auth Middleware', () => {
         headers: { Authorization: `Bearer ${token}` },
       }, env);
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
     });
@@ -193,7 +194,7 @@ describe('Admin Auth Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
       expect(body.error).toBe('Admin access required');
@@ -206,7 +207,7 @@ describe('Admin Auth Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('FORBIDDEN');
       expect(body.error).toBe('Admin access required');
@@ -223,7 +224,7 @@ describe('Admin Auth Middleware', () => {
       }, env);
 
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('AUTH_INVALID');
       expect(body.error).toBe('Invalid token');

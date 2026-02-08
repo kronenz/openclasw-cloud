@@ -4,6 +4,7 @@ import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
 import { createTenant } from '../../../src/db/queries.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars!';
 
@@ -69,7 +70,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.id).toBe('tn_owner');
     });
@@ -83,7 +84,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -104,7 +105,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -121,7 +122,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -138,7 +139,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.tenant_id).toBe('tn_owner');
     });
@@ -152,7 +153,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -169,7 +170,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.tenant_id).toBe('tn_owner');
     });
@@ -183,7 +184,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -202,7 +203,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.id).toBe('tn_owner');
     });
@@ -216,7 +217,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.id).toBe('tn_other');
     });
@@ -234,7 +235,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.name).toBe('Updated by Admin');
     });
@@ -248,7 +249,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.tenant_id).toBe('tn_other');
     });
@@ -262,7 +263,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.tenant_id).toBe('tn_other');
     });
@@ -279,7 +280,7 @@ describe('Tenant Scope Middleware', () => {
 
       // Should pass through tenant-scope middleware since there's no :id param
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(Array.isArray(json.data)).toBe(true);
     });
@@ -300,7 +301,7 @@ describe('Tenant Scope Middleware', () => {
 
       // Should pass through tenant-scope middleware since there's no :id param
       expect(res.status).toBe(201);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
     });
   });
@@ -315,7 +316,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json).toEqual({
         success: false,
         error: 'Forbidden',
@@ -332,7 +333,7 @@ describe('Tenant Scope Middleware', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const json = await res.json() as any;
+      const json = await parseApiResponse(res);
       expect(json.success).toBe(true);
       expect(json.data.id).toBe('tn_other');
     });

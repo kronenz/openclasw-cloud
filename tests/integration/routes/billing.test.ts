@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -23,7 +24,7 @@ describe('Billing Routes', () => {
       const res = await app.request('/api/billing/plans', { headers }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data).toHaveLength(3);
       expect(body.data[0].name).toBe('starter');
@@ -42,7 +43,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -56,7 +57,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('VALIDATION_ERROR');
     });
@@ -82,7 +83,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.message).toContain('7 days');
     });
@@ -122,7 +123,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -142,7 +143,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(401);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('INVALID_SIGNATURE');
     });
@@ -162,7 +163,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(503);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('CONFIGURATION_ERROR');
     });
@@ -190,7 +191,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.code).toBe('INVALID_PAYLOAD');
     });
@@ -222,7 +223,7 @@ describe('Billing Routes', () => {
 
       // Should succeed but log warning about unknown event type
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
     });
   });
@@ -246,7 +247,7 @@ describe('Billing Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data).toHaveProperty('period_start');
       expect(body.data).toHaveProperty('period_end');

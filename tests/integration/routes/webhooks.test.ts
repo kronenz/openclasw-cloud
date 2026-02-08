@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb, createTestTenant } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret';
 
@@ -71,7 +72,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -99,7 +100,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -135,7 +136,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Tenant not found or inactive');
     });
@@ -162,7 +163,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.challenge).toBe('test-challenge-string');
     });
 
@@ -191,7 +192,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -221,7 +222,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(403);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Tenant not found or inactive');
     });
@@ -246,7 +247,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.type).toBe(1); // PONG
     });
 
@@ -278,7 +279,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.type).toBe(4); // CHANNEL_MESSAGE_WITH_SOURCE
       expect(body.data.content).toBe('안녕하세요! 무엇을 도와드릴까요?');
     });
@@ -311,7 +312,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.type).toBe(4);
       expect(body.data.content).toBe('서비스를 사용할 수 없습니다. 관리자에게 문의하세요.');
     });
@@ -347,7 +348,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs).toHaveLength(1);
       expect(body.template.outputs[0].simpleText.text).toBe('안녕하세요! 무엇을 도와드릴까요?');
@@ -374,7 +375,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs[0].simpleText.text).toBe('메시지를 인식할 수 없습니다.');
     });
@@ -404,7 +405,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs[0].simpleText.text).toBe('서비스를 사용할 수 없습니다. 관리자에게 문의하세요.');
     });
@@ -435,7 +436,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Missing X-Tenant-ID header');
       expect(body.code).toBe('MISSING_TENANT_ID');
@@ -465,7 +466,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Missing X-Tenant-ID header');
       expect(body.code).toBe('MISSING_TENANT_ID');
@@ -498,7 +499,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(400);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(false);
       expect(body.error).toBe('Missing X-Tenant-ID header');
       expect(body.code).toBe('MISSING_TENANT_ID');
@@ -529,7 +530,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs[0].simpleText.text).toBe('서비스 설정이 필요합니다. 관리자에게 문의하세요.');
     });
@@ -547,7 +548,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -580,7 +581,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs[0].simpleText.text).toBe('죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
 
@@ -619,7 +620,7 @@ describe('Webhook Routes', () => {
       }, env);
 
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.type).toBe(4);
       expect(body.data.content).toBe('죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
 
@@ -646,7 +647,7 @@ describe('Webhook Routes', () => {
       }, env);
       // Should return kakao format without crashing
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.version).toBe('2.0');
       expect(body.template.outputs).toHaveLength(1);
     });
@@ -667,7 +668,7 @@ describe('Webhook Routes', () => {
         }),
       }, env);
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -688,7 +689,7 @@ describe('Webhook Routes', () => {
         }),
       }, env);
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -708,7 +709,7 @@ describe('Webhook Routes', () => {
         }),
       }, env);
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });
@@ -725,7 +726,7 @@ describe('Webhook Routes', () => {
         body: JSON.stringify({ data: 'test' }),
       }, env);
       expect(res.status).toBe(200);
-      const body = await res.json() as any;
+      const body = await parseApiResponse(res);
       expect(body.success).toBe(true);
       expect(body.data.received).toBe(true);
     });

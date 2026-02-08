@@ -3,6 +3,7 @@ import { app } from '../../../src/index.js';
 import { env } from 'cloudflare:test';
 import { setupTestDb } from '../../setup.js';
 import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
 
 const JWT_SECRET = 'test-jwt-secret-key-minimum-32-chars!';
 
@@ -18,7 +19,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Missing authorization',
@@ -35,7 +36,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Missing authorization',
@@ -52,7 +53,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Invalid token',
@@ -76,7 +77,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Invalid token',
@@ -120,7 +121,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Missing authorization',
@@ -137,7 +138,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Invalid token',
@@ -154,7 +155,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     // Empty token after "Bearer " gets caught by verifyJWT and returns AUTH_INVALID
     // But the current implementation checks the format first, so it returns AUTH_REQUIRED
     expect(json).toEqual({
@@ -184,7 +185,7 @@ describe('Auth Middleware', () => {
     }, env);
 
     expect(res.status).toBe(401);
-    const json = await res.json() as any;
+    const json = await parseApiResponse(res);
     expect(json).toEqual({
       success: false,
       error: 'Invalid token',
