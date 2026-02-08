@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { Bindings, ApiResponse } from '../types/index.js';
+import type { Bindings, ApiResponse, AiTextResponse } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
@@ -156,14 +156,14 @@ async function handleKakaoTalk(c: Context<{ Bindings: Bindings }>, body: KakaoTa
     // Call AI Gateway with error handling
     let responseText: string;
     try {
-      const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as any, {
+      const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
         max_tokens: 1000,
       });
-      responseText = (aiResult as any).response || '죄송합니다. 응답을 생성할 수 없습니다.';
+      responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
     } catch (error) {
       console.error('AI inference failed:', error);
       responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
@@ -273,14 +273,14 @@ async function handleSlack(c: Context<{ Bindings: Bindings }>, body: SlackEvent)
       // Call AI Gateway with error handling
       let responseText: string;
       try {
-        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as any, {
+        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
           ],
           max_tokens: 1000,
         });
-        responseText = (aiResult as any).response || '죄송합니다. 응답을 생성할 수 없습니다.';
+        responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {
         console.error('AI inference failed:', error);
         responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
@@ -358,14 +358,14 @@ async function handleDiscord(c: Context<{ Bindings: Bindings }>, body: DiscordIn
       // Call AI Gateway with error handling
       let responseText: string;
       try {
-        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as any, {
+        const aiResult = await c.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage },
           ],
           max_tokens: 1000,
         });
-        responseText = (aiResult as any).response || '죄송합니다. 응답을 생성할 수 없습니다.';
+        responseText = (aiResult as AiTextResponse).response || '죄송합니다. 응답을 생성할 수 없습니다.';
       } catch (error) {
         console.error('AI inference failed:', error);
         responseText = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';

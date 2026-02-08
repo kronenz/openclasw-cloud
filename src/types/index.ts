@@ -16,6 +16,12 @@ export interface Bindings {
   PORTONE_API_KEY?: string;
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
+  RESEND_API_KEY?: string;
+}
+
+// Cloudflare AI text generation response
+export interface AiTextResponse {
+  response: string;
 }
 
 // Hono app context variables

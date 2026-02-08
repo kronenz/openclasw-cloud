@@ -1,4 +1,4 @@
-import type { Bindings } from '../types/index.js';
+import type { Bindings, AiTextResponse } from '../types/index.js';
 
 interface TelegramUpdate {
   update_id: number;
@@ -70,7 +70,7 @@ export class TelegramBot {
         : '당신은 친절한 AI 비서입니다. 한국어로 응답하세요.';
 
       // Call AI Gateway
-      const aiResult = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as any, {
+      const aiResult = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct' as Parameters<Ai['run']>[0], {
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
@@ -78,7 +78,7 @@ export class TelegramBot {
         max_tokens: 1000,
       });
 
-      const responseText = (aiResult as any).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
+      const responseText = (aiResult as AiTextResponse).response || '죄송합니다. 잠시 후 다시 시도해 주세요.';
       await this.sendMessage(botToken, chatId, responseText);
     } catch (error) {
       console.error('Telegram AI processing failed:', error);

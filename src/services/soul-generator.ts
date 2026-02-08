@@ -1,4 +1,4 @@
-import type { Bindings, OnboardingSurvey } from '../types/index.js';
+import type { Bindings, OnboardingSurvey, AiTextResponse } from '../types/index.js';
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { createSoulVersion, getActiveSoul } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
@@ -59,7 +59,7 @@ export class SoulGenerator {
 SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
 
     try {
-      const result = await this.env.AI.run(DEFAULT_AI_MODEL as any, {
+      const result = await this.env.AI.run(DEFAULT_AI_MODEL as Parameters<Ai['run']>[0], {
         messages: [
           { role: 'system', content: '당신은 AI 비서 설정 문서(SOUL.md) 전문 작성자입니다. 마크다운 형식으로 작성합니다.' },
           { role: 'user', content: prompt },
@@ -68,7 +68,7 @@ SOUL.md만 작성하세요. 다른 설명은 필요하지 않습니다.`;
       });
 
       // The AI response has a 'response' field
-      const content = (result as any).response || '';
+      const content = (result as AiTextResponse).response || '';
       return content || this.generateFallback(survey);
     } catch (error) {
       console.error('AI generation failed, using fallback:', error);

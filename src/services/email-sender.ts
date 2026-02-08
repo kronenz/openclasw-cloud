@@ -13,7 +13,7 @@ export class EmailSender {
 
   private async send(message: EmailMessage): Promise<boolean> {
     // Use Resend API if configured, otherwise log
-    const resendApiKey = (this.env as any).RESEND_API_KEY as string | undefined;
+    const resendApiKey = this.env.RESEND_API_KEY;
 
     if (!resendApiKey) {
       console.log(JSON.stringify({
