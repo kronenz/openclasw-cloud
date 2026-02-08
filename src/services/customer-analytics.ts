@@ -104,16 +104,79 @@ export class CustomerAnalytics {
     return summary;
   }
 
+  // Calculate activity score based on recency (0-30 range contribution)
+  private calculateActivityScore(daysSinceLastActive: number): number {
+    if (daysSinceLastActive <= 7) {
+      return 20;
+    } else if (daysSinceLastActive > 7 && daysSinceLastActive <= 14) {
+      return -10;
+    } else {
+      return -30;
+    }
+  }
+
+  // Calculate usage score based on usage relative to plan limit (0-40 range contribution)
+  private calculateUsageScore(avgDailyTokens: number, planLimit: number | null): number {
+    // No plan or no usage
+    if (!planLimit || avgDailyTokens === 0) {
+      return 0;
+    }
+
+    const usagePercent = (avgDailyTokens / planLimit) * 100;
+
+    // Heavy usage relative to plan
+    if (usagePercent > USAGE_HIGH_THRESHOLD_PERCENT) {
+      return 10;
+    } else if (usagePercent > 50) {
+      return 5;
+    } else {
+      return 0;
+    }
+  }
+
+  // Identify risk factors based on tenant analysis
+  private identifyRiskFactors(
+    analysis: TenantAnalysis,
+    subscription: any,
+    daysSinceLastActive: number
+  ): string[] {
+    const riskFactors: string[] = [];
+
+    // Inactivity risk
+    if (daysSinceLastActive > 7 && daysSinceLastActive <= 14) {
+      riskFactors.push('inactive_7d');
+    } else if (daysSinceLastActive > 14) {
+      riskFactors.push('inactive_14d');
+    }
+
+    // Low activity risk
+    if (analysis.days_active < 5) {
+      riskFactors.push('low_activity');
+    }
+
+    // Declining usage risk
+    if (analysis.trend === 'decreasing') {
+      riskFactors.push('usage_declining');
+    }
+
+    // Check for usage drop (comparing last 7 days to previous 7 days)
+    if (analysis.usage_data.length >= 14) {
+      const lastWeek = analysis.usage_data.slice(-7).reduce((sum, d) => sum + d.total_tokens, 0);
+      const prevWeek = analysis.usage_data.slice(-14, -7).reduce((sum, d) => sum + d.total_tokens, 0);
+      if (prevWeek > 0 && lastWeek < prevWeek * USAGE_DROP_THRESHOLD) {
+        riskFactors.push('usage_dropped_50pct');
+      }
+    }
+
+    return riskFactors;
+  }
+
   // Classify a tenant into a segment
   private async classifyTenant(tenant: Tenant) {
     const analysis = await this.analyzeTenant(tenant.id);
     const subscription = await getSubscription(this.env.DB, tenant.id);
     const plans = await listBillingPlans(this.env.DB);
     const plan = plans.find(p => p.id === subscription?.plan_id);
-
-    // Calculate health score (0-100)
-    let score = 50; // Base score
-    const riskFactors: string[] = [];
 
     // Check creation date (new tenant?)
     const createdAt = new Date(tenant.created_at);
@@ -139,23 +202,15 @@ export class CustomerAnalytics {
       ? (Date.now() - lastActiveDate.getTime()) / MS_PER_DAY
       : 999;
 
-    // Active in last 7 days? +20
-    if (daysSinceLastActive <= 7) {
-      score += 20;
-    } else if (daysSinceLastActive > 7 && daysSinceLastActive <= 14) {
-      score -= 10;
-      riskFactors.push('inactive_7d');
-    } else if (daysSinceLastActive > 14) {
-      score -= 30;
-      riskFactors.push('inactive_14d');
-    }
+    // Calculate health score (0-100) using sub-methods
+    let score = 50; // Base score
+    score += this.calculateActivityScore(daysSinceLastActive);
 
     // High usage (>14 active days in 30)? +20
     if (analysis.days_active > 14) {
       score += 20;
     } else if (analysis.days_active < 5) {
       score -= 15;
-      riskFactors.push('low_activity');
     }
 
     // Trend bonus
@@ -163,8 +218,13 @@ export class CustomerAnalytics {
       score += 10;
     } else if (analysis.trend === 'decreasing') {
       score -= 10;
-      riskFactors.push('usage_declining');
     }
+
+    // Usage score contribution
+    score += this.calculateUsageScore(analysis.avg_daily_tokens, plan?.daily_token_limit || null);
+
+    // Identify risk factors
+    const riskFactors = this.identifyRiskFactors(analysis, subscription, daysSinceLastActive);
 
     // Check usage vs plan limits for upsell opportunity
     const usageVsPlanLimit = plan
@@ -190,14 +250,9 @@ export class CustomerAnalytics {
       segment = 'happy_inactive';
     }
 
-    // Check for usage drop (comparing last 7 days to previous 7 days)
-    if (analysis.usage_data.length >= 14) {
-      const lastWeek = analysis.usage_data.slice(-7).reduce((sum, d) => sum + d.total_tokens, 0);
-      const prevWeek = analysis.usage_data.slice(-14, -7).reduce((sum, d) => sum + d.total_tokens, 0);
-      if (prevWeek > 0 && lastWeek < prevWeek * USAGE_DROP_THRESHOLD) {
-        riskFactors.push('usage_dropped_50pct');
-        segment = 'at_risk';
-      }
+    // Override segment if critical risk factor detected
+    if (riskFactors.includes('usage_dropped_50pct')) {
+      segment = 'at_risk';
     }
 
     return {

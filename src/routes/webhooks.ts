@@ -4,7 +4,7 @@ import type { Bindings, Variables, ApiResponse, AiTextResponse } from '../types/
 import { DEFAULT_AI_MODEL } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';
-import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT } from '../config/constants.js';
+import { MAX_MESSAGE_LENGTH, AI_MAX_TOKENS_DEFAULT, SLACK_API_BASE } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { withErrorHandler } from '../utils/error-handler.js';
@@ -299,7 +299,7 @@ async function handleSlack(c: Context<{ Bindings: Bindings; Variables: Variables
       const slackBotToken = await c.env.CACHE.get(`slack:bot:${tenantId}`);
       if (slackBotToken) {
         c.executionCtx.waitUntil(
-          fetchWithTimeout('https://slack.com/api/chat.postMessage', {
+          fetchWithTimeout(`${SLACK_API_BASE}/chat.postMessage`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${slackBotToken}`,

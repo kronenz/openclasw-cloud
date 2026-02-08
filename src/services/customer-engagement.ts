@@ -1,6 +1,6 @@
 import type { Bindings, Tenant } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
-import { createNotification } from '../db/queries-v2.js';
+import { createNotification, createEmailNotification } from '../db/queries-v2.js';
 import { EmailSender } from './email-sender.js';
 import { HealthChecker } from './health-checker.js';
 import { toDateString } from '../utils/id.js';
@@ -193,21 +193,13 @@ export class CustomerEngagement {
       );
 
       if (nextPlan) {
-        await createNotification(this.env.DB, {
-          id: crypto.randomUUID(),
-          tenant_id: tenant.id,
-          channel: 'email',
-          type: 'upsell',
-          status: 'pending',
-          content: JSON.stringify({
-            current_plan: currentPlan.display_name,
-            next_plan: nextPlan.display_name,
-            usage_percent: Math.round(usagePercent),
-            avg_daily_tokens: Math.round(avgDailyTokens),
-            daily_limit: currentPlan.daily_token_limit,
-          }),
-          sent_at: null,
-        });
+        await createEmailNotification(
+          this.env.DB,
+          tenant.id,
+          'upsell',
+          `${tenant.name} - 플랜 업그레이드 안내`,
+          `현재 ${currentPlan.display_name} 플랜의 ${Math.round(usagePercent)}%를 사용 중입니다. ${nextPlan.display_name} 플랜으로 업그레이드를 고려해 주세요.`
+        );
 
         structuredLog('upsell_opportunity_detected', {
           tenant_id: tenant.id,

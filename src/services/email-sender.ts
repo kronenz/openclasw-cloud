@@ -2,7 +2,7 @@ import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
-import { RESEND_API_URL } from '../config/constants.js';
+import { RESEND_API_URL, OPENCLAW_DOMAIN } from '../config/constants.js';
 
 interface EmailMessage {
   to: string;
@@ -74,7 +74,7 @@ export class EmailSender {
       subdomain: params.subdomain,
       plan: params.plan,
       apiKey: params.apiKey,
-      dashboardUrl: `https://${params.subdomain}.openclaw.ai/dashboard`,
+      dashboardUrl: `https://${params.subdomain}.${OPENCLAW_DOMAIN}/dashboard`,
     });
 
     return this.send({

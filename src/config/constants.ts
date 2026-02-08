@@ -66,6 +66,11 @@ export const INDUSTRY_BENCHMARKS: Record<string, number> = {
   default: 45_000,
 };
 
+// Domain & URL Configuration
+export const OPENCLAW_DOMAIN = 'openclaw.ai';
+export const DOCS_BASE_URL = 'https://docs.openclaw.ai';
+export const SLACK_API_BASE = 'https://slack.com/api';
+
 // External API base URLs
 export const RESEND_API_URL = 'https://api.resend.com/emails';
 export const TELEGRAM_API_BASE = 'https://api.telegram.org/bot';

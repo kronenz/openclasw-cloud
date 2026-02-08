@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../utils/html.js';
+import { OPENCLAW_DOMAIN, DOCS_BASE_URL } from '../../config/constants.js';
 
 export interface WelcomeEmailData {
   tenantName: string;
@@ -60,7 +61,7 @@ export function generateWelcomeEmail(data: WelcomeEmailData): {
         <ul style="list-style: none; padding: 0;">
           <li><strong>조직명:</strong> ${safeTenant}</li>
           <li><strong>플랜:</strong> ${safePlan}</li>
-          <li><strong>서브도메인:</strong> ${safeSubdomain}.openclaw.ai</li>
+          <li><strong>서브도메인:</strong> ${safeSubdomain}.${OPENCLAW_DOMAIN}</li>
         </ul>
       </div>
 
@@ -87,10 +88,10 @@ export function generateWelcomeEmail(data: WelcomeEmailData): {
       <div class="info-box">
         <h3 style="margin-top: 0;">📚 유용한 리소스</h3>
         <ul>
-          <li><a href="https://docs.openclaw.ai/quickstart">빠른 시작 가이드</a></li>
-          <li><a href="https://docs.openclaw.ai/soul">SOUL.md 작성 가이드</a></li>
-          <li><a href="https://docs.openclaw.ai/integrations">메신저 연동 가이드</a></li>
-          <li><a href="https://docs.openclaw.ai/skills">스킬 개발 문서</a></li>
+          <li><a href="${DOCS_BASE_URL}/quickstart">빠른 시작 가이드</a></li>
+          <li><a href="${DOCS_BASE_URL}/soul">SOUL.md 작성 가이드</a></li>
+          <li><a href="${DOCS_BASE_URL}/integrations">메신저 연동 가이드</a></li>
+          <li><a href="${DOCS_BASE_URL}/skills">스킬 개발 문서</a></li>
         </ul>
       </div>
 
@@ -105,7 +106,7 @@ export function generateWelcomeEmail(data: WelcomeEmailData): {
     <div class="footer">
       <p>이 이메일은 OpenClaw 서비스 가입 시 자동으로 발송됩니다.</p>
       <p>© 2026 OpenClaw. All rights reserved.</p>
-      <p><a href="https://openclaw.ai/privacy" style="color: #667eea;">개인정보처리방침</a> | <a href="https://openclaw.ai/terms" style="color: #667eea;">이용약관</a></p>
+      <p><a href="https://${OPENCLAW_DOMAIN}/privacy" style="color: #667eea;">개인정보처리방침</a> | <a href="https://${OPENCLAW_DOMAIN}/terms" style="color: #667eea;">이용약관</a></p>
     </div>
   </div>
 </body>
@@ -125,7 +126,7 @@ ${data.tenantName}의 AI 비서 서비스 설정이 완료되었습니다.
 
 조직명: ${data.tenantName}
 플랜: ${data.plan}
-서브도메인: ${data.subdomain}.openclaw.ai
+서브도메인: ${data.subdomain}.${OPENCLAW_DOMAIN}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 ⚠️  API Key (안전하게 보관하세요)
@@ -149,10 +150,10 @@ ${data.apiKey}
 📚 유용한 리소스
 ━━━━━━━━━━━━━━━━━━━━━━
 
-• 빠른 시작 가이드: https://docs.openclaw.ai/quickstart
-• SOUL.md 작성 가이드: https://docs.openclaw.ai/soul
-• 메신저 연동 가이드: https://docs.openclaw.ai/integrations
-• 스킬 개발 문서: https://docs.openclaw.ai/skills
+• 빠른 시작 가이드: ${DOCS_BASE_URL}/quickstart
+• SOUL.md 작성 가이드: ${DOCS_BASE_URL}/soul
+• 메신저 연동 가이드: ${DOCS_BASE_URL}/integrations
+• 스킬 개발 문서: ${DOCS_BASE_URL}/skills
 
 대시보드: ${data.dashboardUrl}
 
@@ -165,8 +166,8 @@ OpenClaw 팀
 이 이메일은 OpenClaw 서비스 가입 시 자동으로 발송됩니다.
 © 2026 OpenClaw. All rights reserved.
 
-개인정보처리방침: https://openclaw.ai/privacy
-이용약관: https://openclaw.ai/terms
+개인정보처리방침: https://${OPENCLAW_DOMAIN}/privacy
+이용약관: https://${OPENCLAW_DOMAIN}/terms
   `.trim();
 
   return { subject, html, text };

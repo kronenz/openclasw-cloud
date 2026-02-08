@@ -241,6 +241,25 @@ export async function listNotifications(
   return result.results || [];
 }
 
+// Convenience helper for creating email notifications
+export async function createEmailNotification(
+  db: D1Database,
+  tenantId: string,
+  type: 'welcome' | 'payment_failed' | 're_engagement' | 'upsell' | 'report' | 'cancellation' | 'downgrade',
+  subject: string,
+  body: string
+): Promise<void> {
+  await createNotification(db, {
+    id: crypto.randomUUID(),
+    tenant_id: tenantId,
+    channel: 'email',
+    type,
+    status: 'pending',
+    content: JSON.stringify({ subject, body }),
+    sent_at: null,
+  });
+}
+
 // Soul Versions
 export async function createSoulVersion(
   db: D1Database,

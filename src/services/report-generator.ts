@@ -1,6 +1,6 @@
 import type { Bindings, DailyUsage } from '../types/index.js';
 import { listTenants, getSubscription, getTenantUsageSummary, listBillingPlans } from '../db/queries.js';
-import { createNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
+import { createNotification, createEmailNotification, createCronLog, updateCronLog, listTenantsBySegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
 import { toDateString } from '../utils/id.js';
@@ -265,19 +265,13 @@ export class ReportGenerator {
         try {
           const report = await this.generateWeeklyReport(tenant.id);
 
-          await createNotification(this.env.DB, {
-            id: crypto.randomUUID(),
-            tenant_id: tenant.id,
-            channel: 'email',
-            type: 'report',
-            status: 'pending',
-            content: JSON.stringify({
-              subject: `[OpenClaw] ${tenant.name} 주간 리포트`,
-              report_type: 'weekly',
-              data: report,
-            }),
-            sent_at: null,
-          });
+          await createEmailNotification(
+            this.env.DB,
+            tenant.id,
+            'report',
+            `[OpenClaw] ${tenant.name} 주간 리포트`,
+            JSON.stringify({ report_type: 'weekly', data: report })
+          );
 
           sent++;
         } catch (error) {
@@ -325,19 +319,13 @@ export class ReportGenerator {
         try {
           const report = await this.generateMonthlyReport(tenant.id);
 
-          await createNotification(this.env.DB, {
-            id: crypto.randomUUID(),
-            tenant_id: tenant.id,
-            channel: 'email',
-            type: 'report',
-            status: 'pending',
-            content: JSON.stringify({
-              subject: `[OpenClaw] ${tenant.name} 월간 리포트`,
-              report_type: 'monthly',
-              data: report,
-            }),
-            sent_at: null,
-          });
+          await createEmailNotification(
+            this.env.DB,
+            tenant.id,
+            'report',
+            `[OpenClaw] ${tenant.name} 월간 리포트`,
+            JSON.stringify({ report_type: 'monthly', data: report })
+          );
 
           sent++;
         } catch (error) {

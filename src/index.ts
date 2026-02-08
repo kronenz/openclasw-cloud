@@ -21,7 +21,7 @@ import { CustomerAnalytics } from './services/customer-analytics.js';
 import { ReportGenerator } from './services/report-generator.js';
 import { createCronLog, updateCronLog } from './db/queries-v2.js';
 import { structuredError, structuredWarn, formatErrorMessage } from './utils/log.js';
-import { CRON_JOB_TIMEOUT_MS } from './config/constants.js';
+import { CRON_JOB_TIMEOUT_MS, OPENCLAW_DOMAIN } from './config/constants.js';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -34,7 +34,7 @@ app.use('*', cors({
     // In development, allow localhost
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin;
     // Allow openclaw.ai subdomains
-    if (origin.endsWith('.openclaw.ai') || origin === 'https://openclaw.ai') return origin;
+    if (origin.endsWith(`.${OPENCLAW_DOMAIN}`) || origin === `https://${OPENCLAW_DOMAIN}`) return origin;
     // Deny all other origins
     return null;
   },
