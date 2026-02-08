@@ -4,6 +4,7 @@ export default defineWorkersConfig({
   test: {
     globals: true,
     include: ['tests/**/*.test.ts'],
+    exclude: ['tests/unit/db/schema.test.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

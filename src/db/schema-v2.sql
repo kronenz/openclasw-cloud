@@ -68,3 +68,8 @@ CREATE TABLE IF NOT EXISTS cron_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cron_logs_job_name ON cron_logs(job_name);
+
+-- Additional indexes for query performance
+CREATE INDEX IF NOT EXISTS idx_cron_logs_status ON cron_logs(status);
+CREATE INDEX IF NOT EXISTS idx_soul_versions_tenant_active ON soul_versions(tenant_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
