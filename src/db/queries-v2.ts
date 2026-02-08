@@ -8,11 +8,6 @@ import type {
   BillingSubscription,
 } from '../types/index.js';
 
-// Helper to generate UUIDs
-function generateId(): string {
-  return crypto.randomUUID();
-}
-
 // Onboarding Surveys
 export async function createSurvey(
   db: D1Database,
