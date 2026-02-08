@@ -73,11 +73,7 @@ export const MAX_CUSTOM_INSTRUCTIONS_LENGTH = 5000;
 export const API_TIMEOUT_STANDARD = 15_000;  // Most external APIs
 export const API_TIMEOUT_LONG = 30_000;      // Infrastructure APIs (Cloudflare)
 
-// External API limits
-export const R2_LIST_LIMIT = 1000;
-
 // Customer analytics thresholds
-export const LOW_USAGE_THRESHOLD = 1000;
 export const INDUSTRY_BENCHMARKS: Record<string, number> = {
   cafe: 50_000,
   office: 80_000,
@@ -126,7 +122,6 @@ export const ERROR_CODES = {
   // Resources
   TENANT_NOT_FOUND: 'TENANT_NOT_FOUND',
   SUBSCRIPTION_NOT_FOUND: 'SUBSCRIPTION_NOT_FOUND',
-  PLAN_NOT_FOUND: 'PLAN_NOT_FOUND',
   SURVEY_NOT_FOUND: 'SURVEY_NOT_FOUND',
   SOUL_NOT_FOUND: 'SOUL_NOT_FOUND',
   NOT_FOUND: 'NOT_FOUND',
