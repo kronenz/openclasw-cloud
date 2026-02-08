@@ -10,11 +10,6 @@ import type {
   ProvisioningLog,
 } from '../types/index.js';
 
-// Helper to generate UUIDs
-function generateId(): string {
-  return crypto.randomUUID();
-}
-
 // Tenant CRUD
 export async function createTenant(
   db: D1Database,

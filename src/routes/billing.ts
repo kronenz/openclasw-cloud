@@ -115,7 +115,7 @@ billing.post('/subscription/upgrade', async (c) => {
     console.error('Failed to upgrade subscription:', e);
     return c.json<ApiResponse>({
       success: false,
-      error: e instanceof Error ? e.message : 'Failed to upgrade subscription',
+      error: 'Failed to upgrade subscription',
       code: 'UPGRADE_FAILED',
     }, 500);
   }
@@ -145,7 +145,7 @@ billing.post('/subscription/cancel', async (c) => {
     console.error('Failed to cancel subscription:', e);
     return c.json<ApiResponse>({
       success: false,
-      error: e instanceof Error ? e.message : 'Failed to cancel subscription',
+      error: 'Failed to cancel subscription',
       code: 'CANCEL_FAILED',
     }, 500);
   }
@@ -264,7 +264,10 @@ billing.post('/webhook', async (c) => {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
 
-      if (signature !== expectedHex) {
+      // Use constant-time comparison to prevent timing attacks
+      const sigBytes = new TextEncoder().encode(signature);
+      const expBytes = new TextEncoder().encode(expectedHex);
+      if (sigBytes.length !== expBytes.length || !crypto.subtle.timingSafeEqual(sigBytes, expBytes)) {
         console.warn('Invalid webhook signature');
         return c.json<ApiResponse>({
           success: false,

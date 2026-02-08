@@ -102,12 +102,12 @@ tenants.post('/', async (c) => {
 tenants.get('/', async (c) => {
   try {
     const status = c.req.query('status');
-    const limit = parseInt(c.req.query('limit') || '50', 10);
-    const offset = parseInt(c.req.query('offset') || '0', 10);
+    const limit = Math.max(1, Math.min(parseInt(c.req.query('limit') || '50', 10), 100));
+    const offset = Math.max(0, parseInt(c.req.query('offset') || '0', 10));
 
     const tenantList = await listTenants(c.env.DB, {
       status: status || undefined,
-      limit: Math.min(limit, 100),
+      limit,
       offset,
     });
 
