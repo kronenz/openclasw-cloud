@@ -75,11 +75,11 @@ export const API_TIMEOUT_STANDARD = 15_000;  // Most external APIs
 export const API_TIMEOUT_LONG = 30_000;      // Infrastructure APIs (Cloudflare)
 
 // Customer analytics thresholds
-export const INDUSTRY_BENCHMARKS: Record<string, number> = {
-  cafe: 50_000,
-  office: 80_000,
-  shopping: 60_000,
-  default: 45_000,
+export const INDUSTRY_BENCHMARKS: Record<string, { avg_tokens: number; avg_cost: number }> = {
+  cafe: { avg_tokens: 50_000, avg_cost: 2.5 },
+  office: { avg_tokens: 80_000, avg_cost: 4.0 },
+  shopping: { avg_tokens: 60_000, avg_cost: 3.0 },
+  general: { avg_tokens: 45_000, avg_cost: 2.0 },
 };
 
 // Domain & URL Configuration

@@ -3,7 +3,7 @@ import { listTenants, getTenant, getSubscription, getTenantUsageSummary, listBil
 import { upsertTenantSegment, getTenantSegment } from '../db/queries-v2.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString, nowISO } from '../utils/id.js';
-import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD, MIN_ACTIVE_TOKENS } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, USAGE_DROP_THRESHOLD, MIN_ACTIVE_TOKENS, INDUSTRY_BENCHMARKS } from '../config/constants.js';
 import { structuredLog } from '../utils/log.js';
 import { calculateUsageTrend, aggregateTokenUsage } from '../utils/analytics.js';
 
@@ -282,17 +282,9 @@ export class CustomerAnalytics {
     const insights: string[] = [];
     const recommendations: string[] = [];
 
-    // Industry benchmarks (hardcoded for now)
-    const INDUSTRY_BENCHMARKS = {
-      cafe: { avg_tokens: 50000, avg_cost: 2.5 },
-      office: { avg_tokens: 80000, avg_cost: 4.0 },
-      shopping: { avg_tokens: 60000, avg_cost: 3.0 },
-      general: { avg_tokens: 45000, avg_cost: 2.0 },
-    };
-
     const metadata = safeJsonParse<{ industry?: string }>(tenant.metadata, {});
     const industry = metadata.industry || 'general';
-    const benchmark = INDUSTRY_BENCHMARKS[industry as keyof typeof INDUSTRY_BENCHMARKS] || INDUSTRY_BENCHMARKS.general;
+    const benchmark = INDUSTRY_BENCHMARKS[industry] || INDUSTRY_BENCHMARKS.general;
 
     // Generate insights
     if (analysis.avg_daily_tokens > benchmark.avg_tokens) {
