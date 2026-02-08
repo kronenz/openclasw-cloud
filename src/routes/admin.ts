@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type { Bindings, Variables, ApiResponse, Tenant, Incident } from '../types/index.js';
+import type { Bindings, Variables, ApiResponse, PaginatedApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
 import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, TENANT_SEGMENTS, ERROR_CODES } from '../config/constants.js';
 import { safeJsonParse } from '../utils/json.js';
@@ -169,7 +169,7 @@ admin.get('/tenants', withErrorHandler('admin_tenants_list_failed', async (c) =>
   const stmt = c.env.DB.prepare(query).bind(...bindings);
   const result = await stmt.all<AdminTenantRow>();
 
-  return c.json({
+  return c.json<PaginatedApiResponse<AdminTenantRow>>({
     success: true,
     data: result.results || [],
     meta: {
@@ -483,7 +483,7 @@ admin.get('/billing/transactions', withErrorHandler('admin_billing_transactions_
 
   const transactions = await transactionsStmt.all<TransactionRow>();
 
-  return c.json({
+  return c.json<PaginatedApiResponse<TransactionRow>>({
     success: true,
     data: transactions.results || [],
     meta: {
@@ -492,7 +492,7 @@ admin.get('/billing/transactions', withErrorHandler('admin_billing_transactions_
       offset,
       count: transactions.results?.length || 0,
     },
-  } as const);
+  });
 }));
 
 export { admin };

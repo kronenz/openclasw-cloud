@@ -195,6 +195,15 @@ export interface ApiResponse<T = unknown> {
   details?: unknown;
 }
 
+export interface PaginatedApiResponse<T = unknown> extends ApiResponse<T[]> {
+  meta: {
+    page: number;
+    limit: number;
+    offset: number;
+    count: number;
+  };
+}
+
 // Phase 2 Types
 
 // Onboarding Survey
