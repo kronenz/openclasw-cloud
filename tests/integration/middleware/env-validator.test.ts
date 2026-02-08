@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { envValidatorMiddleware } from '../../../src/middleware/env-validator.js';
 import { parseApiResponse } from '../../helpers/types.js';

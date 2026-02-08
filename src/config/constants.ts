@@ -115,6 +115,10 @@ export const USAGE_DROP_THRESHOLD = 0.5;              // 50% drop = at-risk
 export const TREND_INCREASE_MULTIPLIER = 1.2;         // 20% increase = trending up
 export const TREND_DECREASE_MULTIPLIER = 0.8;         // 20% decrease = trending down
 
+// Anomaly Detection Thresholds
+export const ANOMALY_TOKEN_SPIKE_MULTIPLIER = 3;      // 3x average = usage spike alert
+export const ANOMALY_COST_SPIKE_MULTIPLIER = 5;       // 5x average = cost anomaly alert
+
 // List/Pagination Limits
 export const LIST_TENANTS_LIMIT = 1000;
 

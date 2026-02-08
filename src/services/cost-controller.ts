@@ -2,7 +2,7 @@ import type { Bindings, ModelRecommendation, Alert, ModelBreakdownData } from '.
 import { logUsage, getDailyUsage, getSubscription, listBillingPlans } from '../db/queries.js';
 import { safeJsonParse } from '../utils/json.js';
 import { toDateString } from '../utils/id.js';
-import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT } from '../config/constants.js';
+import { MS_PER_DAY, USAGE_HIGH_THRESHOLD_PERCENT, ANOMALY_TOKEN_SPIKE_MULTIPLIER, ANOMALY_COST_SPIKE_MULTIPLIER, INACTIVITY_THRESHOLD_DAYS } from '../config/constants.js';
 
 // Model cost per 1K tokens (USD)
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
@@ -150,15 +150,15 @@ export class CostController {
 
     if (!usage) return alerts;
 
-    // Check for sudden spike (> 3x average of last 7 days)
-    const weekAgo = toDateString(new Date(Date.now() - 7 * MS_PER_DAY));
+    // Check for sudden spike (> Nx average of last N days)
+    const weekAgo = toDateString(new Date(Date.now() - INACTIVITY_THRESHOLD_DAYS * MS_PER_DAY));
     const historicalResult = await this.env.DB.prepare(`
       SELECT AVG(total_tokens) as avg_tokens, AVG(total_cost) as avg_cost
       FROM daily_usage
       WHERE tenant_id = ? AND date >= ? AND date < ?
     `).bind(tenantId, weekAgo, today).first<{ avg_tokens: number; avg_cost: number }>();
 
-    if (historicalResult?.avg_tokens && usage.total_tokens > historicalResult.avg_tokens * 3) {
+    if (historicalResult?.avg_tokens && usage.total_tokens > historicalResult.avg_tokens * ANOMALY_TOKEN_SPIKE_MULTIPLIER) {
       alerts.push({
         type: 'anomaly',
         severity: 'warning',
@@ -168,7 +168,7 @@ export class CostController {
       });
     }
 
-    if (historicalResult?.avg_cost && usage.total_cost > historicalResult.avg_cost * 5) {
+    if (historicalResult?.avg_cost && usage.total_cost > historicalResult.avg_cost * ANOMALY_COST_SPIKE_MULTIPLIER) {
       alerts.push({
         type: 'cost_limit',
         severity: 'critical',
