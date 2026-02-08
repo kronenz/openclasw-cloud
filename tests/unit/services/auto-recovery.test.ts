@@ -293,8 +293,9 @@ describe('AutoRecovery', () => {
       );
 
       const slackPayload = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(slackPayload.text).toContain('P1 ESCALATION');
+      expect(slackPayload.text).toContain('[P1]');
       expect(slackPayload.text).toContain('tn_test123');
+      expect(slackPayload.text).toContain('자동 복구 실패');
     });
   });
 
@@ -480,10 +481,11 @@ describe('AutoRecovery', () => {
       );
 
       const callBody = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(callBody.text).toContain('P1 ESCALATION');
+      expect(callBody.text).toContain('[P1]');
       expect(callBody.text).toContain('tn_test123');
+      expect(callBody.text).toContain('자동 복구 실패');
       expect(callBody.blocks).toBeDefined();
-      expect(callBody.blocks[0].text.text).toContain('P1 ESCALATION');
+      expect(callBody.blocks[0].text.text).toContain('[P1]');
     });
 
     it('calls updateIncident with status and description', async () => {

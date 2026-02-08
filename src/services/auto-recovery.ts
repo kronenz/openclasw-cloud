@@ -9,6 +9,7 @@ import {
 import { createNotification } from '../db/queries-v2.js';
 import { generateIncidentId } from '../utils/id.js';
 import { MAX_RECOVERY_ATTEMPTS } from '../config/constants.js';
+import { SlackNotifier } from './slack-notifier.js';
 
 interface RecoveryResult {
   success: boolean;
@@ -247,42 +248,12 @@ export class AutoRecovery {
     });
 
     // Send alert to operator
-    if (this.env.SLACK_WEBHOOK_URL) {
-      try {
-        await fetch(this.env.SLACK_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: `🚨 [P1 ESCALATION] Tenant ${tenantId} 자동 복구 실패 (3회 시도)`,
-            blocks: [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `🚨 *[P1 ESCALATION]* Tenant \`${tenantId}\` 자동 복구 실패`,
-                },
-              },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*Incident ID:* ${incidentId}\n*Recovery Attempts:* 3/3 (exhausted)\n*Status:* ${health.status}`,
-                },
-              },
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: '```' + JSON.stringify(health.details, null, 2) + '```',
-                },
-              },
-            ],
-          }),
-        });
-      } catch (error) {
-        console.error('Failed to send escalation alert:', error);
-      }
-    }
+    const notifier = new SlackNotifier(this.env);
+    await notifier.sendEscalation({
+      tenantId,
+      reason: 'Auto-recovery exhausted',
+      attempts: MAX_RECOVERY_ATTEMPTS,
+    });
 
     console.log(JSON.stringify({
       event: 'incident_escalated',

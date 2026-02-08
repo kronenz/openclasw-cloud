@@ -1,6 +1,7 @@
 import type { Bindings, TenantHealth, Alert } from '../types/index.js';
 import { listTenants, getTenantResources, listIncidents } from '../db/queries.js';
 import { AutoRecovery } from './auto-recovery.js';
+import { SlackNotifier } from './slack-notifier.js';
 
 interface HealthReport {
   timestamp: string;
@@ -127,40 +128,17 @@ export class HealthChecker {
       timestamp: new Date().toISOString(),
     }));
 
-    if (!this.env.SLACK_WEBHOOK_URL) return;
-
-    const severityEmoji = {
-      info: 'ℹ️',
-      warning: '⚠️',
-      critical: '🚨',
+    const notifier = new SlackNotifier(this.env);
+    const severityMap: Record<string, string> = {
+      info: 'P3',
+      warning: 'P2',
+      critical: 'P1',
     };
 
-    try {
-      await fetch(this.env.SLACK_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: `${severityEmoji[alert.severity]} [${alert.type.toUpperCase()}] ${alert.message}`,
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: `${severityEmoji[alert.severity]} *[${alert.type.toUpperCase()}]* ${alert.message}`,
-              },
-            },
-            ...(alert.data ? [{
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: '```' + JSON.stringify(alert.data, null, 2) + '```',
-              },
-            }] : []),
-          ],
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to send Slack alert:', error);
-    }
+    await notifier.sendAlert({
+      severity: severityMap[alert.severity],
+      title: `[${alert.type.toUpperCase()}] ${alert.message}`,
+      message: alert.data ? `\`\`\`${JSON.stringify(alert.data, null, 2)}\`\`\`` : '',
+    });
   }
 }

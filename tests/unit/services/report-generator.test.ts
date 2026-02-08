@@ -332,6 +332,114 @@ describe('ReportGenerator', () => {
 
       expect(report.recommendations.some(r => r.includes('Starter') || r.includes('절약'))).toBe(true);
     });
+
+    it('handles missing subscription data', async () => {
+      const mockUsage: DailyUsage[] = Array.from({ length: 30 }, (_, i) => ({
+        tenant_id: 'tn_test',
+        date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
+        total_requests: 100,
+        total_tokens: 50000,
+        total_cost: 5.0,
+        model_breakdown: null,
+      }));
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockUsage }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_subscriptions')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue(null), // No subscription
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({
+              results: [],
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        } as any;
+      });
+
+      const report = await generator.generateMonthlyReport('tn_test');
+
+      expect(report.tenant_id).toBe('tn_test');
+      expect(report.total_tokens).toBe(1500000);
+      expect(report.cost_projection).toBe(150); // Falls back to basic projection
+    });
+  });
+
+  describe('generateWeeklyReport - edge cases', () => {
+    it('handles zero usage tenant', async () => {
+      const mockUsage: DailyUsage[] = Array.from({ length: 7 }, (_, i) => ({
+        tenant_id: 'tn_test',
+        date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
+        total_requests: 0,
+        total_tokens: 0,
+        total_cost: 0,
+        model_breakdown: null,
+      }));
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockUsage }),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        } as any;
+      });
+
+      const report = await generator.generateWeeklyReport('tn_test');
+
+      expect(report.total_tokens).toBe(0);
+      expect(report.total_cost).toBe(0);
+      expect(report.avg_daily_tokens).toBe(0);
+      expect(report.trend).toBe('stable');
+    });
+
+    it('generates report with no tenants', async () => {
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        } as any;
+      });
+
+      const report = await generator.generateWeeklyReport('tn_nonexistent');
+
+      expect(report.tenant_id).toBe('tn_nonexistent');
+      expect(report.total_tokens).toBe(0);
+      expect(report.total_cost).toBe(0);
+      expect(report.top_models).toEqual([]);
+    });
   });
 
   describe('generatePlatformReport', () => {
@@ -423,6 +531,46 @@ describe('ReportGenerator', () => {
       expect(report.revenue.total_cost).toBeGreaterThan(0);
       expect(report.usage.total_tokens).toBeGreaterThan(0);
       expect(report.top_tenants.length).toBeGreaterThan(0);
+    });
+
+    it('handles platform with no data', async () => {
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM tenants') && query.includes('LIMIT')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM tenant_segments')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        } as any;
+      });
+
+      const report = await generator.generatePlatformReport();
+
+      expect(report.tenants.total).toBe(0);
+      expect(report.tenants.active).toBe(0);
+      expect(report.revenue.total_cost).toBe(0);
+      expect(report.usage.total_tokens).toBe(0);
+      expect(report.top_tenants).toEqual([]);
     });
   });
 

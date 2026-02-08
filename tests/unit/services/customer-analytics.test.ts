@@ -453,6 +453,160 @@ describe('CustomerAnalytics', () => {
 
       expect(summary.at_risk).toBe(1);
     });
+
+    it('handles empty tenant list', async () => {
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: [] }),
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      const summary = await analytics.segmentTenants();
+
+      expect(summary.total).toBe(0);
+      expect(summary.new).toBe(0);
+      expect(summary.champion).toBe(0);
+      expect(summary.potential_upsell).toBe(0);
+      expect(summary.at_risk).toBe(0);
+    });
+
+    it('classifies new segment correctly (recent creation, low usage)', async () => {
+      const mockTenants: Tenant[] = [
+        {
+          id: 'tn_new',
+          name: 'New Corp',
+          plan: 'starter',
+          status: 'active',
+          subdomain: 'new',
+          contact_email: 'new@test.com',
+          contact_name: null,
+          metadata: null,
+          created_at: new Date(Date.now() - 3 * 86400000).toISOString(), // 3 days old
+          updated_at: new Date().toISOString(),
+        },
+      ];
+
+      const newUsage: DailyUsage[] = Array.from({ length: 3 }, (_, i) => ({
+        tenant_id: 'tn_new',
+        date: new Date(Date.now() - (2 - i) * 86400000).toISOString().split('T')[0],
+        total_requests: 5,
+        total_tokens: 2000, // Low usage
+        total_cost: 0.2,
+        model_breakdown: null,
+      }));
+
+      vi.spyOn(env.DB, 'prepare').mockImplementation((query: string) => {
+        if (query.includes('SELECT * FROM tenants')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: mockTenants }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM daily_usage')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              all: vi.fn().mockResolvedValue({ results: newUsage }),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_subscriptions')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({
+                id: 'sub_1',
+                plan_id: 'plan_starter',
+                status: 'active',
+              } as BillingSubscription),
+            }),
+          } as any;
+        }
+        if (query.includes('SELECT * FROM billing_plans')) {
+          return {
+            all: vi.fn().mockResolvedValue({
+              results: [
+                {
+                  id: 'plan_starter',
+                  daily_token_limit: 100000,
+                } as BillingPlan,
+              ],
+            }),
+          } as any;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        } as any;
+      });
+
+      const summary = await analytics.segmentTenants();
+
+      expect(summary.new).toBe(1);
+    });
+  });
+
+  describe('analyzeTenant - edge cases', () => {
+    it('handles zero usage data (all zeros)', async () => {
+      const mockUsage: DailyUsage[] = Array.from({ length: 30 }, (_, i) => ({
+        tenant_id: 'tn_test',
+        date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
+        total_requests: 0,
+        total_tokens: 0,
+        total_cost: 0,
+        model_breakdown: null,
+      }));
+
+      vi.spyOn(env.DB, 'prepare').mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({ results: mockUsage }),
+        }),
+      } as any);
+
+      const analysis = await analytics.analyzeTenant('tn_test');
+
+      expect(analysis.avg_daily_tokens).toBe(0);
+      expect(analysis.total_cost_30d).toBe(0);
+      expect(analysis.trend).toBe('stable');
+      expect(analysis.days_active).toBe(0);
+    });
+
+    it('handles single-day data (cannot calculate trend)', async () => {
+      const mockUsage: DailyUsage[] = [
+        {
+          tenant_id: 'tn_test',
+          date: new Date().toISOString().split('T')[0],
+          total_requests: 100,
+          total_tokens: 5000,
+          total_cost: 0.5,
+          model_breakdown: null,
+        },
+      ];
+
+      vi.spyOn(env.DB, 'prepare').mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          all: vi.fn().mockResolvedValue({ results: mockUsage }),
+        }),
+      } as any);
+
+      const analysis = await analytics.analyzeTenant('tn_test');
+
+      expect(analysis.avg_daily_tokens).toBe(5000);
+      expect(analysis.total_cost_30d).toBe(0.5);
+      expect(analysis.trend).toBe('stable'); // Cannot calculate trend with single day
+      expect(analysis.days_active).toBe(1);
+    });
   });
 
   describe('generateInsights', () => {
