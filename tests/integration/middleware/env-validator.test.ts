@@ -24,6 +24,7 @@ describe('Environment Validator Middleware', () => {
       CACHE: {},   // mock KV
       JWT_SECRET: 'test-secret',
       AI: {},      // mock AI Gateway
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -42,6 +43,7 @@ describe('Environment Validator Middleware', () => {
       CACHE: {},
       JWT_SECRET: 'test-secret',
       AI: {},
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -62,6 +64,7 @@ describe('Environment Validator Middleware', () => {
       CACHE: {},
       JWT_SECRET: 'test-secret',
       AI: {},
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -81,6 +84,7 @@ describe('Environment Validator Middleware', () => {
       STORAGE: {},
       JWT_SECRET: 'test-secret',
       AI: {},
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -100,6 +104,7 @@ describe('Environment Validator Middleware', () => {
       STORAGE: {},
       CACHE: {},
       JWT_SECRET: 'test-secret',
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -149,6 +154,7 @@ describe('Environment Validator Middleware', () => {
       STORAGE: {},
       CACHE: {},
       AI: {},
+      ENVIRONMENT: 'test',
     };
 
     const res = await app.request('/test', {}, env);
@@ -158,7 +164,27 @@ describe('Environment Validator Middleware', () => {
     expect(body.code).toBe('CONFIGURATION_ERROR');
   });
 
-  it('checks all required bindings', async () => {
+  it('returns 503 when ENVIRONMENT binding is missing', async () => {
+    const app = new Hono();
+    app.use('*', envValidatorMiddleware);
+    app.get('/test', (c) => c.json({ ok: true }));
+
+    const env = {
+      DB: {},
+      STORAGE: {},
+      CACHE: {},
+      JWT_SECRET: 'test-secret',
+      AI: {},
+    };
+
+    const res = await app.request('/test', {}, env);
+    expect(res.status).toBe(503);
+    const body = await parseApiResponse(res);
+    expect(body.success).toBe(false);
+    expect(body.code).toBe('CONFIGURATION_ERROR');
+  });
+
+  it('checks all required bindings progressively', async () => {
     const app = new Hono();
     app.use('*', envValidatorMiddleware);
     app.get('/test', (c) => c.json({ ok: true }));
@@ -167,24 +193,28 @@ describe('Environment Validator Middleware', () => {
     const res1 = await app.request('/test', {}, {});
     expect(res1.status).toBe(503);
 
-    // Missing four
+    // Missing five
     const res2 = await app.request('/test', {}, { DB: {} });
     expect(res2.status).toBe(503);
 
-    // Missing three
+    // Missing four
     const res3 = await app.request('/test', {}, { DB: {}, STORAGE: {} });
     expect(res3.status).toBe(503);
 
-    // Missing two
+    // Missing three
     const res4 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {} });
     expect(res4.status).toBe(503);
 
-    // Missing one (AI)
+    // Missing two
     const res5 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {}, JWT_SECRET: 'test' });
     expect(res5.status).toBe(503);
 
-    // All present
+    // Missing one (ENVIRONMENT)
     const res6 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {}, JWT_SECRET: 'test', AI: {} });
-    expect(res6.status).toBe(200);
+    expect(res6.status).toBe(503);
+
+    // All present
+    const res7 = await app.request('/test', {}, { DB: {}, STORAGE: {}, CACHE: {}, JWT_SECRET: 'test', AI: {}, ENVIRONMENT: 'test' });
+    expect(res7.status).toBe(200);
   });
 });

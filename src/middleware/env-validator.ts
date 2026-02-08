@@ -3,7 +3,7 @@ import type { ApiResponse, Bindings, Variables } from '../types/index.js';
 import { ERROR_CODES } from '../config/constants.js';
 import { structuredError } from '../utils/log.js';
 
-const REQUIRED_BINDINGS = ['DB', 'STORAGE', 'CACHE', 'JWT_SECRET', 'AI'] as const;
+const REQUIRED_BINDINGS = ['DB', 'STORAGE', 'CACHE', 'JWT_SECRET', 'AI', 'ENVIRONMENT'] as const;
 
 export const envValidatorMiddleware = createMiddleware<{ Bindings: Bindings; Variables: Variables }>(async (c, next) => {
   const missing = REQUIRED_BINDINGS.filter((key) => !c.env[key]);
