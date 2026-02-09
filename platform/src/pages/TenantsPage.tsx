@@ -1,8 +1,10 @@
-import { Plus, Search, Filter, ArrowUpDown, ChevronRight, ChevronLeft } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Search, Filter, ArrowUpDown, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useApi } from '@/hooks/useApi'
 
-const tenants = [
+const mockTenants = [
   {
     id: 'cafe-bloom',
     name: 'Cafe Bloom',
@@ -89,7 +91,56 @@ const tenants = [
   },
 ]
 
+interface Tenant {
+  id: string
+  name: string
+  subdomain: string
+  initials?: string
+  initialsColor?: string
+  plan: string
+  planColor?: string
+  status: string
+  statusVariant?: 'success' | 'warning' | 'error'
+  usage: number
+  revenue: string
+  created: string
+}
+
+interface TenantsResponse {
+  tenants: Tenant[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 export function TenantsPage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  const { data, loading, error } = useApi<TenantsResponse>('/api/admin/tenants')
+
+  const tenants = data?.tenants || mockTenants
+  const total = data?.total || 24
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header title="Tenants">
+          <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+            <Plus className="w-4 h-4" />
+            Add Tenant
+          </button>
+        </Header>
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Loading tenants...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Header title="Tenants">
@@ -101,6 +152,14 @@ export function TenantsPage() {
 
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                Unable to load live data. Showing mock data. Error: {error}
+              </p>
+            </div>
+          )}
+
           {/* Search and Filters */}
           <div className="flex items-center justify-between">
             <div className="relative flex-1 max-w-md">
@@ -108,6 +167,8 @@ export function TenantsPage() {
               <input
                 type="text"
                 placeholder="Search tenants..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-9 pl-9 pr-4 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -116,16 +177,44 @@ export function TenantsPage() {
           {/* Filter Tabs */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1">
-              <button className="px-3 py-1.5 text-sm font-medium bg-gray-100 text-gray-800 rounded">
-                All <span className="text-gray-500 ml-1">24</span>
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 text-sm font-medium rounded ${
+                  statusFilter === 'all'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                All <span className="text-gray-500 ml-1">{total}</span>
               </button>
-              <button className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded">
+              <button
+                onClick={() => setStatusFilter('active')}
+                className={`px-3 py-1.5 text-sm font-medium rounded ${
+                  statusFilter === 'active'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
                 Active <span className="text-gray-400 ml-1">20</span>
               </button>
-              <button className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded">
+              <button
+                onClick={() => setStatusFilter('suspended')}
+                className={`px-3 py-1.5 text-sm font-medium rounded ${
+                  statusFilter === 'suspended'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
                 Suspended <span className="text-gray-400 ml-1">2</span>
               </button>
-              <button className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded">
+              <button
+                onClick={() => setStatusFilter('trial')}
+                className={`px-3 py-1.5 text-sm font-medium rounded ${
+                  statusFilter === 'trial'
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
                 Trial <span className="text-gray-400 ml-1">2</span>
               </button>
             </div>
@@ -174,9 +263,11 @@ export function TenantsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-9 h-9 ${tenant.initialsColor} rounded-lg flex items-center justify-center`}
+                          className={`w-9 h-9 ${tenant.initialsColor || 'bg-gray-100 text-gray-700'} rounded-lg flex items-center justify-center`}
                         >
-                          <span className="text-sm font-semibold">{tenant.initials}</span>
+                          <span className="text-sm font-semibold">
+                            {tenant.initials || tenant.name.substring(0, 2).toUpperCase()}
+                          </span>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{tenant.name}</p>
@@ -186,13 +277,16 @@ export function TenantsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tenant.planColor}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tenant.planColor || 'bg-gray-100 text-gray-700'}`}
                       >
                         {tenant.plan}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={tenant.status} variant={tenant.statusVariant} />
+                      <StatusBadge
+                        status={tenant.status}
+                        variant={tenant.statusVariant || 'success'}
+                      />
                     </td>
                     <td className="px-6 py-4">
                       {tenant.status === 'Suspended' ? (
@@ -236,8 +330,8 @@ export function TenantsPage() {
             {/* Pagination */}
             <div className="px-6 py-3 bg-white border-t border-gray-200 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Showing <span className="font-medium">1-6</span> of{' '}
-                <span className="font-medium">24</span> tenants
+                Showing <span className="font-medium">1-{tenants.length}</span> of{' '}
+                <span className="font-medium">{total}</span> tenants
               </p>
               <div className="flex items-center gap-1">
                 <button

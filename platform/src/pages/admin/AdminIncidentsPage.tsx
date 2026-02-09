@@ -1,8 +1,9 @@
-import { Plus, Clock, AlertTriangle } from 'lucide-react'
+import { Plus, Clock, AlertTriangle, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { StatusBadge } from '@/components/StatusBadge'
+import { useApi } from '@/hooks/useApi'
 
-const incidents = [
+const mockIncidents = [
   {
     id: 'INC-027',
     title: 'AI Gateway timeout - Multiple tenants affected',
@@ -70,7 +71,60 @@ const incidents = [
   },
 ]
 
+interface Incident {
+  id: string
+  title: string
+  severity: string
+  severityColor: string
+  status: string
+  statusVariant: 'success' | 'warning' | 'error'
+  tenant: string
+  created: string
+  updated: string
+  recoveryAttempts: number
+  assignedAgent: string
+}
+
+interface IncidentsData {
+  incidents: Incident[]
+  stats: {
+    total: number
+    open: number
+    investigating: number
+    avgResolutionTime: string
+  }
+}
+
 export function AdminIncidentsPage() {
+  const { data, loading, error } = useApi<IncidentsData>('/api/admin/incidents')
+
+  const incidents = data?.incidents || mockIncidents
+  const stats = data?.stats || {
+    total: 27,
+    open: 3,
+    investigating: 2,
+    avgResolutionTime: '42m',
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header title="Incident Management">
+          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+            <Plus className="w-4 h-4" />
+            Create Incident
+          </button>
+        </Header>
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Loading incidents...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Header title="Incident Management">
@@ -82,13 +136,21 @@ export function AdminIncidentsPage() {
 
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                Unable to load live data. Showing mock data. Error: {error}
+              </p>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Incidents</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">27</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
                 </div>
                 <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-gray-600" />
@@ -99,7 +161,7 @@ export function AdminIncidentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Open</p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">3</p>
+                  <p className="text-2xl font-bold text-red-600 mt-1">{stats.open}</p>
                 </div>
                 <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -110,7 +172,7 @@ export function AdminIncidentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Investigating</p>
-                  <p className="text-2xl font-bold text-yellow-600 mt-1">2</p>
+                  <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.investigating}</p>
                 </div>
                 <div className="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
                   <Clock className="w-5 h-5 text-yellow-600" />
@@ -121,7 +183,7 @@ export function AdminIncidentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Avg Resolution Time</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">42m</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stats.avgResolutionTime}</p>
                 </div>
                 <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
                   <Clock className="w-5 h-5 text-green-600" />
@@ -134,7 +196,7 @@ export function AdminIncidentsPage() {
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="flex border-b border-gray-200">
               <button className="px-6 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-                All (5)
+                All ({incidents.length})
               </button>
               <button className="px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 border-b-2 border-transparent">
                 Open (1)

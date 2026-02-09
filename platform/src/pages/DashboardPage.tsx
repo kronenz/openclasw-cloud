@@ -1,10 +1,12 @@
-import { Building2, CreditCard, BarChart3, HeartPulse, Plus, AlertTriangle, CheckCircle, FileText, ArrowRight } from 'lucide-react'
+import { Building2, CreditCard, BarChart3, HeartPulse, Plus, AlertTriangle, CheckCircle, FileText, ArrowRight, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
 import { DataTable } from '@/components/DataTable'
+import { useApi } from '@/hooks/useApi'
 
-const recentActivities = [
+// Mock data as fallback
+const mockRecentActivities = [
   {
     icon: Plus,
     iconColor: 'text-green-600',
@@ -52,14 +54,14 @@ const recentActivities = [
   },
 ]
 
-const tenantHealthData = [
+const mockTenantHealthData = [
   { name: 'Cafe Bloom', status: 'Healthy', requests: '1,247' },
   { name: 'TechOffice', status: 'Healthy', requests: '3,891' },
   { name: 'ShopMall A', status: 'Degraded', requests: '892' },
   { name: 'Beauty Bar', status: 'Healthy', requests: '456' },
 ]
 
-const tenantSegments = [
+const mockTenantSegments = [
   { name: 'Champion', color: 'bg-green-500', count: 9, percentage: 38 },
   { name: 'Potential Upsell', color: 'bg-blue-500', count: 6, percentage: 25 },
   { name: 'New', color: 'bg-purple-500', count: 4, percentage: 17 },
@@ -68,18 +70,75 @@ const tenantSegments = [
   { name: 'Happy Inactive', color: 'bg-gray-400', count: 0, percentage: 0 },
 ]
 
+interface DashboardData {
+  stats: {
+    activeTenants: number
+    monthlyRevenue: number
+    apiRequestsToday: number
+    systemHealth: number
+  }
+  recentActivities?: Array<{
+    icon: string
+    iconColor: string
+    iconBg: string
+    text: string
+    highlight: string
+    suffix: string
+    time: string
+  }>
+  tenantHealth?: Array<{
+    name: string
+    status: string
+    requests: string
+  }>
+  segments?: Array<{
+    name: string
+    color: string
+    count: number
+    percentage: number
+  }>
+}
+
 export function DashboardPage() {
+  const { data, loading, error } = useApi<DashboardData>('/api/admin')
+
+  const recentActivities = data?.recentActivities || mockRecentActivities
+  const tenantHealthData = data?.tenantHealth || mockTenantHealthData
+  const tenantSegments = data?.segments || mockTenantSegments
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header title="Dashboard" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Loading dashboard...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Header title="Dashboard" />
 
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {error && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                Unable to load live data. Showing mock data. Error: {error}
+              </p>
+            </div>
+          )}
+
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               title="Active Tenants"
-              value="24"
+              value={data?.stats?.activeTenants?.toString() || '24'}
               icon={Building2}
               iconBgColor="bg-blue-50"
               iconColor="text-blue-600"
@@ -87,7 +146,7 @@ export function DashboardPage() {
             />
             <StatCard
               title="Monthly Revenue"
-              value="₩3,240,000"
+              value={data?.stats?.monthlyRevenue ? `₩${data.stats.monthlyRevenue.toLocaleString()}` : '₩3,240,000'}
               icon={CreditCard}
               iconBgColor="bg-green-50"
               iconColor="text-green-600"
@@ -95,7 +154,7 @@ export function DashboardPage() {
             />
             <StatCard
               title="API Requests (Today)"
-              value="12,847"
+              value={data?.stats?.apiRequestsToday?.toLocaleString() || '12,847'}
               icon={BarChart3}
               iconBgColor="bg-purple-50"
               iconColor="text-purple-600"
@@ -103,7 +162,7 @@ export function DashboardPage() {
             />
             <StatCard
               title="System Health"
-              value="99.8%"
+              value={data?.stats?.systemHealth ? `${data.stats.systemHealth}%` : '99.8%'}
               icon={HeartPulse}
               iconBgColor="bg-green-50"
               iconColor="text-green-600"
