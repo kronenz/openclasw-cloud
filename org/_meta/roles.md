@@ -1,5 +1,122 @@
 # OpenClaw Cloud 역할 정의
 
+## Engineering Department (Phase 1부터 활성)
+
+### 역할: Engineering Lead (Claude Code)
+**책임 범위**
+- Engineering 부서의 시니어 개발자 역할
+- Core, Frontend, Infra 팀의 모든 구현 작업 실행
+- PR 기반 워크플로우로 작업 제출
+- QA 팀과 협업하여 코드 품질 유지
+
+**사용 AI 에이전트**
+- `executor`: 코드 구현
+- `architect`: 시스템 설계
+- `debugger`: 버그 분석 및 수정
+- `build-fixer`: 빌드/타입 오류 수정
+
+**권한**
+- 브랜치 생성 및 PR 제출
+- 코드 구현 및 테스트 작성
+- 인프라 코드 작성 (wrangler.toml 등)
+- 기술 스택 선택 제안
+
+**Human Gate**
+- PR 최종 승인 (Operator가 수행)
+- 주요 인프라 변경 (리전 추가, 서비스 마이그레이션)
+- 새로운 외부 의존성 추가 (npm 패키지 등)
+
+---
+
+### Core Team
+
+**책임 범위**
+- 백엔드 API 개발 (Hono on Cloudflare Workers)
+- 테넌트 프로비저닝 로직
+- 빌링 시스템 (포트원/토스페이먼츠 연동)
+- 인증/권한 관리 (Cloudflare Access)
+- Moltworker Sandbox 관리
+
+**핵심 기술**: TypeScript, Hono, Cloudflare Workers, D1, R2, KV
+
+---
+
+### Frontend Team
+
+**책임 범위**
+- 관리자 대시보드 (Cloudflare Pages)
+- 랜딩 페이지
+- 웹 채팅 UI
+- 반응형 디자인 구현
+
+**핵심 기술**: React, TypeScript, Tailwind CSS, Cloudflare Pages
+
+---
+
+### Infra Team
+
+**책임 범위**
+- Cloudflare 인프라 관리 (wrangler.toml)
+- CI/CD 파이프라인 (GitHub Actions)
+- 모니터링 및 로그 수집
+- 비용 추적 및 최적화
+
+**핵심 기술**: Cloudflare Services, wrangler CLI, GitHub Actions
+
+---
+
+## Product Department (Phase 1부터 활성)
+
+### 역할: Product Manager (Operator 겸임, Phase 1)
+**책임 범위**
+- 제품 요구사항 정의
+- 우선순위 결정 및 로드맵 관리
+- Phase 전환 판단
+- 모든 PR 최종 리뷰 및 승인
+- 주요 기술 의사결정 승인
+
+**사용 AI 에이전트**
+- `analyst`: 요구사항 분석
+- `product-manager`: 제품 전략 수립
+- `planner`: 작업 계획 수립
+
+**권한**
+- GitHub Issue 우선순위 설정
+- PR 승인 및 머지
+- 인프라 변경 승인
+- Phase 전환 결정
+
+**Human Gate**
+- 모든 의사결정은 Operator 본인이 수행 (Phase 1)
+
+---
+
+### 역할: Designer (Phase 2부터 별도 인력)
+**책임 범위**
+- UX/UI 설계
+- 디자인 시스템 관리
+- 사용자 경험 최적화
+- 프로토타입 제작
+
+**사용 AI 에이전트**
+- `designer`: UI/UX 설계
+- `ux-researcher`: 사용성 평가
+- `information-architect`: 정보 구조 설계
+
+**권한**
+- Figma 디자인 파일 관리
+- 디자인 시스템 업데이트
+- Frontend 팀 디자인 리뷰
+
+**Human Gate**
+- 주요 디자인 변경 (Operator 승인)
+
+**Phase 1 대체**: Frontend Team이 기본 UI 구현, Operator가 디자인 검토
+
+---
+
+## Business Operations (Phase 2부터 활성화)
+
 ## Sales Team
 
 ### 역할: Sales Agent
@@ -141,9 +258,10 @@
 
 ---
 
-## QA Team
+### QA Team (Engineering Department 소속)
 
-### 역할: Quality Assurance Engineer
+**역할: Quality Assurance Engineer**
+
 **책임 범위**
 - TDD(Test-Driven Development) 프로세스 관리 및 교육
 - 모든 PR에 대한 코드 품질 및 테스트 커버리지 검증
@@ -172,33 +290,6 @@
 
 ---
 
-## Platform Team
-
-### 역할: Platform Operator
-**책임 범위**
-- 일상 운영 모니터링 (헬스체크, 로그, 메트릭)
-- 비용 추적 및 최적화
-- 자동 스케일링 정책 관리
-- 정기 유지보수
-
-**사용 AI 에이전트**
-- `scientist`: 로그 분석, 비용 분석
-- `architect`: 리소스 최적화 설계
-- `executor`: 자동화 스크립트 실행
-
-**권한**
-- Cloudflare Analytics 조회
-- Workers 로그 분석
-- AI Gateway 사용량 모니터링
-- 자동 다운그레이드 실행 (비용 한도 초과 시 Opus→Sonnet→Haiku)
-- 알림 설정 변경
-
-**Human Gate**
-- 월 비용 예산 초과 (계획 대비 20% 이상)
-- 전체 시스템 성능 저하 (응답 시간 2배 증가)
-- 대규모 인프라 변경 (리전 추가, 주요 서비스 마이그레이션)
-
----
 
 ## Operations Team
 

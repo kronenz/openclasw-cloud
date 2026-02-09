@@ -1,120 +1,44 @@
-name: "일반 작업"
-description: "팀 작업, 구현, 개선 등 일반적인 작업 항목"
-title: "[Task] "
-labels: ["type/task", "status/needs-triage"]
+name: Task
+description: 일반 작업 (인프라, 문서, 리팩토링 등)
+labels: ["type/task"]
 body:
   - type: dropdown
-    id: team
+    id: category
     attributes:
-      label: 담당 팀
-      description: 이 작업을 담당하는 팀을 선택하세요
+      label: 카테고리
       options:
-        - sales
-        - onboarding
-        - persona
-        - integration
-        - skill-dev
-        - platform
-        - operations
-        - customer-success
+        - Infrastructure (인프라/CI/CD)
+        - Documentation (문서)
+        - Refactoring (리팩토링)
+        - Security (보안)
+        - Performance (성능)
+        - Other (기타)
     validations:
       required: true
-
   - type: dropdown
-    id: pipeline
+    id: size
     attributes:
-      label: 관련 파이프라인
-      description: 이 작업과 관련된 파이프라인을 선택하세요
+      label: 예상 크기
       options:
-        - customer-acquisition
-        - tenant-provisioning
-        - persona-crafting
-        - integration-setup
-        - operations
-        - incident-response
-        - skill-development
-        - customer-success
-        - N/A
+        - XS
+        - S
+        - M
+        - L
+        - XL
     validations:
       required: true
-
-  - type: dropdown
-    id: phase
-    attributes:
-      label: 대상 Phase
-      description: 이 작업의 목표 Phase를 선택하세요
-      options:
-        - Phase 1
-        - Phase 2
-        - Phase 3
-    validations:
-      required: true
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: 우선순위
-      description: 작업의 우선순위를 선택하세요
-      options:
-        - P0 - 최우선 (즉시 처리)
-        - P1 - 높음 (24시간 이내)
-        - P2 - 중간 (주간 내)
-        - P3 - 낮음 (계획 단계)
-    validations:
-      required: true
-
   - type: textarea
     id: description
     attributes:
-      label: 작업 설명
-      description: 이 작업이 무엇인지, 왜 필요한지 설명해주세요
-      placeholder: |
-        작업 배경:
-
-        주요 내용:
-
-        기대 효과:
+      label: 작업 내용
+      description: 수행할 작업을 명확하게 기술
     validations:
       required: true
-
   - type: textarea
-    id: acceptance-criteria
+    id: done
     attributes:
-      label: 완료 조건
-      description: 이 작업이 완료되었다고 판단할 수 있는 조건을 체크리스트로 작성해주세요
-      placeholder: |
-        - [ ] 조건 1
-        - [ ] 조건 2
-        - [ ] 조건 3
-        - [ ] 테스트 완료
-        - [ ] 문서화 완료
-    validations:
-      required: true
-
-  - type: dropdown
-    id: effort
-    attributes:
-      label: 예상 작업량
-      description: 작업량을 추정해주세요
-      options:
-        - XS (1-2시간)
-        - S (반나절)
-        - M (1일)
-        - L (2-3일)
-        - XL (1주 이상)
-    validations:
-      required: true
-
-  - type: textarea
-    id: dependencies
-    attributes:
-      label: 의존성
-      description: 이 작업이 의존하는 다른 이슈나 작업이 있다면 기술해주세요
-      placeholder: |
-        선행 작업:
-        - #이슈번호
-
-        블로킹 요소:
-        -
-    validations:
-      required: false
+      label: 완료 기준
+      value: |
+        - [ ] 작업 완료
+        - [ ] CI 통과
+        - [ ] PR 리뷰 승인

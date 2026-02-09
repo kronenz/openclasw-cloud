@@ -8,17 +8,35 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 작업 시작 전, 해당 도메인의 팀 CONTEXT.md **만** 읽어 최신 상태를 파악하세요.
 전체 README.md를 읽지 말고, CONTEXT.md로 빠르게 현황을 파악하는 것이 토큰 효율적입니다.
 
+### Engineering Department (Phase 1부터 활성)
+
 | Domain | Team | Context File | Manual |
 |--------|------|-------------|--------|
-| 랜딩 페이지, 마케팅 | sales | org/teams/sales/CONTEXT.md | - |
-| 테넌트 프로비저닝 | onboarding | org/teams/onboarding/CONTEXT.md | onboarding-manual.md |
-| SOUL.md, AI 페르소나 | persona | org/teams/persona/CONTEXT.md | soul-crafting-manual.md |
-| 메신저 연동 | integration | org/teams/integration/CONTEXT.md | messenger-setup-manual.md |
-| 스킬, 기능 개발 | skill-dev | org/teams/skill-dev/CONTEXT.md | skill-config-manual.md |
-| CI/CD, 인프라, 프론트엔드 | platform | org/teams/platform/CONTEXT.md | - |
-| 모니터링, 헬스, Cron | operations | org/teams/operations/CONTEXT.md | cost-control-manual.md, incident-manual.md |
-| 고객 인게이지먼트, 이메일, 리포트 | customer-success | org/teams/customer-success/CONTEXT.md | customer-success-manual.md |
+| 백엔드 API, 빌링, 인증 | core | org/teams/engineering/core/CONTEXT.md | - |
+| 대시보드, 랜딩, UI | frontend | org/teams/engineering/frontend/CONTEXT.md | - |
+| Cloudflare 인프라, CI/CD | infra | org/teams/engineering/infra/CONTEXT.md | - |
 | 테스트, 코드 리뷰 | qa | org/teams/qa/CONTEXT.md | qa-manual.md |
+
+### Product Department (Phase 1부터 활성)
+
+| Domain | Team | Context File | Manual |
+|--------|------|-------------|--------|
+| 요구사항, 우선순위, 로드맵 | pm | - | - |
+| UX/UI 설계 (Phase 2) | designer | - | - |
+
+**Phase 1**: PM과 Designer는 Operator가 겸임. Frontend Team이 기본 UI 구현.
+
+### Business Operations (Phase 2부터 활성화)
+
+| Domain | Team | Context File | Manual |
+|--------|------|-------------|--------|
+| 랜딩 페이지, 마케팅 (Phase 2) | sales | org/teams/sales/CONTEXT.md | - |
+| 테넌트 프로비저닝 (Phase 2) | onboarding | org/teams/onboarding/CONTEXT.md | onboarding-manual.md |
+| SOUL.md, AI 페르소나 (Phase 2) | persona | org/teams/persona/CONTEXT.md | soul-crafting-manual.md |
+| 메신저 연동 (Phase 2) | integration | org/teams/integration/CONTEXT.md | messenger-setup-manual.md |
+| 스킬, 기능 개발 (Phase 2) | skill-dev | org/teams/skill-dev/CONTEXT.md | skill-config-manual.md |
+| 모니터링, 헬스, Cron (Phase 2) | operations | org/teams/operations/CONTEXT.md | cost-control-manual.md, incident-manual.md |
+| 고객 인게이지먼트 (Phase 2) | customer-success | org/teams/customer-success/CONTEXT.md | customer-success-manual.md |
 
 **Lazy-Load 원칙**:
 1. CONTEXT.md로 현재 상태 파악 (50줄 이내)
@@ -185,7 +203,8 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 
 #### 포트원 (PortOne)
 - **용도**: 통합 결제 게이트웨이
-- **지원 결제수단**: 신용카드, 계좌이체, 가상계좌, 간편결제
+- **지원 결제수단**: 신용카드, 계좌이체, 가상계좌, 간편결제  
+  - 카카오페이, 네이버페이, 페이코, 삼성페이 등 다양한 간편결제 지원
 - **웹훅**: 결제 완료/실패/취소 이벤트 자동 처리
 
 #### 토스페이먼츠
@@ -194,7 +213,15 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
   - 정기결제 (빌링키)
   - 에스크로
   - 현금영수증 자동 발행
+  - 카카오페이, 네이버페이 등 주요 간편결제 지원
 - **웹훅**: 실시간 결제 상태 동기화
+
+#### 카카오페이 (직접 연동 옵션)
+- **용도**: 간편결제 특화 서비스
+- **특징**:
+  - 카카오 계정 기반 간편결제
+  - 포트원/토스 외 단독 연동도 가능
+- **API**: 카카오페이 개발자 센터 참고
 
 #### 자동화 처리
 - 결제 성공 → 테넌트 활성화 → 컨테이너 프로비저닝

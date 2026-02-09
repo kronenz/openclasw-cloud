@@ -67,7 +67,27 @@ openclasw-cloud/
 └── docs/                  # 참고 문서
 ```
 
-## Org Structure (AI Agent Teams)
+## Org Structure (3-Department Model)
+
+### Engineering Department (Phase 1부터 활성)
+
+| 팀 | 역할 | 핵심 기술 |
+|----|------|----------|
+| core | 백엔드 API, 빌링, 인증, Moltworker | TypeScript, Hono, Workers, D1, R2, KV |
+| frontend | 대시보드, 랜딩, 웹 채팅 UI | React, TypeScript, Tailwind CSS, Pages |
+| infra | Cloudflare 인프라, CI/CD, 모니터링 | wrangler, GitHub Actions, Analytics |
+| qa | 테스트, 코드 리뷰, TDD, 80% 커버리지 | Vitest, Playwright, code-reviewer |
+
+**Claude Code 역할**: Engineering 시니어 개발자. Core/Frontend/Infra 작업 실행.
+
+### Product Department (Phase 1부터 활성)
+
+| 팀 | 역할 | Phase 1 담당자 |
+|----|------|---------------|
+| pm | 요구사항, 우선순위, 로드맵, PR 승인 | Operator 겸임 |
+| designer | UX/UI 설계, 디자인 시스템 | Operator 겸임, Frontend Team이 기본 UI 구현 |
+
+### Business Operations (Phase 2부터 활성화)
 
 | 팀 | 역할 | 핵심 파이프라인 |
 |----|------|---------------|
@@ -76,10 +96,42 @@ openclasw-cloud/
 | persona | SOUL.md 작성, 페르소나 설계 | persona-crafting |
 | integration | 메신저/외부 서비스 연동 | integration-setup |
 | skill-dev | 한국 특화 스킬 개발 | skill-development |
-| platform | 인프라, 대시보드, CI/CD | - |
-| qa | 품질 관리, TDD, 테스트 커버리지, 코드 리뷰 | quality-assurance |
 | operations | 모니터링, 비용 제어, 장애 대응 | operations, incident-response |
 | customer-success | 리텐션, 업셀, 리포트 | customer-success |
+
+## Development Workflow (PR-based)
+
+**Phase 1 개발 프로세스**: 모든 변경사항은 Pull Request를 통해서만 반영됩니다.
+
+### PR 규칙
+- **main 브랜치 직접 push 금지** — 모든 변경은 PR을 통해서만
+- **브랜치 네이밍**:
+  - `feature/OC-{issue번호}-{설명}` (새 기능)
+  - `fix/OC-{issue번호}-{설명}` (버그 수정)
+  - `refactor/OC-{issue번호}-{설명}` (리팩토링)
+- **1 Task = 최대 10파일, 300줄 변경, 1 PR** (작은 단위로 분할)
+- **PR 생성 시 반드시 `Closes #이슈번호` 포함**
+- **CI 통과 필수**: typecheck + test + build
+- **Operator 리뷰 승인 후 merge**
+
+### 작업 흐름
+```
+1. GitHub Issue 생성 (템플릿 사용)
+2. 브랜치 생성 (feature/OC-123-add-billing)
+3. 코드 구현 + 테스트 작성 (Claude Code)
+4. PR 생성 (Closes #123 포함)
+5. CI 자동 실행 (typecheck, test, build)
+6. QA 검증 (code-reviewer, qa-tester)
+7. Operator 최종 리뷰 및 승인
+8. PR 머지 → main 브랜치 반영
+```
+
+### Claude Code 작업 방식
+- **구현**: executor로 코드 작성
+- **테스트**: qa-tester로 테스트 케이스 작성 및 검증
+- **리뷰**: code-reviewer로 자체 검토
+- **제출**: PR 생성 후 Operator에게 리뷰 요청
+- **중요**: 최종 승인은 Operator가 수행
 
 ## Conventions
 
@@ -87,16 +139,23 @@ openclasw-cloud/
 - 매뉴얼: `{topic}-manual.md`
 - 파이프라인: `{pipeline-name}.md`
 - 팀 문서: `org/teams/{team-name}/README.md`
+- 브랜치: `feature/OC-{issue번호}-{설명}`
 
 ### Language
 - 코드, CLI 명령어, 설정 파일: English
 - 문서, 매뉴얼, 주석: Korean (한국어)
 - 커밋 메시지: English (conventional commits)
+- PR 제목/설명: English
 
-### Agent Delegation Rules
-- 코드 수정 → executor
+### Agent Delegation Rules (Phase 1)
+- 코드 구현 → executor (Claude Code)
+- 테스트 작성 → test-engineer → qa-tester
+- 코드 리뷰 → code-reviewer (자체 검토)
+- 인프라 변경 → executor (Operator 승인 필요)
+- 버그 수정 → debugger → build-fixer → qa-tester
+
+### Agent Delegation Rules (Phase 2)
 - SOUL.md 작성 → writer (persona 팀 매뉴얼 참조)
-- 인프라 변경 → executor (platform 팀 매뉴얼 참조)
 - 스킬 개발 → executor → code-reviewer → qa-tester
 - 장애 대응 → debugger → build-fixer → qa-tester
 
