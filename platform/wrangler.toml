@@ -1,0 +1,18 @@
+# Cloudflare Pages 배포 설정
+name = "openclasw-platform"
+compatibility_date = "2026-02-08"
+pages_build_output_dir = "dist"
+
+# Environment variables for the build
+[vars]
+VITE_API_URL = "https://openclasw-cloud.dron199939-4a0.workers.dev"
+
+# Staging environment
+[env.staging]
+name = "openclasw-platform-staging"
+vars = { VITE_API_URL = "https://openclasw-cloud-staging.dron199939-4a0.workers.dev" }
+
+# Production environment
+[env.production]
+name = "openclasw-platform"
+vars = { VITE_API_URL = "https://api.openclaw.ai" }
