@@ -12,6 +12,11 @@ async function getAdminHeader() {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function getTenantAuthHeader(tenantId = 'tn_test-tenant-1') {
+  const token = await createJWT({ sub: tenantId, role: 'tenant' }, JWT_SECRET);
+  return { Authorization: `Bearer ${token}` };
+}
+
 async function createBillingSubscription(tenantId: string, planId: string, status = 'active') {
   // Ensure tenant exists first
   const tenant = await env.DB.prepare('SELECT id FROM tenants WHERE id = ?').bind(tenantId).first();
@@ -57,7 +62,7 @@ async function createDailyUsage(tenantId: string, date: string, cost: number, to
 }
 
 describe('Admin Routes', () => {
-  beforeEach(async () => {
+  beforeAll(async () => {
     await setupTestDb();
     (env as any).JWT_SECRET = JWT_SECRET;
   });
@@ -506,6 +511,79 @@ describe('Admin Routes', () => {
       const body = await parseApiResponse(res);
       expect(body.meta.page).toBe(2);
       expect(body.meta.offset).toBe(5);
+    });
+  });
+
+  describe('Authentication and Authorization', () => {
+    it('requires authentication for all admin endpoints', async () => {
+      const endpoints = [
+        '/api/admin',
+        '/api/admin/tenants',
+        '/api/admin/metrics',
+        '/api/admin/incidents',
+        '/api/admin/segments',
+        '/api/admin/billing/summary',
+        '/api/admin/billing/transactions',
+      ];
+
+      for (const endpoint of endpoints) {
+        const res = await app.request(endpoint, {}, env);
+        expect(res.status).toBe(401);
+        const body = await parseApiResponse(res);
+        expect(body.success).toBe(false);
+        expect(body.code).toBe('AUTH_REQUIRED');
+      }
+    });
+
+    it('rejects tenant role for all admin endpoints', async () => {
+      const tenantHeaders = await getTenantAuthHeader();
+      const endpoints = [
+        '/api/admin',
+        '/api/admin/tenants',
+        '/api/admin/metrics',
+        '/api/admin/incidents',
+        '/api/admin/segments',
+        '/api/admin/billing/summary',
+        '/api/admin/billing/transactions',
+      ];
+
+      for (const endpoint of endpoints) {
+        const res = await app.request(endpoint, { headers: tenantHeaders }, env);
+        expect(res.status).toBe(403);
+        const body = await parseApiResponse(res);
+        expect(body.success).toBe(false);
+        expect(body.code).toBe('FORBIDDEN');
+      }
+    });
+
+    it('requires admin role for tenant suspend endpoint', async () => {
+      await createTestTenant({ id: 'tn_auth_test' });
+      const tenantHeaders = await getTenantAuthHeader();
+
+      const res = await app.request('/api/admin/tenants/tn_auth_test/suspend', {
+        method: 'POST',
+        headers: tenantHeaders,
+      }, env);
+
+      expect(res.status).toBe(403);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('FORBIDDEN');
+    });
+
+    it('requires admin role for tenant activate endpoint', async () => {
+      await createTestTenant({ id: 'tn_auth_test_2', status: 'suspended' });
+      const tenantHeaders = await getTenantAuthHeader();
+
+      const res = await app.request('/api/admin/tenants/tn_auth_test_2/activate', {
+        method: 'POST',
+        headers: tenantHeaders,
+      }, env);
+
+      expect(res.status).toBe(403);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('FORBIDDEN');
     });
   });
 });

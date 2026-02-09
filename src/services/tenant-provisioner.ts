@@ -12,6 +12,7 @@ import { generateTenantId, generateResourceId, generateSubdomain, nowISO } from 
 import { soulR2Key, API_KEY_EXPIRY_SECONDS } from '../config/constants.js';
 import { createJWT, generateApiKey } from '../utils/crypto.js';
 import { structuredLog, structuredError, formatErrorMessage } from '../utils/log.js';
+import { CloudflareApi } from './cf-api.js';
 
 interface AuthConfig {
   apiKey: string;
@@ -42,18 +43,30 @@ export class TenantProvisioner {
   }
 
   // Step 2: Create CF resources - record resource IDs
-  // In Phase 1, we simulate resource creation (store placeholder IDs)
-  // Real CF API calls will be added in Phase 2
+  // Uses CloudflareApi for real resource creation (falls back to simulated IDs when CF_API_TOKEN is not configured)
   async createResources(plan: ProvisioningPlan): Promise<void> {
-    const resourceTypes = ['worker', 'd1', 'kv', 'r2'] as const;
-    for (const type of resourceTypes) {
+    const cfApi = new CloudflareApi(this.env);
+    const resources = await cfApi.provisionTenantResources(plan.tenantId, plan.subdomain);
+
+    const resourceMap = [
+      { type: 'worker', result: resources.worker },
+      { type: 'd1', result: resources.d1 },
+      { type: 'kv', result: resources.kv },
+      { type: 'r2', result: resources.r2 },
+    ] as const;
+
+    for (const { type, result } of resourceMap) {
       if (plan.resources[type]) {
         await createTenantResource(this.env.DB, {
           id: generateResourceId(),
           tenant_id: plan.tenantId,
           resource_type: type,
-          resource_id: `${type}-${plan.tenantId}`,  // placeholder
-          config: JSON.stringify({ plan: plan.plan, subdomain: plan.subdomain }),
+          resource_id: result.id,
+          config: JSON.stringify({
+            plan: plan.plan,
+            subdomain: plan.subdomain,
+            name: result.name,
+          }),
         });
       }
     }
@@ -90,7 +103,7 @@ export class TenantProvisioner {
 
   // Step 6: Notify - placeholder for email notification
   async notifyCustomer(tenantId: string, _auth: AuthConfig): Promise<void> {
-    // Phase 1: Log notification (email integration in Phase 2)
+    // Log notification (email integration handled by EmailSender service)
     structuredLog('tenant_provisioned', { tenant_id: tenantId });
   }
 

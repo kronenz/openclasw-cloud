@@ -38,7 +38,7 @@ export function LoginPage() {
       const cleanToken = token.replace(/\s+/g, '')
       login(cleanToken)
       navigate('/dashboard')
-    } catch (err) {
+    } catch {
       setError('Invalid token')
     } finally {
       setLoading(false)

@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, BillingPlan, BillingSubscription } from '../types/index.js';
 import { listBillingPlans, getSubscription, getTenantUsageSummary, updateTenant } from '../db/queries.js';
-import { createEmailNotification } from '../db/queries-v2.js';
+import { createEmailNotification, getBillingInvoices, type BillingInvoice } from '../db/queries-v2.js';
 import { SubscriptionManager } from '../services/subscription-manager.js';
 import { BILLING_PLAN_IDS, ERROR_CODES } from '../config/constants.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
@@ -27,6 +27,11 @@ interface PortoneWebhookPayload {
 // Validation schemas
 const upgradePlanSchema = z.object({
   new_plan_id: z.enum([...BILLING_PLAN_IDS]),
+});
+
+const invoicesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+  offset: z.coerce.number().int().min(0).optional().default(0),
 });
 
 // GET /plans - list all billing plans
@@ -104,7 +109,7 @@ billing.post('/subscription/cancel', withErrorHandler('billing_subscription_canc
   });
 }));
 
-// GET /invoices - list invoices (placeholder)
+// GET /invoices - list billing invoices for tenant
 billing.get('/invoices', withErrorHandler('billing_invoices_list_failed', async (c) => {
   const tenantId = getTenantIdFromContext(c);
 
@@ -112,23 +117,18 @@ billing.get('/invoices', withErrorHandler('billing_invoices_list_failed', async 
     return validationError(c, 'tenant_id is required');
   }
 
-  const subscription = await getSubscription(c.env.DB, tenantId);
+  const queryParams = c.req.query();
+  const parsed = invoicesQuerySchema.safeParse(queryParams);
 
-  // Look up plan price for invoice amount
-  const plans = await listBillingPlans(c.env.DB);
-  const plan = subscription ? plans.find(p => p.id === subscription.plan_id) : undefined;
+  if (!parsed.success) {
+    return validationError(c, 'Invalid query parameters', parsed.error.errors);
+  }
 
-  const invoices = subscription ? [{
-    id: subscription.id,
-    tenant_id: subscription.tenant_id,
-    amount: plan?.monthly_price || 0,
-    period_start: subscription.current_period_start,
-    period_end: subscription.current_period_end,
-    status: subscription.status,
-    created_at: subscription.created_at,
-  }] : [];
+  const { limit, offset } = parsed.data;
 
-  return c.json<ApiResponse>({
+  const invoices = await getBillingInvoices(c.env.DB, tenantId, limit, offset);
+
+  return c.json<ApiResponse<BillingInvoice[]>>({
     success: true,
     data: invoices,
   });
