@@ -16,6 +16,9 @@ export default defineWorkersConfig({
         miniflare: {
           compatibilityDate: '2026-02-08',
           compatibilityFlags: ['nodejs_compat'],
+          bindings: {
+            JWT_SECRET: 'test-jwt-secret-for-vitest',
+          },
         },
         wrangler: {
           configPath: './infra/wrangler.toml',
