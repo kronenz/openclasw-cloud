@@ -6,26 +6,49 @@
 
 ## Project Overview
 
-OpenClaw AI 비서 서비스를 Cloudflare 인프라 위에서 운영하는 B2B SaaS 플랫폼.
+OpenClaw AI 비서 인스턴스를 Cloudflare 인프라 위에서 호스팅/관리하는 B2B SaaS 플랫폼 (컨트롤 플레인).
 AI 에이전트가 조직의 계층, 파이프라인, 매뉴얼에 따라 사업 운영을 수행하는 구조.
+
+## 핵심 아키텍처 (반드시 숙지)
+
+```
+openclasw-cloud (이 프로젝트) = 컨트롤 플레인 (프로비저닝, 빌링, 모니터링, 대시보드, 라우팅)
+OpenClaw                     = AI 에이전트 런타임 (별도 프로젝트, Sandbox에서 실행)
+Moltworker                   = Cloudflare가 만든 "OpenClaw on Workers" 오픈소스 배포 템플릿
+```
+
+- **이 프로젝트는 OpenClaw 자체가 아니다.** OpenClaw 인스턴스를 호스팅하는 플랫폼이다.
+- **1 테넌트 = 1 Moltworker Sandbox** (마이크로 VM, 격리 컨테이너)
+- **메시지 흐름**: 메신저 → Worker(라우팅) → 테넌트의 Sandbox(OpenClaw 런타임) → AI Gateway → 응답
+- **Worker는 AI를 직접 호출하지 않는다.** 테넌트의 Sandbox 컨테이너로 메시지를 포워딩한다.
+
+### 테넌트당 비용 (~$30/월 + AI API)
+
+| 항목 | 비용 | 비고 |
+|------|------|------|
+| Workers Paid Plan | $5/월 | Sandbox 사용 필수 조건 |
+| Sandbox 컨테이너 | $25/월 | 1/2 vCPU, 4GB RAM, 24/7 기준 |
+| R2 / AI Gateway / CF Access | 무료 | 각각 무료 티어 범위 내 |
 
 ## Tech Stack
 
-- **Runtime**: Cloudflare Workers / Containers (Moltworker)
-- **AI Routing**: Cloudflare AI Gateway
-- **Storage**: Cloudflare R2 (파일), D1 (SQL), KV (캐시)
+- **Control Plane**: Cloudflare Workers (Hono) — 이 프로젝트
+- **AI Runtime**: Moltworker Sandbox (OpenClaw 인스턴스) — 별도 프로젝트
+- **AI Routing**: Cloudflare AI Gateway (모델 프록시: Claude/GPT/Gemini)
+- **Storage**: Cloudflare R2 (파일/영속), D1 (SQL), KV (캐시/세션)
 - **Auth**: Cloudflare Access (Zero Trust)
-- **Frontend**: Cloudflare Pages
-- **Core Product**: OpenClaw (AI 비서 게이트웨이)
-- **Messengers**: 카카오톡, 텔레그램, 슬랙, 디스코드
+- **Frontend**: Cloudflare Pages (React)
+- **Core Product**: OpenClaw (AI 비서 게이트웨이, 별도 프로젝트)
+- **Messengers**: 카카오톡, 텔레그램, 슬랙, 디스코드, WhatsApp
 - **Billing**: 포트원 / 토스페이먼츠
 
 ## Architecture Principles
 
 1. **Cloudflare-First**: 가능한 모든 인프라를 Cloudflare 서비스로 구성
-2. **Multi-Tenant Isolation**: 고객별 Container 격리, 데이터 분리 필수
-3. **Agent-Driven Operations**: 운영 업무는 AI 에이전트 파이프라인으로 수행
-4. **Human Gate**: 중요 의사결정(결제, 삭제, 보안 변경)은 반드시 사람 승인
+2. **Multi-Tenant Isolation**: 고객별 Sandbox(마이크로 VM) 격리, 데이터 분리 필수
+3. **Control Plane / Data Plane 분리**: 이 프로젝트는 관리만, AI 실행은 OpenClaw가
+4. **Agent-Driven Operations**: 운영 업무는 AI 에이전트 파이프라인으로 수행
+5. **Human Gate**: 중요 의사결정(결제, 삭제, 보안 변경)은 반드시 사람 승인
 
 ## Project Structure
 

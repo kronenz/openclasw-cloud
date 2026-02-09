@@ -27,9 +27,29 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 
 ## 도메인 지식
 
+### 시스템 아키텍처
+
+**openclasw-cloud**(이 프로젝트)는 OpenClaw AI 비서 서비스를 호스팅하고 운영하는 **컨트롤 플레인(Control Plane)** 입니다.
+
+**역할 구분:**
+- **openclasw-cloud** (이 프로젝트) = 컨트롤 플레인
+  - 테넌트 프로비저닝, 빌링, 모니터링, 대시보드
+  - Cloudflare 인프라 관리 (Workers, R2, D1, KV 등)
+  - AI 에이전트 조직 운영 (`org/` 디렉토리)
+
+- **OpenClaw** (별도 프로젝트) = AI 에이전트 런타임
+  - AI 비서 게이트웨이 제품
+  - 각 테넌트의 Sandbox 컨테이너에서 실행
+  - 사용자와 AI 모델 간 인터페이스 제공
+
+- **Moltworker** = Cloudflare의 OpenClaw 배포 템플릿
+  - Cloudflare가 공식 제공하는 오픈소스 레퍼런스 구현
+  - "OpenClaw on Workers" 아키텍처 (개발자용 배포 템플릿, SaaS 아님)
+  - Worker(엔트리포인트 + API 라우터 + Admin UI) → Sandbox(격리된 마이크로 VM에서 OpenClaw Gateway 실행)
+
 ### OpenClaw 시스템 개요
 
-**OpenClaw**는 AI 비서 게이트웨이로, 다음과 같은 핵심 구성 요소를 가집니다:
+**OpenClaw**(구 Moltbot/Clawdbot)는 AI 비서 게이트웨이 제품으로, 다음과 같은 핵심 구성 요소를 가집니다:
 
 - **SOUL.md**: AI 비서의 성격, 역할, 행동 규칙을 정의하는 파일
   - 각 테넌트는 독립적인 SOUL.md를 보유하여 맞춤형 AI 비서 구성 가능
@@ -60,14 +80,19 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
   - 자동 스케일링
   - V8 isolate 기반 빠른 콜드 스타트
 
-#### Containers (Moltworker)
-- **용도**: 테넌트별 격리된 컨테이너 환경
-- **구조**: 1 테넌트 = 1 Container
+#### Containers (Moltworker / Cloudflare Sandbox)
+- **용도**: 테넌트별 OpenClaw 런타임 격리 실행
+- **Moltworker 아키텍처**:
+  - Cloudflare가 제공하는 "OpenClaw on Workers" 레퍼런스 구현
+  - Worker 레이어: HTTP 엔트리포인트 + API 라우터 + Admin UI
+  - Sandbox 레이어: Cloudflare 마이크로 VM에서 OpenClaw Gateway 격리 실행
+- **구조**: 1 테넌트 = 1 Worker + 1 Sandbox 컨테이너
 - **관리**:
   - Sleep/Wake 메커니즘으로 비용 최적화
   - 유휴 시간 30분 후 자동 sleep
   - 요청 시 즉시 wake (콜드 스타트 ~500ms)
-- **격리**: 완전한 파일시스템 및 프로세스 격리
+- **격리**: Sandbox 내 완전한 파일시스템 및 프로세스 격리
+- **비용**: Workers Paid $5/월 + Sandbox $25/월 (1/2 vCPU, 4GB RAM)
 
 #### AI Gateway
 - **용도**: AI 모델 라우팅 및 관리 레이어
@@ -178,6 +203,16 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 
 ### 비용 구조 및 최적화
 
+#### Cloudflare 인프라 비용 (테넌트당 기본 요금)
+- **Workers Paid**: $5/월 (CPU 시간 제한 없음)
+- **Sandbox 컨테이너**: $25/월 (1/2 vCPU, 4GB RAM)
+- **R2 스토리지**: 무료 (10GB까지, egress 비용 무료)
+- **AI Gateway**: 무료
+- **Cloudflare Access**: 무료 (50명까지)
+- **D1, KV**: 무료 티어 (소규모 사용 시)
+
+**테넌트당 기본 비용**: ~$30/월 + AI 모델 API 비용 별도
+
 #### Anthropic API 비용
 - **Claude 3.5 Sonnet**:
   - Input: $3 / 1M 토큰
@@ -198,22 +233,26 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 
 #### 비용 최적화 전략
 1. **모델 다운그레이드**: 간단한 작업은 Haiku 사용
-2. **프롬프트 캐싱 활성화**: 시스템 프롬프트 재사용
-3. **Batch API 활용**: 긴급하지 않은 작업 배치 처리
+2. **프롬프트 캐싱 활성화**: 시스템 프롬프트 재사용 (비용 최대 90% 절감)
+3. **Batch API 활용**: 긴급하지 않은 작업 배치 처리 (50% 할인)
 4. **응답 길이 제한**: max_tokens 설정으로 비용 통제
-5. **컨테이너 Sleep**: 유휴 테넌트 리소스 절약
+5. **컨테이너 Sleep**: 유휴 테넌트 Sandbox 일시 정지 (인프라 비용 절감)
+6. **AI Gateway 캐싱**: 동일 요청 재사용으로 AI API 호출 감소
 
 ## 핵심 용어 사전
 
 | 용어 | 설명 | 예시 |
 |------|------|------|
+| OpenClaw | AI 비서 게이트웨이 제품 (별도 프로젝트) | 구 Moltbot/Clawdbot, Sandbox에서 실행되는 런타임 |
+| Moltworker | Cloudflare의 OpenClaw 배포 템플릿 | Worker + Sandbox 아키텍처, 오픈소스 레퍼런스 구현 |
+| Sandbox | Cloudflare 마이크로 VM 격리 환경 | OpenClaw 런타임이 실행되는 컨테이너 (1/2 vCPU, 4GB RAM) |
 | SOUL.md | AI 비서의 성격/역할/행동 정의 파일 | "친절하고 전문적인 비서", "반말 사용 금지" |
 | AgentSkill | OpenClaw의 기능 단위 (이메일 확인, 일정 관리 등) | EmailSkill, CalendarSkill, DocumentSkill |
-| 테넌트 | 개별 고객 (1 테넌트 = 1 Container) | tenant_acme_corp, tenant_startup_xyz |
+| 테넌트 | 개별 고객 (1 테넌트 = 1 Worker + 1 Sandbox) | tenant_acme_corp, tenant_startup_xyz |
 | Human Gate | AI 에이전트가 사람 승인을 요청하는 체크포인트 | "이메일 전송 전 승인 필요", "500만원 이상 결제 승인" |
 | 페어링 | 사용자 디바이스를 OpenClaw 인스턴스에 연결하는 과정 | QR 코드 스캔 → 토큰 교환 → 디바이스 등록 |
 | 다운그레이드 | 비용 제어를 위해 AI 모델을 하위 모델로 전환 | Sonnet → Haiku (사용량 초과 시) |
-| Sleep/Wake | 컨테이너 일시 정지 및 재개 메커니즘 | 30분 유휴 → Sleep, 요청 도착 → Wake |
+| Sleep/Wake | Sandbox 컨테이너 일시 정지 및 재개 메커니즘 | 30분 유휴 → Sleep, 요청 도착 → Wake |
 | Egress | 데이터 전송 아웃바운드 비용 | R2는 egress 무료 |
 | Isolate | V8 엔진 기반 격리된 실행 환경 | Workers는 isolate 단위로 실행 |
 | Edge | 사용자와 가까운 CDN 노드 | 전 세계 300+ 엣지 로케이션 |
@@ -273,5 +312,26 @@ AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 �
 
 ---
 
-**마지막 업데이트**: 2026-02-08
+## 자주 묻는 질문 (FAQ)
+
+### Q: OpenClaw와 openclasw-cloud의 차이는?
+- **OpenClaw**: AI 비서 게이트웨이 제품 (런타임). Sandbox 컨테이너에서 실행되는 별도 프로젝트.
+- **openclasw-cloud**: OpenClaw를 호스팅/운영하는 플랫폼 (컨트롤 플레인). 프로비저닝, 빌링, 모니터링 담당.
+
+### Q: Moltworker는 무엇인가?
+Cloudflare가 공식 제공하는 "OpenClaw on Workers" 레퍼런스 구현. Worker(API) + Sandbox(OpenClaw 런타임) 아키텍처. 개발자용 배포 템플릿이며 SaaS 제품이 아님.
+
+### Q: 1 테넌트당 실제 비용은?
+- Cloudflare 인프라: ~$30/월 (Workers $5 + Sandbox $25)
+- AI 모델 API: 사용량에 따라 변동 (Claude Sonnet 기준 평균 $50~200/월)
+- **총계**: 약 $80~230/월 (테넌트 활동량에 따라)
+
+### Q: 테넌트 격리는 어떻게 보장하나?
+- 각 테넌트는 독립된 Sandbox 마이크로 VM에서 실행 (파일시스템, 프로세스 격리)
+- R2 버킷 경로 분리 (`/tenants/{tenant_id}/`)
+- D1 테이블에 `tenant_id` 컬럼으로 데이터 격리
+
+---
+
+**마지막 업데이트**: 2026-02-09
 **관리자**: OpenClaw Cloud 팀
