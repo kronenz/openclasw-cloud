@@ -388,6 +388,15 @@ describe('Admin Routes', () => {
         expect(incident.status).toBe('open');
       });
     });
+
+    it('rejects invalid severity value', async () => {
+      const headers = await getAdminHeader();
+      const res = await app.request('/api/admin/incidents?severity=INVALID', { headers }, env);
+
+      expect(res.status).toBe(400);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+    });
   });
 
   describe('GET /api/admin/segments', () => {
