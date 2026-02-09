@@ -11,14 +11,14 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "development"
 LOG_LEVEL = "info"
 AI_GATEWAY_ENDPOINT = "https://gateway.ai.cloudflare.com/v1"
-JWT_SECRET = "dev-only-secret-replace-in-production"
+# JWT_SECRET is set via `wrangler secret put` (encrypted, not in plaintext)
 
 # D1 데이터베이스 바인딩
 [[d1_databases]]
 binding = "DB"
 database_name = "openclasw-db"
-database_id = "TODO"  # wrangler d1 create 후 ID 입력
-preview_database_id = "TODO"  # 프리뷰용 별도 DB
+database_id = "1bcb0f4e-dff6-434c-9d83-07d0c06b38d2"
+preview_database_id = "1bcb0f4e-dff6-434c-9d83-07d0c06b38d2"
 
 # R2 오브젝트 스토리지 바인딩
 [[r2_buckets]]
@@ -29,14 +29,14 @@ preview_bucket_name = "openclasw-storage-preview"
 # KV 네임스페이스 바인딩
 [[kv_namespaces]]
 binding = "CACHE"
-id = "TODO"  # wrangler kv:namespace create 후 ID 입력
-preview_id = "TODO"  # 프리뷰용 별도 네임스페이스
+id = "dd9ae8ab9b2548abab42f8c4d497e38b"
+preview_id = "dd9ae8ab9b2548abab42f8c4d497e38b"
 
 # 세션 전용 KV
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "TODO"
-preview_id = "TODO"
+id = "e2759e4e98ba463e89d25bdab1b9c69c"
+preview_id = "e2759e4e98ba463e89d25bdab1b9c69c"
 
 # AI Gateway 바인딩
 [ai]
