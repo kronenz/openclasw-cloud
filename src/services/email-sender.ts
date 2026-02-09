@@ -1,5 +1,6 @@
 import type { Bindings } from '../types/index.js';
 import { generateWelcomeEmail } from '../templates/email/welcome.js';
+import { generateReEngagementEmail } from '../templates/email/re-engagement.js';
 import { structuredLog, structuredError } from '../utils/log.js';
 import { fetchWithTimeout } from '../utils/fetch.js';
 import { RESEND_API_URL, OPENCLAW_DOMAIN, API_TIMEOUT_STANDARD } from '../config/constants.js';
@@ -117,28 +118,18 @@ export class EmailSender {
     tenantName: string;
     inactiveDays: number;
   }): Promise<boolean> {
-    const subject = `[OpenClaw] ${params.contactName}님, ${params.tenantName} AI 비서가 기다리고 있어요`;
-    const safeName = escapeHtml(params.contactName);
-    const safeTenant = escapeHtml(params.tenantName);
-    const html = `
-<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <h2>AI 비서를 다시 활용해 보세요!</h2>
-  <p>안녕하세요, ${safeName}님.</p>
-  <p>최근 ${params.inactiveDays}일간 <strong>${safeTenant}</strong>의 AI 비서 이용이 없었습니다.</p>
-  <p>AI 비서가 도움을 드릴 수 있는 다양한 기능이 있습니다:</p>
-  <ul>
-    <li>고객 문의 자동 응대</li>
-    <li>예약 및 일정 관리</li>
-    <li>자주 묻는 질문 처리</li>
-  </ul>
-  <p>대시보드에서 바로 시작해 보세요!</p>
-</div>`.trim();
+    const { subject, html, text } = generateReEngagementEmail({
+      tenantName: params.tenantName,
+      contactName: params.contactName,
+      inactiveDays: params.inactiveDays,
+      dashboardUrl: `https://${OPENCLAW_DOMAIN}/dashboard`,
+    });
 
     return this.send({
       to: params.contactEmail,
       subject,
       html,
-      text: `${params.contactName}님, ${params.inactiveDays}일간 미사용 - AI 비서를 다시 활용해 보세요!`,
+      text,
     });
   }
 }
