@@ -3,6 +3,28 @@
 OpenClaw Cloud는 Cloudflare 기반 AI 비서 서비스를 제공하는 B2B SaaS 플랫폼입니다.
 AI 에이전트가 이 프로젝트를 이해하고 작업할 때 참조하는 핵심 도메인 지식을 담고 있습니다.
 
+## Team Routing Table
+
+작업 시작 전, 해당 도메인의 팀 CONTEXT.md **만** 읽어 최신 상태를 파악하세요.
+전체 README.md를 읽지 말고, CONTEXT.md로 빠르게 현황을 파악하는 것이 토큰 효율적입니다.
+
+| Domain | Team | Context File | Manual |
+|--------|------|-------------|--------|
+| 랜딩 페이지, 마케팅 | sales | org/teams/sales/CONTEXT.md | - |
+| 테넌트 프로비저닝 | onboarding | org/teams/onboarding/CONTEXT.md | onboarding-manual.md |
+| SOUL.md, AI 페르소나 | persona | org/teams/persona/CONTEXT.md | soul-crafting-manual.md |
+| 메신저 연동 | integration | org/teams/integration/CONTEXT.md | messenger-setup-manual.md |
+| 스킬, 기능 개발 | skill-dev | org/teams/skill-dev/CONTEXT.md | skill-config-manual.md |
+| CI/CD, 인프라, 프론트엔드 | platform | org/teams/platform/CONTEXT.md | - |
+| 모니터링, 헬스, Cron | operations | org/teams/operations/CONTEXT.md | cost-control-manual.md, incident-manual.md |
+| 고객 인게이지먼트, 이메일, 리포트 | customer-success | org/teams/customer-success/CONTEXT.md | customer-success-manual.md |
+| 테스트, 코드 리뷰 | qa | org/teams/qa/CONTEXT.md | qa-manual.md |
+
+**Lazy-Load 원칙**:
+1. CONTEXT.md로 현재 상태 파악 (50줄 이내)
+2. 필요시 README.md로 상세 역할 확인
+3. 작업 완료 후 CHANGELOG.md에 기록
+
 ## 도메인 지식
 
 ### OpenClaw 시스템 개요
