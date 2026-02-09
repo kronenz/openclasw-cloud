@@ -468,3 +468,122 @@ export async function hasRecentNotification(
   ).bind(tenantId, type, withinDays).first<{ count: number }>();
   return (result?.count ?? 0) > 0;
 }
+
+// Billing Invoice type
+export interface BillingInvoice {
+  invoice_id: string;
+  tenant_id: string;
+  period_start: string;
+  period_end: string;
+  plan_id: string;
+  plan_name: string;
+  monthly_price: number;
+  total_usage_tokens: number;
+  total_usage_requests: number;
+  total_usage_cost: number;
+  status: 'paid' | 'pending' | 'overdue';
+  created_at: string;
+}
+
+// Get billing invoices for a tenant
+export async function getBillingInvoices(
+  db: D1Database,
+  tenantId: string,
+  limit: number = 10,
+  offset: number = 0
+): Promise<BillingInvoice[]> {
+  // Get all subscription periods for this tenant
+  const subscriptionsQuery = `
+    SELECT
+      bs.id as subscription_id,
+      bs.tenant_id,
+      bs.plan_id,
+      bs.status as subscription_status,
+      bs.current_period_start,
+      bs.current_period_end,
+      bs.created_at,
+      bp.name as plan_name,
+      bp.monthly_price
+    FROM billing_subscriptions bs
+    JOIN billing_plans bp ON bs.plan_id = bp.id
+    WHERE bs.tenant_id = ?
+    ORDER BY bs.created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const subscriptions = await db.prepare(subscriptionsQuery)
+    .bind(tenantId, limit, offset)
+    .all<{
+      subscription_id: string;
+      tenant_id: string;
+      plan_id: string;
+      subscription_status: string;
+      current_period_start: string;
+      current_period_end: string;
+      created_at: string;
+      plan_name: string;
+      monthly_price: number;
+    }>();
+
+  if (!subscriptions.results || subscriptions.results.length === 0) {
+    return [];
+  }
+
+  // For each subscription, get usage data for the period
+  const invoices: BillingInvoice[] = [];
+
+  for (const sub of subscriptions.results) {
+    const periodStart = sub.current_period_start.split('T')[0];
+    const periodEnd = sub.current_period_end.split('T')[0];
+
+    // Get aggregated usage for this period
+    const usageQuery = `
+      SELECT
+        COALESCE(SUM(total_tokens), 0) as total_tokens,
+        COALESCE(SUM(total_requests), 0) as total_requests,
+        COALESCE(SUM(total_cost), 0) as total_cost
+      FROM daily_usage
+      WHERE tenant_id = ? AND date >= ? AND date <= ?
+    `;
+
+    const usage = await db.prepare(usageQuery)
+      .bind(tenantId, periodStart, periodEnd)
+      .first<{
+        total_tokens: number;
+        total_requests: number;
+        total_cost: number;
+      }>();
+
+    // Determine invoice status
+    let status: 'paid' | 'pending' | 'overdue';
+    const now = new Date();
+    const periodEndDate = new Date(sub.current_period_end);
+
+    if (sub.subscription_status === 'active' || sub.subscription_status === 'trialing') {
+      status = 'paid';
+    } else if (sub.subscription_status === 'past_due') {
+      status = 'overdue';
+    } else if (now < periodEndDate) {
+      status = 'pending';
+    } else {
+      status = 'paid';
+    }
+
+    invoices.push({
+      invoice_id: sub.subscription_id,
+      tenant_id: sub.tenant_id,
+      period_start: sub.current_period_start,
+      period_end: sub.current_period_end,
+      plan_id: sub.plan_id,
+      plan_name: sub.plan_name,
+      monthly_price: sub.monthly_price,
+      total_usage_tokens: usage?.total_tokens ?? 0,
+      total_usage_requests: usage?.total_requests ?? 0,
+      total_usage_cost: usage?.total_cost ?? 0,
+      status,
+      created_at: sub.created_at,
+    });
+  }
+
+  return invoices;
+}
