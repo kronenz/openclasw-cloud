@@ -54,6 +54,7 @@ export interface CreateTenantInput {
   contact_name?: string;
   industry?: 'cafe' | 'office' | 'shopping' | 'general';
   metadata?: Record<string, unknown>;
+  existingTenantId?: string;  // 추가: 이미 생성된 테넌트 ID
 }
 
 // Tenant Resources

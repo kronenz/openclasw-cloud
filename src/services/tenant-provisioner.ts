@@ -30,7 +30,7 @@ export class TenantProvisioner {
 
   // Step 1: Plan - generate tenant ID, subdomain, determine resources
   async plan(input: CreateTenantInput): Promise<ProvisioningPlan> {
-    const tenantId = generateTenantId();
+    const tenantId = input.existingTenantId || generateTenantId();
     const subdomain = input.subdomain || generateSubdomain(input.name);
     return {
       tenantId,
@@ -100,25 +100,14 @@ export class TenantProvisioner {
     let plan: ProvisioningPlan | null = null;
     let auth: AuthConfig | null = null;
 
-    // Log each step in provisioning_logs table
     for (const step of steps) {
       const logId = crypto.randomUUID();
-      await createProvisioningLog(this.env.DB, {
-        id: logId,
-        tenant_id: plan?.tenantId || 'pending',
-        step,
-        status: 'running',
-        details: null,
-        started_at: nowISO(),
-        completed_at: null,
-        error_message: null,
-      });
 
-      try {
-        switch (step) {
-          case 'plan':
-            plan = await this.plan(input);
-            // Create tenant record in DB
+      // For 'plan' step, execute first to get tenantId, then log
+      if (step === 'plan') {
+        try {
+          plan = await this.plan(input);
+          if (!input.existingTenantId) {
             await createTenant(this.env.DB, {
               id: plan.tenantId,
               name: input.name,
@@ -129,36 +118,76 @@ export class TenantProvisioner {
               contact_name: input.contact_name || null,
               metadata: input.metadata ? JSON.stringify(input.metadata) : null,
             });
+          }
+          // Now we have a valid tenantId, log success
+          await createProvisioningLog(this.env.DB, {
+            id: logId,
+            tenant_id: plan.tenantId,
+            step,
+            status: 'completed',
+            details: null,
+            started_at: nowISO(),
+            completed_at: nowISO(),
+            error_message: null,
+          });
+        } catch (error) {
+          const errorMsg = formatErrorMessage(error);
+          // Can't log to DB if we don't have a valid tenantId
+          if (plan?.tenantId) {
+            await createProvisioningLog(this.env.DB, {
+              id: logId,
+              tenant_id: plan.tenantId,
+              step,
+              status: 'failed',
+              details: null,
+              started_at: nowISO(),
+              completed_at: nowISO(),
+              error_message: errorMsg,
+            });
+          }
+          throw new Error(`Provisioning failed at step '${step}': ${errorMsg}`);
+        }
+        continue;
+      }
+
+      // All other steps: plan is guaranteed to exist
+      await createProvisioningLog(this.env.DB, {
+        id: logId,
+        tenant_id: plan!.tenantId,
+        step,
+        status: 'running',
+        details: null,
+        started_at: nowISO(),
+        completed_at: null,
+        error_message: null,
+      });
+
+      try {
+        if (!plan) throw new Error('Plan step must complete before other steps');
+        switch (step) {
+          case 'create_resources':
+            await this.createResources(plan);
             break;
-          default:
-            // All subsequent steps require plan (set in 'plan' step)
-            if (!plan) throw new Error('Plan step must complete before other steps');
-            switch (step) {
-              case 'create_resources':
-                await this.createResources(plan);
-                break;
-              case 'init_openclaw':
-                await this.initializeOpenClaw(plan.tenantId, plan);
-                break;
-              case 'setup_auth':
-                auth = await this.setupAuth(plan.tenantId);
-                break;
-              case 'verify': {
-                const ok = await this.verify(plan.tenantId);
-                if (!ok) throw new Error('Verification failed');
-                break;
-              }
-              case 'notify':
-                if (!auth) throw new Error('Auth step must complete before notify');
-                await this.notifyCustomer(plan.tenantId, auth);
-                // Mark tenant as active
-                await updateTenant(this.env.DB, plan.tenantId, { status: 'active' });
-                break;
-            }
+          case 'init_openclaw':
+            await this.initializeOpenClaw(plan.tenantId, plan);
+            break;
+          case 'setup_auth':
+            auth = await this.setupAuth(plan.tenantId);
+            break;
+          case 'verify': {
+            const ok = await this.verify(plan.tenantId);
+            if (!ok) throw new Error('Verification failed');
+            break;
+          }
+          case 'notify':
+            if (!auth) throw new Error('Auth step must complete before notify');
+            await this.notifyCustomer(plan.tenantId, auth);
+            await updateTenant(this.env.DB, plan.tenantId, { status: 'active' });
+            break;
         }
 
         await updateProvisioningLog(this.env.DB, logId, {
-          tenant_id: plan?.tenantId,
+          tenant_id: plan.tenantId,
           status: 'completed',
           completed_at: nowISO(),
         });
@@ -171,7 +200,6 @@ export class TenantProvisioner {
           completed_at: nowISO(),
         });
 
-        // Rollback: mark tenant as suspended if it was created
         if (plan?.tenantId) {
           const tenantId = plan.tenantId;
           await updateTenant(this.env.DB, tenantId, { status: 'suspended' }).catch((rollbackError) => {

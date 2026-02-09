@@ -96,6 +96,7 @@ tenants.post('/', withErrorHandler('tenant_create_failed', async (c) => {
         contact_email: data.contact_email,
         contact_name: data.contact_name,
         metadata: data.metadata,
+        existingTenantId: tenantId,
       }).catch(async (error) => {
         structuredError('provisioning_failed', error, { tenantId });
         // Create incident for failed provisioning so operators are notified
