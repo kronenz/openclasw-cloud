@@ -23,6 +23,9 @@ Operator (최상위 의사결정자)
     ├─── Platform Team
     │       └─── operations 파이프라인 담당
     │
+    ├─── QA Team
+    │       └─── quality-assurance 파이프라인 담당
+    │
     ├─── Operations Team
     │       └─── incident-response 파이프라인 담당
     │
@@ -30,7 +33,7 @@ Operator (최상위 의사결정자)
             └─── customer-success 파이프라인 담당
 ```
 
-## 8개 팀 목록
+## 9개 팀 목록
 
 ### 1. Sales Team (영업팀)
 고객 획득 및 계약 담당. 리드 유입부터 계약 체결까지 전체 영업 프로세스 관리.
@@ -50,10 +53,13 @@ Operator (최상위 의사결정자)
 ### 6. Platform Team (플랫폼팀)
 일상적인 플랫폼 운영 및 모니터링. 비용 관리, 헬스체크, 로그 분석.
 
-### 7. Operations Team (운영팀)
+### 7. QA Team (품질관리팀)
+코드 품질 관리 및 TDD(Test-Driven Development) 프로세스 운영. 모든 코드 변경에 대한 테스트 검증 및 리뷰. 테스트 커버리지 80% 이상 유지.
+
+### 8. Operations Team (운영팀)
 장애 대응 및 복구. 인시던트 관리 및 포스트모템 작성.
 
-### 8. Customer Success Team (고객 성공팀)
+### 9. Customer Success Team (고객 성공팀)
 고객 활동 분석 및 리인게이지먼트. 사용 패턴 분석 및 업셀 기회 발굴.
 
 ## 팀 간 의존관계
@@ -64,6 +70,8 @@ Sales → Onboarding → Persona → Integration
                             Customer Success ← Platform
                                     ↑              ↓
                            Skill Development   Operations
+                                    ↑              ↑
+                                    └─ QA (모든 팀의 코드 변경 검증)
 ```
 
 ### 주요 워크플로우

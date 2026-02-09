@@ -54,6 +54,7 @@ openclasw-cloud/
 | integration | 메신저/외부 서비스 연동 | integration-setup |
 | skill-dev | 한국 특화 스킬 개발 | skill-development |
 | platform | 인프라, 대시보드, CI/CD | - |
+| qa | 품질 관리, TDD, 테스트 커버리지, 코드 리뷰 | quality-assurance |
 | operations | 모니터링, 비용 제어, 장애 대응 | operations, incident-response |
 | customer-success | 리텐션, 업셀, 리포트 | customer-success |
 
@@ -83,9 +84,9 @@ openclasw-cloud/
 - Issue 생성 시 반드시 Issue Template 사용 (빈 이슈 생성 금지)
 - 사용 가능한 템플릿: 일반 작업, 버그 리포트, RFC 제안, Human Gate 요청, 인시던트, 기능 요청, 스킬 개발 요청
 
-### Label 체계 (42개)
+### Label 체계 (43개)
 AI Agent는 Issue 생성/수정 시 아래 접두사 규칙을 따른다:
-- `team/*` (8개): 담당 팀 (sales, onboarding, persona, integration, skill-dev, platform, operations, customer-success)
+- `team/*` (9개): 담당 팀 (sales, onboarding, persona, integration, skill-dev, platform, qa, operations, customer-success)
 - `pipeline/*` (8개): 관련 파이프라인
 - `priority/*` (4개): P0-critical ~ P3-low (SLA 기반)
 - `type/*` (8개): feature, bug, rfc, human-gate, task, incident, improvement, docs
