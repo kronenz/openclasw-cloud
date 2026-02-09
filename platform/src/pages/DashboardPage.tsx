@@ -3,6 +3,7 @@ import { Header } from '@/components/Header'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
 import { DataTable } from '@/components/DataTable'
+import { UsageChart } from '@/components/UsageChart'
 import { useApi } from '@/hooks/useApi'
 
 // Mock data as fallback
@@ -171,29 +172,9 @@ export function DashboardPage() {
 
           {/* Charts + Activity Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Usage Chart Placeholder */}
-            <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-base font-semibold text-gray-900">Token Usage (7 Days)</h3>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md">
-                    7D
-                  </button>
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md">
-                    30D
-                  </button>
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md">
-                    90D
-                  </button>
-                </div>
-              </div>
-              <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
-                <div className="text-center text-gray-400">
-                  <BarChart3 className="w-10 h-10 mx-auto mb-2" />
-                  <p className="text-sm">Recharts area chart</p>
-                  <p className="text-xs mt-1">Daily token usage by model</p>
-                </div>
-              </div>
+            {/* Usage Chart */}
+            <div className="lg:col-span-2">
+              <UsageChart />
             </div>
 
             {/* Recent Activity */}

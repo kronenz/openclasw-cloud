@@ -2,6 +2,7 @@ import { TrendingUp, DollarSign, TrendingDown, Users, Download, AlertTriangle } 
 import { Header } from '@/components/Header'
 import { StatCard } from '@/components/StatCard'
 import { StatusBadge } from '@/components/StatusBadge'
+import { RevenueChart } from '@/components/RevenueChart'
 
 const recentTransactions = [
   {
@@ -128,16 +129,7 @@ export function AdminBillingPage() {
           {/* Revenue Chart + Plan Distribution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Chart */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Revenue Trend (6 Months)</h3>
-              <div className="h-80 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
-                <div className="text-center text-gray-400">
-                  <TrendingUp className="w-10 h-10 mx-auto mb-2" />
-                  <p className="text-sm">Recharts area chart</p>
-                  <p className="text-xs mt-1">MRR over last 6 months</p>
-                </div>
-              </div>
-            </div>
+            <RevenueChart />
 
             {/* Plan Distribution */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">

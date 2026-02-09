@@ -1,6 +1,8 @@
-import { Building2, CreditCard, AlertTriangle, Activity, BarChart3, Plus, Settings, FileText, TrendingUp, CheckCircle, Clock, Loader2 } from 'lucide-react'
+import { Building2, CreditCard, AlertTriangle, Activity, Plus, Settings, FileText, TrendingUp, CheckCircle, Clock, Loader2 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { StatCard } from '@/components/StatCard'
+import { PlatformMetricsChart } from '@/components/PlatformMetricsChart'
+import { RevenueChart } from '@/components/RevenueChart'
 import { useApi } from '@/hooks/useApi'
 
 const mockPlatformEvents = [
@@ -164,28 +166,8 @@ export function AdminDashboardPage() {
           {/* Charts + Events Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Platform Metrics Chart */}
-            <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-base font-semibold text-gray-900">Platform Metrics</h3>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-md">
-                    7D
-                  </button>
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md">
-                    30D
-                  </button>
-                  <button className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md">
-                    90D
-                  </button>
-                </div>
-              </div>
-              <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
-                <div className="text-center text-gray-400">
-                  <BarChart3 className="w-10 h-10 mx-auto mb-2" />
-                  <p className="text-sm">Recharts line chart</p>
-                  <p className="text-xs mt-1">Requests, Latency, Error Rate</p>
-                </div>
-              </div>
+            <div className="lg:col-span-2">
+              <PlatformMetricsChart />
             </div>
 
             {/* Recent Platform Events */}
@@ -233,16 +215,7 @@ export function AdminDashboardPage() {
           {/* Revenue Trend + Quick Actions Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Trend Chart */}
-            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-              <h3 className="text-base font-semibold text-gray-900 mb-4">Revenue Trend (6 Months)</h3>
-              <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-300">
-                <div className="text-center text-gray-400">
-                  <BarChart3 className="w-10 h-10 mx-auto mb-2" />
-                  <p className="text-sm">Recharts bar chart</p>
-                  <p className="text-xs mt-1">Monthly revenue progression</p>
-                </div>
-              </div>
-            </div>
+            <RevenueChart />
 
             {/* Quick Actions Panel */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
