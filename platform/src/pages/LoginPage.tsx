@@ -34,7 +34,9 @@ export function LoginPage() {
 
     setLoading(true)
     try {
-      login(token)
+      // Strip whitespace/newlines from pasted token
+      const cleanToken = token.replace(/\s+/g, '')
+      login(cleanToken)
       navigate('/dashboard')
     } catch (err) {
       setError('Invalid token')

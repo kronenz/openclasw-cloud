@@ -29,8 +29,12 @@ async function request<T>(
 
     if (res.status === 401) {
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
-      throw new Error('Unauthorized')
+      // Return error instead of hard redirect to prevent login loop
+      return {
+        success: false,
+        error: 'Authentication expired. Please log in again.',
+        code: 'AUTH_EXPIRED',
+      } as ApiResponse<T>
     }
 
     const json: ApiResponse<T> = await res.json()
