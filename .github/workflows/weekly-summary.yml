@@ -1,0 +1,76 @@
+name: Weekly Summary
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Every Monday 00:00 UTC
+  workflow_dispatch:
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Generate Weekly Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+            // Get closed issues this week
+            const closed = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              since: oneWeekAgo.toISOString(),
+              per_page: 50
+            });
+
+            // Get open issues
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 50
+            });
+
+            // Count by team
+            const teamCounts = {};
+            for (const issue of closed.data) {
+              for (const label of issue.labels) {
+                if (label.name.startsWith('team/')) {
+                  const team = label.name.replace('team/', '');
+                  teamCounts[team] = (teamCounts[team] || 0) + 1;
+                }
+              }
+            }
+
+            const teamSummary = Object.entries(teamCounts)
+              .map(([team, count]) => `| ${team} | ${count} |`)
+              .join('\n');
+
+            const body = `# Weekly Summary (${oneWeekAgo.toISOString().split('T')[0]} ~ ${new Date().toISOString().split('T')[0]})
+
+            ## Overview
+            - Closed this week: ${closed.data.length}
+            - Currently open: ${open.data.length}
+
+            ## By Team
+            | Team | Closed |
+            |------|--------|
+            ${teamSummary || '| - | 0 |'}
+
+            ## Closed Issues
+            ${closed.data.map(i => `- [#${i.number}](${i.html_url}) ${i.title}`).join('\n') || '- None'}
+
+            ## Open Issues (needs attention)
+            ${open.data.filter(i => i.labels.some(l => l.name === 'priority/P0-critical' || l.name === 'priority/P1-high')).map(i => `- [#${i.number}](${i.html_url}) ${i.title} (${i.labels.map(l=>l.name).filter(n=>n.startsWith('priority/')).join(', ')})`).join('\n') || '- None'}
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Weekly Summary: ${oneWeekAgo.toISOString().split('T')[0]} ~ ${new Date().toISOString().split('T')[0]}`,
+              body: body,
+              labels: ['type/docs', 'automation/full']
+            });

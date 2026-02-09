@@ -1,0 +1,42 @@
+name: Issue Management
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  auto-triage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      projects: write
+    steps:
+      - name: Add to Master Board
+        if: github.event.action == 'opened'
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/users/kronenz/projects/3
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add Human Gate to Queue
+        if: contains(github.event.issue.labels.*.name, 'type/human-gate')
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/users/kronenz/projects/6
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-assign priority label
+        if: github.event.action == 'opened' && !contains(github.event.issue.labels.*.name, 'priority/')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Default to P3-low if no priority set
+            const labels = context.payload.issue.labels.map(l => l.name);
+            const hasPriority = labels.some(l => l.startsWith('priority/'));
+            if (!hasPriority) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: ['priority/P3-low']
+              });
+            }
