@@ -41,6 +41,8 @@ app.use('*', cors({
     } catch { /* invalid origin URL, deny */ }
     // Allow openclaw.ai subdomains
     if (origin.endsWith(`.${OPENCLAW_DOMAIN}`) || origin === `https://${OPENCLAW_DOMAIN}`) return origin;
+    // Allow Cloudflare Pages domains
+    if (origin.endsWith('.openclasw-platform.pages.dev') || origin === 'https://openclasw-platform.pages.dev') return origin;
     // Deny all other origins
     return null;
   },
