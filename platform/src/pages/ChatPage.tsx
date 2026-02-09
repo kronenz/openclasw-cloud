@@ -162,7 +162,7 @@ export function ChatPage() {
         setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id))
         alert(response.error || 'Failed to send message')
       }
-    } catch (error) {
+    } catch {
       setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id))
       alert('Network error. Please try again.')
     } finally {

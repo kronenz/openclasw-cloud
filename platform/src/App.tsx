@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './hooks/useAuth'
+import { AuthProvider } from './hooks/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { DashboardLayout } from './layouts/DashboardLayout'
 import { DashboardPage } from './pages/DashboardPage'

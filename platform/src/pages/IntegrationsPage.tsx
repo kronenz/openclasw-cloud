@@ -230,7 +230,7 @@ export function IntegrationsPage() {
       } else {
         setToast({ type: 'error', message: res.error || 'Failed to disconnect' })
       }
-    } catch (error) {
+    } catch {
       setToast({ type: 'error', message: 'Network error occurred' })
     } finally {
       setSubmitting(false)
@@ -256,7 +256,7 @@ export function IntegrationsPage() {
       } else {
         setToast({ type: 'error', message: res.error || 'Failed to connect' })
       }
-    } catch (error) {
+    } catch {
       setToast({ type: 'error', message: 'Network error occurred' })
     } finally {
       setSubmitting(false)
