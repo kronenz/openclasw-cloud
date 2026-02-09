@@ -1,6 +1,8 @@
 # OpenClasw Cloud - Project Rules
 
+사용자 언어는 한국어야, 기술용어등은 영어도 이해할 수 있어 답변을 한국어로 부탁
 > Cloudflare 기반 AI Agent 조직 운영 플랫폼
+작업 진행상황을 추적할 수 있게 gh cli 사용하여 관리 
 
 ## Project Overview
 
