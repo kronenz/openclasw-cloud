@@ -9,6 +9,8 @@ import { onboarding } from './routes/onboarding.js';
 import { admin } from './routes/admin.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminAuth } from './middleware/admin-auth.js';
+import { TelegramBot } from './services/telegram-bot.js';
+import { getTenant } from './db/queries.js';
 import { loggerMiddleware } from './middleware/logger.js';
 import { securityMiddleware } from './middleware/security.js';
 import { rateLimiterMiddleware } from './middleware/rate-limiter.js';
@@ -73,6 +75,20 @@ app.onError((err, c) => {
     error: 'Internal server error',
     code: ERROR_CODES.INTERNAL_ERROR,
   }, 500);
+});
+
+// Telegram webhook (outside /api/ to bypass auth - Telegram can't send JWT)
+app.post('/webhook/telegram/:tenantId', async (c) => {
+  const tenantId = c.req.param('tenantId');
+  const tenant = await getTenant(c.env.DB, tenantId);
+  if (!tenant || tenant.status !== 'active') {
+    return c.json<ApiResponse>({ success: false, error: 'Tenant not found or inactive' }, 403);
+  }
+
+  const body = await c.req.json();
+  const telegramBot = new TelegramBot(c.env);
+  c.executionCtx.waitUntil(telegramBot.handleUpdate(tenantId, body));
+  return c.json<ApiResponse>({ success: true, data: { received: true } });
 });
 
 // 404 handler
