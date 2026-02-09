@@ -17,6 +17,7 @@ import { AdminIncidentsPage } from './pages/admin/AdminIncidentsPage'
 import { AdminSegmentsPage } from './pages/admin/AdminSegmentsPage'
 import { AdminBillingPage } from './pages/admin/AdminBillingPage'
 import { IntegrationsPage } from './pages/IntegrationsPage'
+import { ChatPage } from './pages/ChatPage'
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="billing" element={<BillingPage />} />
           <Route path="health" element={<HealthPage />} />
           <Route path="soul" element={<SoulPage />} />
+          <Route path="chat" element={<ChatPage />} />
           <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin" element={<AdminDashboardPage />} />

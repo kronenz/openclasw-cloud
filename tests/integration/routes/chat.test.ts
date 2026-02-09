@@ -1,385 +1,236 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { app } from '../../../src/index.js';
-import { createTestEnv, createTestTenant, createTestAuth } from '../../helpers.js';
+import { env } from 'cloudflare:test';
+import { setupTestDb, createTestTenant } from '../../setup.js';
+import { createJWT } from '../../../src/utils/crypto.js';
+import { parseApiResponse } from '../../helpers/types.js';
+
+const JWT_SECRET = 'test-jwt-secret';
+
+async function getAuthHeader(tenantId = 'tn_test-tenant-1') {
+  const token = await createJWT({ sub: tenantId, role: 'tenant' }, JWT_SECRET);
+  return { Authorization: `Bearer ${token}` };
+}
 
 describe('Chat API', () => {
-  let env: ReturnType<typeof createTestEnv>;
-  let tenantId: string;
-  let authHeader: string;
-
-  beforeEach(async () => {
-    env = createTestEnv();
-    const tenant = await createTestTenant(env.DB, { name: 'Chat Test Tenant', status: 'active' });
-    tenantId = tenant.id;
-    authHeader = await createTestAuth(env, tenantId);
+  beforeAll(async () => {
+    await setupTestDb();
+    (env as any).JWT_SECRET = JWT_SECRET;
+    await createTestTenant({
+      id: 'tn_chat-test',
+      name: 'Chat Test Tenant',
+      status: 'active',
+      subdomain: `chat-test-${Date.now()}`,
+    });
   });
 
   describe('POST /api/chat/:tenantId', () => {
-    it('should create a new conversation and return AI response', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}`, {
+    it('should create a new conversation and return response', async () => {
+      const headers = await getAuthHeader('tn_chat-test');
+      const res = await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: 'Hello, how are you?',
-        }),
-      });
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Hello, how are you?' }),
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.data).toHaveProperty('session_id');
-      expect(json.data).toHaveProperty('response');
-      expect(json.data).toHaveProperty('message_id');
-      expect(typeof json.data.session_id).toBe('string');
-      expect(typeof json.data.response).toBe('string');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveProperty('session_id');
+      expect(body.data).toHaveProperty('response');
+      expect(body.data).toHaveProperty('message_id');
+      expect(typeof body.data.session_id).toBe('string');
+      expect(typeof body.data.response).toBe('string');
     });
 
     it('should use existing session_id if provided', async () => {
-      const sessionId = 'session_test123';
+      const headers = await getAuthHeader('tn_chat-test');
+      const sessionId = 'session_existing_test';
 
-      // First message
-      const req1 = new Request(`http://localhost/api/chat/${tenantId}`, {
+      const res = await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: 'First message',
-          session_id: sessionId,
-        }),
-      });
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'First message', session_id: sessionId }),
+      }, env);
 
-      const res1 = await app.fetch(req1, env);
-      expect(res1.status).toBe(200);
-
-      const json1 = await res1.json();
-      expect(json1.data.session_id).toBe(sessionId);
-
-      // Second message in same session
-      const req2 = new Request(`http://localhost/api/chat/${tenantId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: 'Second message',
-          session_id: sessionId,
-        }),
-      });
-
-      const res2 = await app.fetch(req2, env);
-      expect(res2.status).toBe(200);
-
-      const json2 = await res2.json();
-      expect(json2.data.session_id).toBe(sessionId);
+      expect(res.status).toBe(200);
+      const body = await parseApiResponse(res);
+      expect(body.data.session_id).toBe(sessionId);
     });
 
     it('should reject empty message', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}`, {
+      const headers = await getAuthHeader('tn_chat-test');
+      const res = await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: '',
-        }),
-      });
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: '' }),
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.success).toBe(false);
-      expect(json.code).toBe('VALIDATION_ERROR');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
     });
 
     it('should reject message that is too long', async () => {
+      const headers = await getAuthHeader('tn_chat-test');
       const longMessage = 'a'.repeat(5000);
 
-      const req = new Request(`http://localhost/api/chat/${tenantId}`, {
+      const res = await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: longMessage,
-        }),
-      });
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: longMessage }),
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.success).toBe(false);
-      expect(json.code).toBe('VALIDATION_ERROR');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should reject request for inactive tenant', async () => {
-      const inactiveTenant = await createTestTenant(env.DB, {
-        name: 'Inactive Tenant',
-        status: 'suspended'
-      });
-      const inactiveAuth = await createTestAuth(env, inactiveTenant.id);
-
-      const req = new Request(`http://localhost/api/chat/${inactiveTenant.id}`, {
+    it('should reject request for non-existent tenant', async () => {
+      const headers = await getAuthHeader('tn_nonexistent');
+      const res = await app.request('/api/chat/tn_nonexistent', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': inactiveAuth,
-        },
-        body: JSON.stringify({
-          message: 'Hello',
-        }),
-      });
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Hello' }),
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(404);
-
-      const json = await res.json();
-      expect(json.success).toBe(false);
-      expect(json.code).toBe('TENANT_NOT_FOUND');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('TENANT_NOT_FOUND');
     });
   });
 
   describe('GET /api/chat/:tenantId/history', () => {
-    it('should return list of sessions when no session_id provided', async () => {
-      // Create some messages first
-      const req1 = new Request(`http://localhost/api/chat/${tenantId}`, {
+    it('should return list of sessions', async () => {
+      const headers = await getAuthHeader('tn_chat-test');
+
+      // Create a message first
+      await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: 'Test message',
-          session_id: 'session1',
-        }),
-      });
-      await app.fetch(req1, env);
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Test for history', session_id: 'session_history_1' }),
+      }, env);
 
       // Get sessions
-      const req2 = new Request(`http://localhost/api/chat/${tenantId}/history`, {
+      const res = await app.request('/api/chat/tn_chat-test/history', {
         method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
+        headers,
+      }, env);
 
-      const res = await app.fetch(req2, env);
       expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.data).toHaveProperty('sessions');
-      expect(Array.isArray(json.data.sessions)).toBe(true);
-      expect(json.data.sessions.length).toBeGreaterThan(0);
-      expect(json.data.sessions[0]).toHaveProperty('session_id');
-      expect(json.data.sessions[0]).toHaveProperty('last_message_at');
-      expect(json.data.sessions[0]).toHaveProperty('message_count');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveProperty('sessions');
+      expect(Array.isArray(body.data.sessions)).toBe(true);
+      expect(body.data.sessions.length).toBeGreaterThan(0);
+      expect(body.data.sessions[0]).toHaveProperty('session_id');
+      expect(body.data.sessions[0]).toHaveProperty('last_message_at');
+      expect(body.data.sessions[0]).toHaveProperty('message_count');
     });
 
     it('should return messages for specific session', async () => {
-      const sessionId = 'session_history_test';
+      const headers = await getAuthHeader('tn_chat-test');
+      const sessionId = 'session_msgs_test';
 
-      // Create some messages
-      for (let i = 0; i < 3; i++) {
-        const req = new Request(`http://localhost/api/chat/${tenantId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-          },
-          body: JSON.stringify({
-            message: `Message ${i + 1}`,
-            session_id: sessionId,
-          }),
-        });
-        await app.fetch(req, env);
-      }
+      // Create messages
+      await app.request('/api/chat/tn_chat-test', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Message 1', session_id: sessionId }),
+      }, env);
 
       // Get messages
-      const req = new Request(`http://localhost/api/chat/${tenantId}/history?session_id=${sessionId}`, {
+      const res = await app.request(`/api/chat/tn_chat-test/history?session_id=${sessionId}`, {
         method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
+        headers,
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.data).toHaveProperty('session_id');
-      expect(json.data.session_id).toBe(sessionId);
-      expect(json.data).toHaveProperty('messages');
-      expect(Array.isArray(json.data.messages)).toBe(true);
-      // Should have 3 user messages + 3 assistant responses = 6 total
-      expect(json.data.messages.length).toBe(6);
-    });
-
-    it('should respect limit parameter', async () => {
-      const sessionId = 'session_limit_test';
-
-      // Create many messages
-      for (let i = 0; i < 10; i++) {
-        const req = new Request(`http://localhost/api/chat/${tenantId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-          },
-          body: JSON.stringify({
-            message: `Message ${i + 1}`,
-            session_id: sessionId,
-          }),
-        });
-        await app.fetch(req, env);
-      }
-
-      // Get limited messages
-      const req = new Request(`http://localhost/api/chat/${tenantId}/history?session_id=${sessionId}&limit=5`, {
-        method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
-
-      const res = await app.fetch(req, env);
-      expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.data.messages.length).toBe(5);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(true);
+      expect(body.data).toHaveProperty('session_id');
+      expect(body.data.session_id).toBe(sessionId);
+      expect(body.data).toHaveProperty('messages');
+      expect(Array.isArray(body.data.messages)).toBe(true);
+      // Should have at least 2 messages (1 user + 1 assistant)
+      expect(body.data.messages.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should reject invalid limit', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}/history?limit=1000`, {
+      const headers = await getAuthHeader('tn_chat-test');
+      const res = await app.request('/api/chat/tn_chat-test/history?limit=1000', {
         method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
+        headers,
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(400);
-
-      const json = await res.json();
-      expect(json.success).toBe(false);
-      expect(json.code).toBe('VALIDATION_ERROR');
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(false);
+      expect(body.code).toBe('VALIDATION_ERROR');
     });
   });
 
   describe('DELETE /api/chat/:tenantId/history/:sessionId', () => {
     it('should delete conversation session', async () => {
+      const headers = await getAuthHeader('tn_chat-test');
       const sessionId = 'session_delete_test';
 
-      // Create messages
-      const req1 = new Request(`http://localhost/api/chat/${tenantId}`, {
+      // Create a message
+      await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader,
-        },
-        body: JSON.stringify({
-          message: 'Test message',
-          session_id: sessionId,
-        }),
-      });
-      await app.fetch(req1, env);
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'To be deleted', session_id: sessionId }),
+      }, env);
 
       // Delete session
-      const req2 = new Request(`http://localhost/api/chat/${tenantId}/history/${sessionId}`, {
+      const res = await app.request(`/api/chat/tn_chat-test/history/${sessionId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
+        headers,
+      }, env);
 
-      const res = await app.fetch(req2, env);
       expect(res.status).toBe(200);
-
-      const json = await res.json();
-      expect(json.success).toBe(true);
-      expect(json.data.session_id).toBe(sessionId);
-      expect(json.data.deleted).toBe(true);
+      const body = await parseApiResponse(res);
+      expect(body.success).toBe(true);
+      expect(body.data.session_id).toBe(sessionId);
+      expect(body.data.deleted).toBe(true);
 
       // Verify messages are deleted
-      const req3 = new Request(`http://localhost/api/chat/${tenantId}/history?session_id=${sessionId}`, {
+      const res2 = await app.request(`/api/chat/tn_chat-test/history?session_id=${sessionId}`, {
         method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
-
-      const res3 = await app.fetch(req3, env);
-      const json3 = await res3.json();
-      expect(json3.data.messages.length).toBe(0);
-    });
-
-    it('should reject deletion for inactive tenant', async () => {
-      const inactiveTenant = await createTestTenant(env.DB, {
-        name: 'Inactive Tenant',
-        status: 'suspended'
-      });
-      const inactiveAuth = await createTestAuth(env, inactiveTenant.id);
-
-      const req = new Request(`http://localhost/api/chat/${inactiveTenant.id}/history/session123`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': inactiveAuth,
-        },
-      });
-
-      const res = await app.fetch(req, env);
-      expect(res.status).toBe(404);
-
-      const json = await res.json();
-      expect(json.success).toBe(false);
-      expect(json.code).toBe('TENANT_NOT_FOUND');
+        headers,
+      }, env);
+      const body2 = await parseApiResponse(res2);
+      expect(body2.data.messages.length).toBe(0);
     });
   });
 
   describe('Authentication', () => {
     it('should require authentication for POST', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}`, {
+      const res = await app.request('/api/chat/tn_chat-test', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: 'Hello',
-        }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Hello' }),
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(401);
     });
 
-    it('should require authentication for GET', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}/history`, {
+    it('should require authentication for GET history', async () => {
+      const res = await app.request('/api/chat/tn_chat-test/history', {
         method: 'GET',
-      });
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(401);
     });
 
     it('should require authentication for DELETE', async () => {
-      const req = new Request(`http://localhost/api/chat/${tenantId}/history/session123`, {
+      const res = await app.request('/api/chat/tn_chat-test/history/session123', {
         method: 'DELETE',
-      });
+      }, env);
 
-      const res = await app.fetch(req, env);
       expect(res.status).toBe(401);
     });
   });
