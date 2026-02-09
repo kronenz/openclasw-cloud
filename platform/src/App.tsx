@@ -10,6 +10,7 @@ import { HealthPage } from './pages/HealthPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SoulPage } from './pages/SoulPage'
 import { LoginPage } from './pages/LoginPage'
+import { LandingPage } from './pages/LandingPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
 import { AdminIncidentsPage } from './pages/admin/AdminIncidentsPage'
@@ -20,6 +21,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/"
