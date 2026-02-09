@@ -8,6 +8,7 @@ import { TenantDetailPage } from './pages/TenantDetailPage'
 import { BillingPage } from './pages/BillingPage'
 import { HealthPage } from './pages/HealthPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SoulPage } from './pages/SoulPage'
 import { LoginPage } from './pages/LoginPage'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="health" element={<HealthPage />} />
+          <Route path="soul" element={<SoulPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin" element={<AdminDashboardPage />} />
           <Route path="admin/tenants" element={<AdminTenantsPage />} />
