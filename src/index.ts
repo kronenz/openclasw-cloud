@@ -9,6 +9,7 @@ import { onboarding } from './routes/onboarding.js';
 import { admin } from './routes/admin.js';
 import { integrations } from './routes/integrations.js';
 import { chat } from './routes/chat.js';
+import { dashboard } from './routes/dashboard.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminAuth } from './middleware/admin-auth.js';
 import { TelegramBot } from './services/telegram-bot.js';
@@ -69,6 +70,7 @@ app.route('/api/tenants', onboarding);
 app.route('/api/tenants', integrations);
 app.route('/api/admin', admin);
 app.route('/api/chat', chat);
+app.route('/api/dashboard', dashboard);
 
 // Global error handler
 app.onError((err, c) => {
