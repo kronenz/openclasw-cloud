@@ -89,4 +89,38 @@ export class TelegramBot {
     const result = await res.json() as TelegramSendResult;
     return result.ok;
   }
+
+  // Set webhook for a bot token
+  async setWebhook(botToken: string, webhookUrl: string): Promise<boolean> {
+    const res = await fetchWithTimeout(`${TELEGRAM_API_BASE}${botToken}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: webhookUrl }),
+    }, API_TIMEOUT_STANDARD);
+
+    const result = await res.json() as TelegramSendResult;
+    if (!result.ok) {
+      structuredError('telegram_webhook_set_failed', new Error(result.description || 'Unknown error'));
+    }
+    return result.ok;
+  }
+
+  // Delete webhook for a bot token
+  async deleteWebhook(botToken: string): Promise<boolean> {
+    const res = await fetchWithTimeout(`${TELEGRAM_API_BASE}${botToken}/deleteWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }, API_TIMEOUT_STANDARD);
+
+    const result = await res.json() as TelegramSendResult;
+    if (!result.ok) {
+      structuredError('telegram_webhook_delete_failed', new Error(result.description || 'Unknown error'));
+    }
+    return result.ok;
+  }
+
+  // Remove bot token for a tenant
+  async deleteBotToken(tenantId: string): Promise<void> {
+    await this.env.CACHE.delete(`telegram:bot:${tenantId}`);
+  }
 }

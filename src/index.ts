@@ -7,6 +7,7 @@ import { billing } from './routes/billing.js';
 import { webhooks } from './routes/webhooks.js';
 import { onboarding } from './routes/onboarding.js';
 import { admin } from './routes/admin.js';
+import { integrations } from './routes/integrations.js';
 import { authMiddleware } from './middleware/auth.js';
 import { adminAuth } from './middleware/admin-auth.js';
 import { TelegramBot } from './services/telegram-bot.js';
@@ -64,6 +65,7 @@ app.route('/api/tenants', tenants);
 app.route('/api/billing', billing);
 app.route('/api/webhooks', webhooks);
 app.route('/api/tenants', onboarding);
+app.route('/api/tenants', integrations);
 app.route('/api/admin', admin);
 
 // Global error handler
