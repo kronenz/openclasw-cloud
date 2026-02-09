@@ -452,7 +452,7 @@ admin.get('/billing/summary', withErrorHandler('admin_billing_summary_failed', a
 admin.get('/billing/transactions', withErrorHandler('admin_billing_transactions_failed', async (c) => {
   const queryParams = {
     page: c.req.query('page'),
-    limit: c.req.query('limit') || '50',
+    limit: c.req.query('limit'),
   };
 
   const parsed = listTenantsQuerySchema.pick({ page: true, limit: true }).safeParse(queryParams);

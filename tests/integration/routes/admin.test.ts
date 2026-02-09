@@ -467,7 +467,7 @@ describe('Admin Routes', () => {
       expect(body.success).toBe(true);
       expect(Array.isArray(body.data)).toBe(true);
       expect(body.meta).toBeDefined();
-      expect(body.meta.limit).toBe(50);
+      expect(body.meta.limit).toBe(20);
       expect(body.meta.offset).toBe(0);
     });
 
