@@ -1,5 +1,4 @@
-import { Hono } from 'hono';
-import type { Context } from 'hono';
+import { Hono, type Context } from 'hono';
 import type { Bindings, Variables, ApiResponse, AiTextResponse, TelegramUpdate } from '../types/index.js';
 import { TelegramBot } from '../services/telegram-bot.js';
 import { getTenant } from '../db/queries.js';

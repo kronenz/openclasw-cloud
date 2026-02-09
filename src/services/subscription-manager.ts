@@ -3,9 +3,9 @@ import type { Bindings, BillingSubscription } from '../types/index.js';
 import {
   createBillingSubscription,
   updateBillingSubscription,
+  createEmailNotification,
 } from '../db/queries-v2.js';
 import { getSubscription, getTenant, updateTenant, getDailyUsage, listBillingPlans, getTenantUsageSummary } from '../db/queries.js';
-import { createEmailNotification } from '../db/queries-v2.js';
 import { SUBSCRIPTION_PERIOD_DAYS, GRACE_PERIOD_DAYS, DEFAULT_DAILY_TOKEN_LIMIT, DEFAULT_MONTHLY_TOKEN_LIMIT, TENANT_PLANS } from '../config/constants.js';
 import { toDateString, generateSubscriptionId } from '../utils/id.js';
 import { structuredLog, structuredWarn, structuredError } from '../utils/log.js';
