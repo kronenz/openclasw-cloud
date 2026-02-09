@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Bindings, Variables, ApiResponse, PaginatedApiResponse, Tenant, Incident } from '../types/index.js';
 import { getTenant, updateTenant, listIncidents } from '../db/queries.js';
-import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, TENANT_SEGMENTS, ERROR_CODES } from '../config/constants.js';
+import { ADMIN_TENANT_STATUSES, INCIDENT_STATUSES, INCIDENT_SEVERITIES, TENANT_SEGMENTS, ERROR_CODES } from '../config/constants.js';
 import { safeJsonParse } from '../utils/json.js';
 import { structuredLog } from '../utils/log.js';
 import { withErrorHandler, validationError } from '../utils/error-handler.js';
@@ -53,6 +53,8 @@ const listIncidentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum([...INCIDENT_STATUSES]).optional(),
+  severity: z.enum([...INCIDENT_SEVERITIES]).optional(),
+  tenant_id: z.string().max(100).optional(),
 });
 
 const listSegmentsQuerySchema = z.object({
@@ -343,6 +345,8 @@ admin.get('/incidents', withErrorHandler('admin_incidents_list_failed', async (c
     page: c.req.query('page'),
     limit: c.req.query('limit'),
     status: c.req.query('status'),
+    severity: c.req.query('severity'),
+    tenant_id: c.req.query('tenant_id'),
   };
 
   const parsed = listIncidentsQuerySchema.safeParse(queryParams);
@@ -351,14 +355,12 @@ admin.get('/incidents', withErrorHandler('admin_incidents_list_failed', async (c
     return validationError(c, parsed.error.message);
   }
 
-  const { status } = parsed.data;
-  const severity = c.req.query('severity');
-  const tenantId = c.req.query('tenant_id');
+  const { status, severity, tenant_id } = parsed.data;
 
   const incidents = await listIncidents(c.env.DB, {
     status: status || undefined,
     severity: severity || undefined,
-    tenantId: tenantId || undefined,
+    tenantId: tenant_id || undefined,
   });
 
   return c.json<ApiResponse<Incident[]>>({

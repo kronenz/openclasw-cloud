@@ -99,6 +99,7 @@ export const TENANT_PLANS = ['starter', 'growth', 'enterprise'] as const;
 export const TENANT_STATUSES = ['provisioning', 'active', 'suspended', 'deleted'] as const;
 export const BILLING_PLAN_IDS = ['plan_starter', 'plan_growth', 'plan_enterprise'] as const;
 export const INCIDENT_STATUSES = ['open', 'investigating', 'mitigated', 'resolved'] as const;
+export const INCIDENT_SEVERITIES = ['P0', 'P1', 'P2', 'P3'] as const;
 export const TENANT_SEGMENTS = ['champion', 'at_risk', 'potential_upsell', 'need_attention', 'happy_inactive', 'new'] as const;
 export const ADMIN_TENANT_STATUSES = ['active', 'provisioning', 'suspended', 'deleted'] as const;
 export const PREFERRED_TONES = ['polite', 'friendly', 'formal'] as const;
